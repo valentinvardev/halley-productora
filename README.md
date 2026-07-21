@@ -25,9 +25,10 @@ Fuera de alcance por ahora: vitrina/portfolio, likes de prospectos, S3, WhatsApp
 | Tema | Cómo está resuelto |
 |---|---|
 | **Talo** | Adaptador con dos implementaciones detrás de una misma interfaz (`src/server/talo/`). En modo `mock` genera CVU/alias y habilita el simulador de transferencias. El webhook y el procesamiento del pago son los definitivos: sólo se simula quién dispara la transferencia. |
-| **Emails** | No sale nada a internet. Cada mensaje que el sistema enviaría queda en la tabla `Notificacion` y se ve en la **Bandeja** del panel. Al conectar Resend se reemplaza `entregar()` en `src/server/notificaciones.ts`. |
+| **Emails** | Resend, con interruptor. Todo mensaje se registra siempre en la tabla `Notificacion` y se ve en la **Bandeja** del panel; con `EMAIL_MODE=resend` además sale de verdad y se guarda el resultado del envío. Con `EMAIL_MODE=bandeja` (la demo) no sale nada a internet. |
 | **Login del panel** | Una sola clave compartida (`ADMIN_PASSWORD`) en una cookie httpOnly. Cuando Halley necesite varias cuentas, se cambia por Supabase Auth sin tocar los routers. |
 | **Vencido** | No se persiste ni depende de un cron: se deriva de la fecha al leer, así el panel siempre dice la verdad. |
+| **Modo oscuro** | El *negativo*: no hay paleta aparte, se invierten los mismos tokens de color. Sigue la preferencia del sistema y el botón "Negativo / Positivo" la pisa. El QR se mantiene siempre en positivo para que los lectores lo tomen. |
 | **QR** | Codifica alias + CVU + monto como texto. El QR interoperable real lo devuelve Talo junto con el CVU. |
 
 ## Stack
@@ -69,6 +70,9 @@ entorno (Settings → Environment Variables):
 | `ADMIN_PASSWORD` | la clave del panel |
 | `ADMIN_EMAIL` | casilla que recibe el aviso de cada pago |
 | `TALO_MODE` | `mock` |
+| `EMAIL_MODE` | `bandeja` para la demo, `resend` para enviar de verdad |
+| `RESEND_API_KEY` | sólo si `EMAIL_MODE=resend` |
+| `EMAIL_FROM` | remitente verificado en Resend |
 | `NEXT_PUBLIC_APP_URL` | **el dominio de Vercel**, no `localhost` |
 
 `NEXT_PUBLIC_APP_URL` es la que más se olvida: de ahí salen los links personales
@@ -85,24 +89,48 @@ corre solo (script `postinstall`), y las tablas se crean una única vez con
 1. **Panel → Grupos.** Dos grupos cargados: uno al día y otro vencido. La tira de
    marcas muestra el estado del grupo de un vistazo.
 2. **Entrar a "Egresados 2027".** Métricas arriba, tabla de padres abajo con
-   circulado / punteado / tachado.
+   círculo con tilde / punteado / tachado.
 3. **Agregar un padre** (o pegar una lista). Se crea el customer en Talo, se
    genera CVU y alias, y sale la invitación.
 4. **Copiar el link de ese padre y abrirlo en otra pestaña** (o en el celular).
    Es la página sin login: monto, QR, alias.
 5. **Apretar "Simular transferencia desde el banco".** Eso registra la
    transferencia y dispara el webhook igual que lo haría Talo.
-6. **Volver al panel sin recargar:** en pocos segundos el padre pasa a circulado
+6. **Volver al panel sin recargar:** en pocos segundos el padre pasa a círculo con tilde
    y sube el recaudado. La página del padre también cambia sola a "Pago acreditado".
 7. **Bandeja.** Ahí están la invitación, la confirmación al padre y el aviso a
    Halley, con el texto exacto que se va a enviar.
 8. **Link de auto-registro del grupo** — abrirlo y anotarse como un padre nuevo:
    queda en la tabla marcado como "se anotó solo", con su propio link.
 
+## Emails con Resend
+
+La integración ya está hecha ([`src/server/email.ts`](src/server/email.ts)) y se
+enciende con dos variables:
+
+```bash
+EMAIL_MODE="resend"
+RESEND_API_KEY="re_..."
+EMAIL_FROM="Halley Producciones <cobros@tudominio.com>"
+```
+
+Tres cosas a tener en cuenta:
+
+- **Hasta verificar un dominio en Resend**, el remitente de prueba
+  `onboarding@resend.dev` sólo puede escribirle a la casilla con la que creaste
+  la cuenta. Para mandarle a padres reales hay que verificar el dominio de
+  Halley (registros DNS) y usar una dirección de ahí.
+- **El registro es siempre primero.** El mensaje se guarda en `Notificacion`
+  aunque el envío falle, y el error queda visible en la Bandeja. Un problema con
+  Resend nunca tumba el pago que lo disparó.
+- **Para la demo conviene `EMAIL_MODE=bandeja`**: los emails de prueba van a
+  direcciones inventadas (`fernando.rios@mail.com`), y mandarlos de verdad sólo
+  ensucia la reputación del dominio con rebotes.
+
 ## Pendiente para producción
 
 - Credenciales de Talo (KYC de la cuenta comercial) y pasar `TALO_MODE=real`.
 - Verificación de firma del webhook de Talo.
-- Resend para el envío real de los emails.
+- Verificar el dominio de Halley en Resend y pasar `EMAIL_MODE=resend`.
 - Cron de recordatorios (hoy se disparan a mano desde el panel).
 - Módulo de vitrina y likes de prospectos.

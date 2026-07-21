@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { emailHabilitado } from "~/server/email";
 
 export const notificacionRouter = createTRPCRouter({
   /** Bandeja de salida: todo lo que el sistema habría enviado por email. */
@@ -27,8 +28,15 @@ export const notificacionRouter = createTRPCRouter({
         cuerpo: n.cuerpo,
         grupo: n.grupo?.nombre ?? null,
         creadoEn: n.creadoEn,
+        enviadoEl: n.enviadoEl,
+        errorEnvio: n.errorEnvio,
       }));
     }),
+
+  /** Para que el panel aclare si los mails están saliendo o sólo registrándose. */
+  modoEnvio: adminProcedure.query(() => ({
+    enviando: emailHabilitado,
+  })),
 
   contar: adminProcedure.query(({ ctx }) => ctx.db.notificacion.count()),
 });

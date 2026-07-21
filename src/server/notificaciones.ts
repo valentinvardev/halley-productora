@@ -2,12 +2,17 @@ import { env } from "~/env";
 import { fecha, pesos } from "~/lib/format";
 import { linkPadre } from "./dominio";
 import { db } from "./db";
+import { emailHabilitado, enviarEmail } from "./email";
 
 /**
- * Capa de notificaciones. En la demo nada sale a internet: cada email queda
- * registrado en la tabla `Notificacion` y se ve en la bandeja del panel.
- * Para producción se reemplaza `entregar()` por una llamada a Resend — los
- * templates y los puntos de disparo no cambian.
+ * Capa de notificaciones. Todo mensaje se registra primero en la tabla
+ * `Notificacion` — eso es la bandeja del panel y el historial de lo que se le
+ * dijo a cada padre — y recién después, si `EMAIL_MODE=resend`, sale por
+ * Resend. Con `EMAIL_MODE=bandeja` (el modo de la demo) no se manda nada.
+ *
+ * El envío nunca tumba la operación que lo disparó: si Resend falla, el pago ya
+ * quedó registrado y el error se guarda en la notificación para verlo en el
+ * panel y reintentar.
  */
 
 type Destinatarios = {
@@ -23,7 +28,22 @@ async function entregar(data: {
   padreId?: string;
   grupoId?: string;
 }) {
-  return db.notificacion.create({ data });
+  const notificacion = await db.notificacion.create({ data });
+
+  if (!emailHabilitado) return notificacion;
+
+  const resultado = await enviarEmail({
+    para: data.destinatario,
+    asunto: data.asunto,
+    texto: data.cuerpo,
+  });
+
+  return db.notificacion.update({
+    where: { id: notificacion.id },
+    data: resultado.ok
+      ? { enviadoEl: new Date(), resendId: resultado.id }
+      : { errorEnvio: resultado.error },
+  });
 }
 
 export async function notificarInvitacion(

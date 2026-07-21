@@ -82,14 +82,20 @@ model Pago {
     @@index([padreId])
 }
 
-/// Bandeja de salida. En la demo no se envía nada de verdad: cada email que el
-/// sistema dispararía queda registrado acá y se muestra en el panel.
+/// Bandeja de salida: todo mensaje que el sistema dispara queda registrado acá
+/// y se muestra en el panel. Con EMAIL_MODE=bandeja se queda sólo en el
+/// registro; con EMAIL_MODE=resend además sale por Resend y se anota el
+/// resultado en `enviadoEl` / `errorEnvio`.
 model Notificacion {
     id           String           @id @default(cuid())
     tipo         TipoNotificacion
     destinatario String
     asunto       String
     cuerpo       String
+
+    enviadoEl  DateTime?
+    resendId   String?
+    errorEnvio String?
 
     padreId String?
     padre   Padre?  @relation(fields: [padreId], references: [id], onDelete: Cascade)

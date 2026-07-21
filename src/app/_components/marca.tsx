@@ -10,10 +10,20 @@
 const CIRCULO =
   "M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6";
 
+/** Tilde a mano alzada, contenido dentro del círculo. */
+const TILDE = "M19 30 C22 33 24.5 36 26.5 39 C31 31 36 24 42 19";
+
 const CORAZON =
   "M30 51 C30 51 8 37 8 22 C8 13.5 14.5 8 21.5 8 C25.8 8 29 10.3 30 13.2 C31 10.3 34.2 8 38.5 8 C45.5 8 52 13.5 52 22 C52 37 30 51 30 51 Z";
 
-export type TipoMarca = "circulado" | "punteado" | "tachado" | "corazon";
+export type TipoMarca =
+  /** Círculo con tilde: pago confirmado. */
+  | "confirmado"
+  /** Círculo solo: seleccionado (curaduría del portfolio). */
+  | "circulado"
+  | "punteado"
+  | "tachado"
+  | "corazon";
 
 export function Marca({
   tipo,
@@ -38,7 +48,7 @@ export function Marca({
       focusable="false"
       style={{ overflow: "visible" }}
     >
-      {tipo === "circulado" && (
+      {(tipo === "circulado" || tipo === "confirmado") && (
         <path
           d={CIRCULO}
           fill="none"
@@ -46,6 +56,18 @@ export function Marca({
           strokeWidth={grosor}
           strokeLinecap="round"
           className={trazo}
+        />
+      )}
+
+      {tipo === "confirmado" && (
+        <path
+          d={TILDE}
+          fill="none"
+          stroke={color}
+          strokeWidth={grosor}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={animar ? "marca-anim-tilde" : undefined}
         />
       )}
 
@@ -105,10 +127,19 @@ export function EstadoCobro({
   estado: "PENDIENTE" | "PAGADO" | "VENCIDO";
   className?: string;
 }) {
+  // Colores por variable: en negativo (modo oscuro) la tinta se invierte sola.
   const config = {
-    PAGADO: { tipo: "circulado", texto: "Pagado", color: "#0a0a0a" },
-    PENDIENTE: { tipo: "punteado", texto: "Pendiente", color: "#8c8a80" },
-    VENCIDO: { tipo: "tachado", texto: "Vencido", color: "#0a0a0a" },
+    PAGADO: {
+      tipo: "confirmado",
+      texto: "Pagado",
+      color: "var(--color-ink)",
+    },
+    PENDIENTE: {
+      tipo: "punteado",
+      texto: "Pendiente",
+      color: "var(--color-gray-45)",
+    },
+    VENCIDO: { tipo: "tachado", texto: "Vencido", color: "var(--color-ink)" },
   } as const;
 
   const { tipo, texto, color } = config[estado];

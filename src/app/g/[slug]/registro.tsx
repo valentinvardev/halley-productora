@@ -37,7 +37,7 @@ export function Registro({
           e.preventDefault();
           registrarse.mutate({ slug, nombre, email, telefono });
         }}
-        className="w-full max-w-[400px] border border-ink bg-white px-7 py-8"
+        className="w-full max-w-[400px] border border-ink bg-lienzo px-7 py-8"
       >
         <div className="eyebrow">{grupo.colegio}</div>
         <h1 className="mt-1 text-[21px] leading-snug">{grupo.nombre}</h1>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 
+import { BotonTema } from "~/app/_components/tema";
 import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
 import { cerrarSesion } from "./acciones";
 import { Login } from "./_components/login";
@@ -37,6 +38,7 @@ export default async function AdminLayout({
             >
               Bandeja
             </Link>
+            <BotonTema />
             <form action={cerrarSesion}>
               <button
                 type="submit"

@@ -59,7 +59,7 @@ export function Campo({
     <label className={`flex flex-col gap-1.5 ${className}`}>
       <Etiqueta>{label}</Etiqueta>
       <input
-        className="border border-ink bg-white px-3 py-[11px] text-[14px] placeholder:text-gray-45"
+        className="border border-ink bg-lienzo px-3 py-[11px] text-[14px] placeholder:text-gray-45"
         {...props}
       />
       {hint && <span className="font-mono text-[10.5px] text-gray-45">{hint}</span>}
@@ -77,7 +77,7 @@ export function CampoTexto({
     <label className={`flex flex-col gap-1.5 ${className}`}>
       <Etiqueta>{label}</Etiqueta>
       <textarea
-        className="border border-ink bg-white px-3 py-[11px] font-mono text-[13px] leading-relaxed placeholder:text-gray-45"
+        className="border border-ink bg-lienzo px-3 py-[11px] font-mono text-[13px] leading-relaxed placeholder:text-gray-45"
         {...props}
       />
       {hint && <span className="font-mono text-[10.5px] text-gray-45">{hint}</span>}

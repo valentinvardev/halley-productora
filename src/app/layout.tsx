@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 
+import { scriptTema } from "./_components/tema";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
@@ -36,7 +37,12 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Aplica el tema guardado antes de pintar, para que no haya destello. */}
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+      </head>
       <body>
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>

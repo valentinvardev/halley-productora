@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { BotonTema } from "~/app/_components/tema";
 import { Boton, Campo } from "~/app/_components/ui";
 import { iniciarSesion, type EstadoLogin } from "../acciones";
 
@@ -17,7 +18,10 @@ export function Login() {
         action={accion}
         className="w-full max-w-[380px] border border-ink bg-paper p-8"
       >
-        <div className="eyebrow mb-2">Halley Producciones — panel</div>
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <div className="eyebrow">Halley Producciones — panel</div>
+          <BotonTema />
+        </div>
         <h1 className="mb-6 text-[26px] leading-tight">Hoja de contacto</h1>
 
         <Campo

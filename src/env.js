@@ -25,6 +25,16 @@ export const env = createEnv({
     TALO_MODE: z.enum(["mock", "real"]).default("mock"),
     TALO_API_URL: z.string().url().optional(),
     TALO_API_KEY: z.string().optional(),
+
+    /**
+     * "bandeja" registra los emails sin enviarlos (modo demo).
+     * "resend" además los manda de verdad — requiere RESEND_API_KEY.
+     * En los dos casos quedan guardados y visibles en el panel.
+     */
+    EMAIL_MODE: z.enum(["bandeja", "resend"]).default("bandeja"),
+    RESEND_API_KEY: z.string().optional(),
+    /** Remitente verificado en Resend. */
+    EMAIL_FROM: z.string().default("Halley Producciones <onboarding@resend.dev>"),
   },
 
   /**
@@ -50,6 +60,9 @@ export const env = createEnv({
     TALO_MODE: process.env.TALO_MODE,
     TALO_API_URL: process.env.TALO_API_URL,
     TALO_API_KEY: process.env.TALO_API_KEY,
+    EMAIL_MODE: process.env.EMAIL_MODE,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   /**

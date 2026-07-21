@@ -45,7 +45,7 @@ export function PaginaPadre({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper-dimmer px-4 py-10">
-      <div className="w-full max-w-[360px] border border-ink bg-white px-7 py-8">
+      <div className="w-full max-w-[360px] border border-ink bg-lienzo px-7 py-8">
         <div className="eyebrow">
           {data.grupo.nombre} — {data.grupo.colegio}
         </div>
@@ -54,12 +54,7 @@ export function PaginaPadre({
         {pagado ? (
           /* ----------------------------------------------------- pagado */
           <div className="mt-8 flex flex-col items-center text-center">
-            <Marca
-              tipo="circulado"
-              className="h-24 w-24"
-              grosor={3}
-              animar
-            />
+            <Marca tipo="confirmado" className="h-24 w-24" grosor={3} animar />
             <div className="mt-6 font-mono text-[11px] uppercase tracking-[0.1em]">
               Pago acreditado
             </div>
@@ -87,8 +82,10 @@ export function PaginaPadre({
               {data.grupo.cuotaActual} DE {data.grupo.cuotasTotales}
             </div>
 
+            {/* El QR queda siempre en positivo, incluso en modo oscuro: los
+                lectores esperan módulos oscuros sobre fondo claro. */}
             <div
-              className="mt-6 aspect-square w-full border border-ink p-3 [&>svg]:h-full [&>svg]:w-full"
+              className="qr mt-6 aspect-square w-full border border-ink p-3 [&>svg]:h-full [&>svg]:w-full"
               dangerouslySetInnerHTML={{ __html: qrSvg }}
             />
 

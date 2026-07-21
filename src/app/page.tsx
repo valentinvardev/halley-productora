@@ -1,14 +1,18 @@
 import Link from "next/link";
 
 import { Marca } from "./_components/marca";
+import { BotonTema } from "./_components/tema";
 import { botonFantasma, botonSolido } from "./_components/ui";
 
 export default function Home() {
   return (
     <main className="mx-auto max-w-[1080px] px-8">
       <section className="border-b border-gray-20 py-24">
-        <div className="eyebrow mb-5">
-          Halley Producciones — SurCodia — Demo de cobros
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="eyebrow">
+            Halley Producciones — SurCodia — Demo de cobros
+          </div>
+          <BotonTema />
         </div>
         <h1 className="max-w-[11ch] text-[56px] leading-[0.98]">
           Hoja de contacto
@@ -16,8 +20,8 @@ export default function Home() {
         <p className="mt-5 max-w-[46ch] text-[15px] leading-relaxed text-gray-70">
           Cobros a grupos de padres: el administrador arma el grupo, cada padre
           recibe su link personal sin login, y el pago vuelve por webhook y se
-          marca solo en el panel. Circulado es pagado, punteado pendiente,
-          tachado vencido.
+          marca solo en el panel. Círculo con tilde es pagado, punteado
+          pendiente, tachado vencido.
         </p>
 
         <div className="mt-10 flex flex-wrap gap-3.5">
@@ -32,8 +36,8 @@ export default function Home() {
         <div className="mt-14 flex flex-wrap border-y border-ink">
           {[
             {
-              tipo: "circulado" as const,
-              titulo: "Circulado",
+              tipo: "confirmado" as const,
+              titulo: "Circulado con tilde",
               texto: "Pagado — el pago se acreditó y se avisó por email.",
             },
             {

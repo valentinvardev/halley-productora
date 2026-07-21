@@ -19,7 +19,7 @@ function Tira({
   vencidos: number;
 }) {
   const marcas = [
-    ...Array<"circulado">(pagados).fill("circulado"),
+    ...Array<"confirmado">(pagados).fill("confirmado"),
     ...Array<"punteado">(pendientes).fill("punteado"),
     ...Array<"tachado">(vencidos).fill("tachado"),
   ].slice(0, 40);
@@ -38,9 +38,12 @@ function Tira({
         <Marca
           key={i}
           tipo={tipo}
-          className="h-3.5 w-3.5"
-          grosor={5}
-          color={tipo === "punteado" ? "#8c8a80" : "#0a0a0a"}
+          className="h-4 w-4"
+          // El tilde necesita un trazo más fino para leerse a este tamaño.
+          grosor={tipo === "confirmado" ? 4 : 5}
+          color={
+            tipo === "punteado" ? "var(--color-gray-45)" : "var(--color-ink)"
+          }
         />
       ))}
     </div>
@@ -162,7 +165,7 @@ export function Grupos() {
       <Encabezado
         eyebrow="Cobros — grupos"
         titulo="Estado por grupo"
-        bajada="Cada grupo es un rollo: circulado es pagado, punteado pendiente, tachado vencido."
+        bajada="Cada grupo es un rollo: círculo con tilde es pagado, punteado pendiente, tachado vencido."
         acciones={
           !abierto ? (
             <Boton onClick={() => setAbierto(true)}>Nuevo grupo</Boton>

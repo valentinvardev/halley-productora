@@ -16,12 +16,58 @@
   --color-gray-45: #8c8a80;
   --color-gray-20: #d5d3c7;
   --color-marca: #d0342c;
+  /** Superficie de los campos y las tarjetas tipo placa. */
+  --color-lienzo: #ffffff;
 
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --radius-none: 0px;
+}
+
+/* ---------------------------------------------------------------------------
+   Negativo (modo oscuro)
+
+   No hay una paleta oscura aparte: se invierten los mismos tokens, como el
+   negativo de la copia. Todos los componentes usan las variables, así que dan
+   vuelta juntos sin tocar una sola clase.
+
+   Se aplica por preferencia del sistema, salvo que el usuario haya elegido
+   explícitamente (data-tema), que siempre gana.
+--------------------------------------------------------------------------- */
+@layer base {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --color-ink: #f2f0e9;
+      --color-paper: #121210;
+      --color-paper-dim: #1c1c19;
+      --color-paper-dimmer: #0b0b0a;
+      --color-gray-70: #b0ada2;
+      --color-gray-45: #7c7a71;
+      --color-gray-20: #35352f;
+      --color-marca: #e2564c;
+      --color-lienzo: #191916;
+    }
+  }
+
+  :root[data-tema="oscuro"] {
+    --color-ink: #f2f0e9;
+    --color-paper: #121210;
+    --color-paper-dim: #1c1c19;
+    --color-paper-dimmer: #0b0b0a;
+    --color-gray-70: #b0ada2;
+    --color-gray-45: #7c7a71;
+    --color-gray-20: #35352f;
+    --color-marca: #e2564c;
+    --color-lienzo: #191916;
+  }
+
+  /* El QR se lee siempre en positivo: los lectores esperan módulos oscuros
+     sobre fondo claro. */
+  .qr {
+    background: #ffffff;
+  }
 }
 
 @layer base {
@@ -91,9 +137,27 @@
   animation: trazo 0.45s ease-out forwards;
 }
 
+/* El tilde se dibuja después de cerrar el círculo, como quien confirma. */
+@keyframes trazo-corto {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.marca-anim-tilde {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: trazo-corto 0.3s ease-out 0.35s forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .marca-anim {
+  .marca-anim,
+  .marca-anim-tilde {
     animation: none;
     stroke-dasharray: none;
+    stroke-dashoffset: 0;
   }
 }
