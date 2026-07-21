@@ -1,10 +1,8 @@
 # Halley — cobros a grupos de padres
 
 Demo funcional del módulo de cobros para **Halley Producciones**, hecha por SurCodia.
-La especificación completa del producto está en [`Halley_Especificacion.md`](Halley_Especificacion.md)
-y el sistema visual en [`halley-design-system.html`](halley-design-system.html).
-
-El código de la app vive en [`halley-app/`](halley-app).
+La especificación completa del producto está en [`docs/Halley_Especificacion.md`](docs/Halley_Especificacion.md)
+y el sistema visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
 
 ## Alcance de esta demo
 
@@ -39,7 +37,6 @@ Next.js (App Router) · TypeScript · tRPC · Prisma · PostgreSQL (Supabase) ·
 ## Cómo correrlo
 
 ```bash
-cd halley-app
 cp .env.example .env      # completar DATABASE_URL y DIRECT_URL de Supabase
 npm install
 npm run db:push           # crea las tablas
@@ -61,12 +58,9 @@ Entrar a `http://localhost:3000/admin` con la clave de `ADMIN_PASSWORD`
 
 ## Deploy en Vercel
 
-El `package.json` no está en la raíz del repo, así que hay que decírselo a Vercel:
-
-**Settings → Build and Deployment → Root Directory → `halley-app`.**
-Sin eso falla con *"No Next.js version detected"*.
-
-Variables de entorno a cargar en el proyecto (Settings → Environment Variables):
+La app está en la raíz del repo, así que Vercel detecta Next solo: **Root
+Directory se deja vacío**. Lo único que hay que cargar son las variables de
+entorno (Settings → Environment Variables):
 
 | Variable | Valor |
 |---|---|
@@ -81,8 +75,10 @@ Variables de entorno a cargar en el proyecto (Settings → Environment Variables
 que se le mandan a cada padre y ahí le pega el simulador al webhook. Si queda en
 `localhost`, los links del deploy apuntan a la máquina de quien los abre.
 
-`prisma generate` ya corre solo en el build (script `postinstall`). Las tablas se
-crean una vez con `npm run db:push` desde tu máquina, no en el deploy.
+Las variables se validan **durante el build** ([`src/env.js`](src/env.js)): si
+falta `DATABASE_URL` o `DIRECT_URL`, el deploy falla ahí. `prisma generate` ya
+corre solo (script `postinstall`), y las tablas se crean una única vez con
+`npm run db:push` desde tu máquina, no en el deploy.
 
 ## Guión de la demostración
 
