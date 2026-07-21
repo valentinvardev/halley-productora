@@ -59,6 +59,31 @@ Entrar a `http://localhost:3000/admin` con la clave de `ADMIN_PASSWORD`
 > variables apuntan al *Session pooler*
 > (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432`).
 
+## Deploy en Vercel
+
+El `package.json` no está en la raíz del repo, así que hay que decírselo a Vercel:
+
+**Settings → Build and Deployment → Root Directory → `halley-app`.**
+Sin eso falla con *"No Next.js version detected"*.
+
+Variables de entorno a cargar en el proyecto (Settings → Environment Variables):
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | Session pooler de Supabase |
+| `DIRECT_URL` | igual que la anterior |
+| `ADMIN_PASSWORD` | la clave del panel |
+| `ADMIN_EMAIL` | casilla que recibe el aviso de cada pago |
+| `TALO_MODE` | `mock` |
+| `NEXT_PUBLIC_APP_URL` | **el dominio de Vercel**, no `localhost` |
+
+`NEXT_PUBLIC_APP_URL` es la que más se olvida: de ahí salen los links personales
+que se le mandan a cada padre y ahí le pega el simulador al webhook. Si queda en
+`localhost`, los links del deploy apuntan a la máquina de quien los abre.
+
+`prisma generate` ya corre solo en el build (script `postinstall`). Las tablas se
+crean una vez con `npm run db:push` desde tu máquina, no en el deploy.
+
 ## Guión de la demostración
 
 1. **Panel → Grupos.** Dos grupos cargados: uno al día y otro vencido. La tira de
