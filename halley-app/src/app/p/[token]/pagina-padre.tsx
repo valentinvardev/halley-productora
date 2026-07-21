@@ -4,20 +4,22 @@ import { Copiar } from "~/app/_components/copiar";
 import { Marca } from "~/app/_components/marca";
 import { Boton, BotonTexto } from "~/app/_components/ui";
 import { fecha, fechaHora, pesos } from "~/lib/format";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 export function PaginaPadre({
   token,
   qrSvg,
+  inicial,
 }: {
   token: string;
   qrSvg: string;
+  inicial: RouterOutputs["padre"]["porToken"];
 }) {
   const utils = api.useUtils();
   const { data } = api.padre.porToken.useQuery(
     { token },
     // Sin estado propio: la página siempre refleja lo que dice el backend.
-    { refetchInterval: 3000 },
+    { refetchInterval: 3000, initialData: inicial },
   );
 
   const refrescar = () => utils.padre.porToken.invalidate({ token });

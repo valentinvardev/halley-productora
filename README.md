@@ -49,6 +49,16 @@ npm run dev
 Entrar a `http://localhost:3000/admin` con la clave de `ADMIN_PASSWORD`
 (por defecto `halley2026`) y apretar **Cargar datos de demo**.
 
+> **Ojo con el puerto.** `NEXT_PUBLIC_APP_URL` tiene que coincidir con el puerto
+> real: de ahí salen los links personales de cada padre y ahí le pega el
+> simulador al webhook. Si el 3000 está ocupado y Next arranca en el 3001,
+> actualizá la variable (o levantá con `npm run dev -- --port 3000`).
+>
+> **Supabase por IPv4.** La conexión directa (`db.<ref>.supabase.co`) sólo
+> publica registro AAAA: desde una red sin IPv6 no se alcanza. Por eso las dos
+> variables apuntan al *Session pooler*
+> (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432`).
+
 ## Guión de la demostración
 
 1. **Panel → Grupos.** Dos grupos cargados: uno al día y otro vencido. La tira de

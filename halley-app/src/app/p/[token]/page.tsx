@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { db } from "~/server/db";
-import { montoDe } from "~/server/dominio";
 import { qrDePago } from "~/server/qr";
+import { api } from "~/trpc/server";
 import { PaginaPadre } from "./pagina-padre";
 
 export const metadata: Metadata = {
@@ -17,19 +16,17 @@ export default async function PadrePage({
 }) {
   const { token } = await params;
 
-  const padre = await db.padre.findUnique({
-    where: { token },
-    include: { grupo: true },
-  });
-  if (!padre) notFound();
+  // Se resuelve en el servidor y viaja como estado inicial: la tarjeta llega
+  // pintada, sin pantalla de carga. Después el cliente sigue con el polling.
+  const inicial = await api.padre.porToken({ token }).catch(() => null);
+  if (!inicial) notFound();
 
-  // El QR no cambia entre cargas: se genera en el servidor y viaja como SVG.
   const qrSvg = await qrDePago({
-    cvu: padre.cvu,
-    alias: padre.alias,
-    monto: montoDe(padre, padre.grupo),
-    titular: padre.nombre,
+    cvu: inicial.cvu,
+    alias: inicial.alias,
+    monto: inicial.monto,
+    titular: inicial.nombre,
   });
 
-  return <PaginaPadre token={token} qrSvg={qrSvg} />;
+  return <PaginaPadre token={token} qrSvg={qrSvg} inicial={inicial} />;
 }
