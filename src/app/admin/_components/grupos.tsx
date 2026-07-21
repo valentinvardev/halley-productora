@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { CampoFecha } from "~/app/_components/campo-fecha";
 import { Marca } from "~/app/_components/marca";
 import { Boton, Campo, Dato, Encabezado, Vacio } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
@@ -126,23 +127,24 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
           onChange={(e) => setCuotasTotales(e.target.value)}
           required
         />
-        <Campo
-          label="Vence el"
-          type="date"
-          value={vence}
-          onChange={(e) => setVence(e.target.value)}
-          required
-        />
+        <CampoFecha label="Vence el" valor={vence} alCambiar={setVence} />
       </div>
 
       {crear.error && (
         <p className="font-mono text-[11px] text-marca">{crear.error.message}</p>
       )}
 
-      <div className="flex gap-3">
-        <Boton type="submit" disabled={crear.isPending}>
+      <div className="flex items-center gap-3">
+        {/* El selector propio no dispara la validación nativa del formulario:
+            la fecha se exige acá. */}
+        <Boton type="submit" disabled={crear.isPending || !vence}>
           {crear.isPending ? "Creando…" : "Crear grupo"}
         </Boton>
+        {!vence && (
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
+            Falta la fecha de vencimiento
+          </span>
+        )}
         <Boton type="button" variante="fantasma" onClick={alCerrar}>
           Cancelar
         </Boton>
