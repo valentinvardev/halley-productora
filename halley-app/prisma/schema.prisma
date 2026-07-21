@@ -1,0 +1,133 @@
+// Halley — cobros a grupos de padres.
+// Alcance de la demo: sólo el módulo de cobros. Los modelos de portfolio
+// (Categoria/Trabajo/Foto/Prospecto/Like) entran en la siguiente iteración.
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+model Grupo {
+    id      String @id @default(cuid())
+    nombre  String // "Egresados 2027 – Colegio San Martín"
+    slug    String @unique // usado en el link público de auto-registro
+    colegio String
+
+    montoCuota    Decimal  @db.Decimal(12, 2)
+    cuotaActual   Int      @default(1)
+    cuotasTotales Int      @default(1)
+    venceEl       DateTime
+
+    // Permite que los padres se anoten solos desde /g/[slug], además de la
+    // carga en bloque que hace el administrador.
+    autoRegistro Boolean @default(true)
+
+    padres         Padre[]
+    notificaciones Notificacion[]
+
+    creadoEn DateTime @default(now())
+}
+
+model Padre {
+    id       String  @id @default(cuid())
+    nombre   String
+    email    String
+    telefono String?
+
+    grupoId String
+    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+    // Link personal sin login: /p/[token]
+    token String @unique
+
+    // Datos que devuelve la Customers API de Talo (en la demo, el mock).
+    taloCustomerId String @unique
+    cvu            String
+    alias          String
+
+    // Override opcional por padre (becas / descuentos). Si es null vale el del grupo.
+    montoCuota Decimal? @db.Decimal(12, 2)
+
+    estado EstadoPago @default(PENDIENTE)
+
+    // El padre apretó "Ya transferí" — sirve para cruzar contra el webhook.
+    reportoTransferenciaEl DateTime?
+    invitadoEl             DateTime?
+    origen                 OrigenPadre @default(ADMIN)
+
+    pagos          Pago[]
+    notificaciones Notificacion[]
+
+    creadoEn DateTime @default(now())
+
+    @@index([grupoId])
+}
+
+model Pago {
+    id      String @id @default(cuid())
+    padreId String
+    padre   Padre  @relation(fields: [padreId], references: [id], onDelete: Cascade)
+
+    monto             Decimal @db.Decimal(12, 2)
+    taloTransactionId String  @unique
+
+    recibidoEn DateTime @default(now())
+
+    @@index([padreId])
+}
+
+/// Bandeja de salida. En la demo no se envía nada de verdad: cada email que el
+/// sistema dispararía queda registrado acá y se muestra en el panel.
+model Notificacion {
+    id           String           @id @default(cuid())
+    tipo         TipoNotificacion
+    destinatario String
+    asunto       String
+    cuerpo       String
+
+    padreId String?
+    padre   Padre?  @relation(fields: [padreId], references: [id], onDelete: Cascade)
+    grupoId String?
+    grupo   Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+    creadoEn DateTime @default(now())
+
+    @@index([creadoEn])
+}
+
+/// Sólo existe mientras Talo está en modo mock: guarda las transferencias
+/// simuladas para que el webhook pueda confirmar monto y fecha igual que lo
+/// haría contra `GET /customers/{id}/transactions/{id}`. Se borra el día que
+/// entren las credenciales reales.
+model TransaccionMockTalo {
+    id         String   @id // transaction_id
+    customerId String
+    monto      Decimal  @db.Decimal(12, 2)
+    creadoEn   DateTime @default(now())
+
+    @@index([customerId])
+}
+
+enum EstadoPago {
+    PENDIENTE
+    PAGADO
+    VENCIDO
+}
+
+enum OrigenPadre {
+    ADMIN
+    AUTO_REGISTRO
+}
+
+enum TipoNotificacion {
+    INVITACION
+    CONFIRMACION_PADRE
+    AVISO_ADMIN
+    RECORDATORIO
+}

@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Halley — "hoja de contacto"
+   Blanco y negro estricto: la jerarquía se construye con peso de línea y con
+   la marca de lápiz graso, no con color. La única excepción es el corazón de
+   los likes del portfolio (--color-marca), reservado para eso.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-ink: #0a0a0a;
+  --color-paper: #f6f5f0;
+  --color-paper-dim: #eeece4;
+  --color-paper-dimmer: #e2e0d5;
+  --color-gray-70: #4a4a45;
+  --color-gray-45: #8c8a80;
+  --color-gray-20: #d5d3c7;
+  --color-marca: #d0342c;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-none: 0px;
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  /* Bordes rectos, sin sombras, en todo el sistema. */
+  input,
+  select,
+  textarea,
+  button {
+    border-radius: 0;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Eyebrow: el rótulo mono en versalitas que encabeza cada bloque. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-gray-70);
+  }
+}
+
+/* Trazo de lápiz graso: el círculo se dibuja al aparecer. */
+@keyframes trazo {
+  from {
+    stroke-dashoffset: 200;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.marca-anim {
+  stroke-dasharray: 200;
+  animation: trazo 0.45s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca-anim {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halley — Sistema de diseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0a;
+    --paper:#f6f5f0;
+    --paper-dim:#eeece4;
+    --paper-dimmer:#e2e0d5;
+    --gray-70:#4a4a45;
+    --gray-45:#8c8a80;
+    --gray-20:#d5d3c7;
+    --white:#ffffff;
+    --frame:14px;
+    --unit:8px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px;}
+
+  /* ---------- type ---------- */
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--gray-70);
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(246,245,240,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--gray-20);
+  }
+  .topbar-inner{
+    max-width:1080px;margin:0 auto;padding:0 32px;
+    display:flex;align-items:center;justify-content:space-between;height:56px;
+  }
+  .topbar-brand{font-family:'Fraunces',serif;font-weight:600;font-size:15px;}
+  .topbar-nav{display:flex;gap:22px;}
+  .topbar-nav a{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;
+    text-transform:uppercase;color:var(--gray-70);text-decoration:none;
+  }
+  .topbar-nav a:hover{color:var(--ink);}
+
+  /* ---------- hero ---------- */
+  .hero{padding:88px 0 56px;border-bottom:1px solid var(--gray-20);}
+  .hero .eyebrow{margin-bottom:18px;}
+  .hero h1{font-size:56px;line-height:0.98;max-width:11ch;}
+  .hero p{max-width:46ch;color:var(--gray-70);font-size:15px;line-height:1.6;margin-top:20px;}
+  .hero-frame{
+    margin-top:44px;
+    display:flex;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  }
+  .hero-frame div{
+    flex:1;padding:14px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-70);
+    border-right:1px solid var(--gray-20);
+  }
+  .hero-frame div:last-child{border-right:none;}
+  .hero-frame div b{color:var(--ink);display:block;font-size:13px;margin-bottom:2px;}
+
+  section{padding:64px 0;border-bottom:1px solid var(--gray-20);}
+  section:last-of-type{border-bottom:none;}
+  section > .eyebrow{margin-bottom:10px;}
+  section > h2{font-size:30px;margin-bottom:6px;}
+  section > .lede{color:var(--gray-70);font-size:14px;max-width:62ch;margin-bottom:36px;line-height:1.6;}
+
+  /* ---------- swatches ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--ink);}
+  .swatch{border-right:1px solid var(--ink);padding:18px 12px;min-height:110px;display:flex;flex-direction:column;justify-content:flex-end;}
+  .swatch:last-child{border-right:none;}
+  .swatch span{font-family:'JetBrains Mono',monospace;font-size:10px;display:block;}
+  .swatch .hex{margin-top:4px;font-weight:500;}
+
+  /* ---------- type specimen ---------- */
+  .specimen{border-top:1px solid var(--ink);}
+  .specimen-row{
+    display:grid;grid-template-columns:120px 1fr;gap:24px;
+    padding:20px 0;border-bottom:1px solid var(--gray-20);align-items:baseline;
+  }
+  .specimen-row .label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-45);}
+  .specimen-row .sample.display{font-family:'Fraunces',serif;font-size:38px;font-weight:500;}
+  .specimen-row .sample.body{font-family:'Inter',sans-serif;font-size:16px;}
+  .specimen-row .sample.mono{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gray-70);}
+
+  /* ---------- marca legend (signature element) ---------- */
+  .marks{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);}
+  .mark-card{background:var(--paper);padding:28px 22px;}
+  .mark-card .mk{width:48px;height:48px;position:relative;margin-bottom:16px;}
+  .mark-card h3{font-size:16px;margin-bottom:6px;}
+  .mark-card p{font-size:12.5px;color:var(--gray-70);line-height:1.5;margin:0;}
+  svg.wobble-circle{position:absolute;inset:-6px;width:60px;height:60px;overflow:visible;}
+
+  /* ---------- buttons / inputs ---------- */
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .btn{
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;
+    padding:13px 22px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+    cursor:pointer;transition:all .15s ease;
+  }
+  .btn:hover{background:var(--paper);color:var(--ink);}
+  .btn.ghost{background:transparent;color:var(--ink);}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper);}
+  .field{display:flex;flex-direction:column;gap:6px;width:260px;}
+  .field label{font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-70);}
+  .field input,.field select{
+    font-family:'Inter',sans-serif;font-size:14px;padding:11px 12px;
+    border:1px solid var(--ink);background:var(--white);color:var(--ink);
+  }
+  .field input:focus,.field select:focus{outline:2px solid var(--ink);outline-offset:2px;}
+  .tag{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:6px 10px;border:1px solid var(--ink);display:inline-block;
+  }
+  .tag.on{background:var(--ink);color:var(--paper);}
+
+  /* ---------- contact sheet grid (portfolio) ---------- */
+  .cat-nav{display:flex;border:1px solid var(--ink);margin-bottom:0;}
+  .cat-nav button{
+    flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+    padding:13px 8px;border:none;border-right:1px solid var(--ink);background:var(--paper);color:var(--gray-70);cursor:pointer;
+  }
+  .cat-nav button:last-child{border-right:none;}
+  .cat-nav button.active{background:var(--ink);color:var(--paper);}
+
+  .sheet{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    border:1px solid var(--ink);border-top:none;
+  }
+  .frame{
+    position:relative;aspect-ratio:1/1;border-right:1px solid var(--ink);border-top:1px solid var(--ink);
+    background:linear-gradient(135deg,#cfcdc2,#a8a69c);
+    display:flex;align-items:flex-end;padding:10px;cursor:pointer;
+    overflow:hidden;
+  }
+  .frame:nth-child(4n){border-right:none;}
+  .frame .fno{
+    font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--paper);
+    background:rgba(10,10,10,0.55);padding:2px 6px;
+  }
+  .frame .markwrap{position:absolute;inset:8px;pointer-events:none;}
+
+  /* ---------- form ---------- */
+  .service-form{border:1px solid var(--ink);padding:32px;display:grid;gap:20px;max-width:520px;}
+  .service-form .row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .service-form .field{width:100%;}
+
+  /* ---------- parent page mockup ---------- */
+  .print-mock{
+    display:flex;justify-content:center;padding:40px;background:var(--paper-dimmer);border:1px solid var(--gray-20);
+  }
+  .print{
+    background:var(--white);border:1px solid var(--ink);width:340px;padding:28px 26px;
+  }
+  .print .eyebrow{margin-bottom:4px;}
+  .print h3{font-size:20px;margin-bottom:2px;}
+  .print .amount{font-family:'Fraunces',serif;font-size:40px;margin:18px 0 4px;}
+  .print .due{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-70);margin-bottom:22px;}
+  .qr-block{
+    width:100%;aspect-ratio:1/1;border:1px solid var(--ink);
+    background:
+      repeating-linear-gradient(0deg,var(--ink) 0 6px,transparent 6px 12px),
+      repeating-linear-gradient(90deg,var(--ink) 0 6px,transparent 6px 12px);
+    background-blend-mode:multiply;
+    margin-bottom:16px;
+  }
+  .alias-row{
+    display:flex;justify-content:space-between;align-items:center;
+    border:1px solid var(--ink);padding:10px 12px;margin-bottom:14px;
+  }
+  .alias-row span{font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .alias-row button{
+    font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;
+    background:none;border:none;text-decoration:underline;cursor:pointer;color:var(--ink);
+  }
+
+  /* ---------- admin table ---------- */
+  table.admin{width:100%;border-collapse:collapse;border:1px solid var(--ink);}
+  table.admin th{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+    text-align:left;padding:10px 14px;border-bottom:1px solid var(--ink);color:var(--gray-70);
+  }
+  table.admin td{
+    padding:13px 14px;border-bottom:1px solid var(--gray-20);font-size:13.5px;
+  }
+  table.admin td.fno{font-family:'JetBrains Mono',monospace;color:var(--gray-45);font-size:12px;}
+  table.admin tr:last-child td{border-bottom:none;}
+  .status{display:flex;align-items:center;gap:8px;}
+  .status .mk{width:20px;height:20px;position:relative;flex-shrink:0;}
+
+  footer{padding:36px 0 60px;}
+  footer p{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-45);}
+
+  @media (max-width:720px){
+    .wrap{padding:0 18px;}
+    .hero h1{font-size:36px;}
+    .hero-frame{flex-wrap:wrap;}
+    .hero-frame div{flex:1 1 50%;border-bottom:1px solid var(--gray-20);}
+    .swatches{grid-template-columns:repeat(3,1fr);}
+    .swatch:nth-child(3){border-right:none;}
+    .marks{grid-template-columns:1fr;}
+    .sheet{grid-template-columns:repeat(2,1fr);}
+    .frame:nth-child(4n){border-right:1px solid var(--ink);}
+    .frame:nth-child(2n){border-right:none;}
+    .service-form{padding:22px;}
+    .service-form .row-2{grid-template-columns:1fr;}
+    table.admin{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-brand">Halley — sistema de diseño</div>
+    <div class="topbar-nav">
+      <a href="#fundamentos">Fundamentos</a>
+      <a href="#componentes">Componentes</a>
+      <a href="#vitrina">Vitrina</a>
+      <a href="#likes">Selección</a>
+      <a href="#form">Formulario</a>
+      <a href="#padre">Página del padre</a>
+      <a href="#panel">Panel</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="hero" style="border-bottom:1px solid var(--gray-20);">
+    <div class="eyebrow">Halley Producciones — SurCodia — 001/026</div>
+    <h1>Hoja de contacto</h1>
+    <p>Un lenguaje visual en blanco y negro, tomado directamente del oficio: la hoja de contacto donde el fotógrafo revisa un rollo entero y marca con lápiz graso qué queda. Esa misma marca —círculo, círculo punteado, cruz— se usa para curar el portfolio, para que el cliente elija su estilo, y para el estado de cada cobro.</p>
+    <div class="hero-frame">
+      <div><b>Vitrina</b>marcar los seleccionados del rollo</div>
+      <div><b>Selección</b>el cliente circula lo que le gusta</div>
+      <div><b>Cobros</b>circulado = pagado, tachado = vencido</div>
+    </div>
+  </section>
+
+  <section id="fundamentos">
+    <div class="eyebrow">01 — Fundamentos</div>
+    <h2>Paleta</h2>
+    <p class="lede">Sin color: la jerarquía se construye con peso de línea, densidad de trama y la propia marca de lápiz graso — no con semáforos de color.</p>
+    <div class="swatches">
+      <div class="swatch" style="background:var(--ink);color:var(--paper);"><span>Ink</span><span class="hex">#0A0A0A</span></div>
+      <div class="swatch" style="background:var(--paper);"><span>Paper</span><span class="hex">#F6F5F0</span></div>
+      <div class="swatch" style="background:var(--paper-dim);"><span>Paper dim</span><span class="hex">#EEECE4</span></div>
+      <div class="swatch" style="background:var(--gray-70);color:var(--paper);"><span>Gray 70</span><span class="hex">#4A4A45</span></div>
+      <div class="swatch" style="background:var(--gray-45);color:var(--ink);"><span>Gray 45</span><span class="hex">#8C8A80</span></div>
+      <div class="swatch" style="background:var(--gray-20);"><span>Gray 20</span><span class="hex">#D5D3C7</span></div>
+    </div>
+
+    <h2 style="margin-top:56px;">Tipografía</h2>
+    <p class="lede">Fraunces para titulares (calidez editorial, formas de imprenta), Inter para texto de lectura, JetBrains Mono para todo lo que sea dato: números de cuadro, montos, timestamps.</p>
+    <div class="specimen">
+      <div class="specimen-row"><div class="label">Display / Fraunces 500</div><div class="sample display">Aa Gg Rr — Halley</div></div>
+      <div class="specimen-row"><div class="label">Body / Inter 400</div><div class="sample body">El padre recibe su link personal y transfiere desde su banco de siempre.</div></div>
+      <div class="specimen-row"><div class="label">Mono / JetBrains</div><div class="sample mono">CVU 0000630500008064475741 — CUOTA MARZO — 04A</div></div>
+    </div>
+
+    <h2 style="margin-top:56px;">La marca</h2>
+    <p class="lede">El elemento de firma del sistema. La misma gramática de tres marcas se repite en los tres módulos del producto.</p>
+    <div class="marks">
+      <div class="mark-card">
+        <div class="mk">
+          <svg class="wobble-circle" viewBox="0 0 60 60"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#0a0a0a" stroke-width="2.5"/></svg>
+        </div>
+        <h3>Circulado</h3>
+        <p>Seleccionado / pagado. Trazo continuo, como el editor marcando el frame que queda.</p>
+      </div>
+      <div class="mark-card">
+        <div class="mk">
+          <svg class="wobble-circle" viewBox="0 0 60 60"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-dasharray="5 5"/></svg>
+        </div>
+        <h3>Punteado</h3>
+        <p>Pendiente / en revisión. El mismo círculo, sin cerrar del todo.</p>
+      </div>
+      <div class="mark-card">
+        <div class="mk">
+          <svg class="wobble-circle" viewBox="0 0 60 60"><line x1="10" y1="10" x2="50" y2="50" stroke="#0a0a0a" stroke-width="2.5"/><line x1="50" y1="10" x2="10" y2="50" stroke="#0a0a0a" stroke-width="2.5"/></svg>
+        </div>
+        <h3>Tachado</h3>
+        <p>Descartado / vencido. Cruz simple, sin ambigüedad.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="componentes">
+    <div class="eyebrow">02 — Componentes</div>
+    <h2>Botones, campos, tags</h2>
+    <p class="lede">Bordes de 1px, esquinas rectas, sin sombras. Los botones invierten ink/paper al hover, como un negativo.</p>
+    <div class="row" style="margin-bottom:32px;">
+      <button class="btn">Confirmar pago</button>
+      <button class="btn ghost">Ver detalle</button>
+    </div>
+    <div class="row" style="margin-bottom:32px;">
+      <div class="field"><label>Nombre</label><input type="text" placeholder="Nombre del padre"></div>
+      <div class="field"><label>Categoría</label><select><option>Egresados</option><option>Bodas</option></select></div>
+    </div>
+    <div class="row">
+      <span class="tag on">Egresados</span>
+      <span class="tag">Bodas</span>
+      <span class="tag">Comuniones</span>
+      <span class="tag">15 años</span>
+    </div>
+  </section>
+
+  <section id="vitrina">
+    <div class="eyebrow">03 — Módulo: vitrina / portfolio</div>
+    <h2>Hoja de contacto por categoría</h2>
+    <p class="lede">La landing es un catálogo navegable: cada categoría es un "rollo" propio. Los destacados llevan la marca circulada, como si el fotógrafo ya hubiese revisado ese rollo.</p>
+    <div class="cat-nav">
+      <button class="active">Egresados</button>
+      <button>Bodas</button>
+      <button>Comuniones</button>
+      <button>15 años</button>
+    </div>
+    <div class="sheet">
+      <div class="frame"><span class="fno">01A</span></div>
+      <div class="frame"><span class="fno">02A</span>
+        <div class="markwrap"><svg class="wobble-circle" viewBox="0 0 60 60" style="inset:0;width:100%;height:100%;"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#f6f5f0" stroke-width="2.5"/></svg></div>
+      </div>
+      <div class="frame"><span class="fno">03A</span></div>
+      <div class="frame"><span class="fno">04A</span></div>
+      <div class="frame"><span class="fno">05A</span></div>
+      <div class="frame"><span class="fno">06A</span>
+        <div class="markwrap"><svg class="wobble-circle" viewBox="0 0 60 60" style="inset:0;width:100%;height:100%;"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#f6f5f0" stroke-width="2.5"/></svg></div>
+      </div>
+      <div class="frame"><span class="fno">07A</span></div>
+      <div class="frame"><span class="fno">08A</span></div>
+    </div>
+  </section>
+
+  <section id="likes">
+    <div class="eyebrow">04 — Módulo: selección de servicios</div>
+    <h2>El cliente circula lo que le gusta</h2>
+    <p class="lede">Probá hacer click sobre los cuadros: así es como el prospecto marca sus preferencias dentro de la categoría elegida, antes de que Halley cotice.</p>
+    <div class="sheet" id="likeSheet">
+      <div class="frame like-frame"><span class="fno">01B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">02B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">03B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">04B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">05B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">06B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">07B</span><div class="markwrap"></div></div>
+      <div class="frame like-frame"><span class="fno">08B</span><div class="markwrap"></div></div>
+    </div>
+  </section>
+
+  <section id="form">
+    <div class="eyebrow">05 — Módulo: formulario de selección de servicio</div>
+    <h2>Cotización</h2>
+    <p class="lede">Simple, sin pasos ocultos: categoría, datos de contacto, y el link a la hoja de "likes" de esa categoría.</p>
+    <div class="service-form">
+      <div class="field"><label>Nombre y apellido</label><input type="text" placeholder="Ej. Martina Gómez"></div>
+      <div class="row-2">
+        <div class="field"><label>Email</label><input type="text" placeholder="martina@mail.com"></div>
+        <div class="field"><label>Teléfono</label><input type="text" placeholder="+54 9 351..."></div>
+      </div>
+      <div class="field"><label>Categoría del evento</label><select><option>Egresados</option><option>Bodas</option><option>Comuniones</option><option>15 años</option></select></div>
+      <button class="btn" style="width:100%;">Ver trabajos y elegir estilo</button>
+    </div>
+  </section>
+
+  <section id="padre">
+    <div class="eyebrow">06 — Módulo: cobros — página del padre</div>
+    <h2>Sin login, un link por padre</h2>
+    <p class="lede">Estilo de una placa/print: el monto como titular editorial, el QR y el alias abajo, sin distracciones.</p>
+    <div class="print-mock">
+      <div class="print">
+        <div class="eyebrow">Egresados 2027 — Colegio San Martín</div>
+        <h3>Hola, Fernando</h3>
+        <div class="amount">$ 45.000</div>
+        <div class="due">VENCE 05/09/2026 · CUOTA 3 DE 6</div>
+        <div class="qr-block"></div>
+        <div class="alias-row"><span>halley.sanmartin.fernando</span><button>Copiar</button></div>
+        <button class="btn" style="width:100%;">Ya transferí</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel">
+    <div class="eyebrow">07 — Módulo: cobros — panel de administración</div>
+    <h2>Estado por grupo</h2>
+    <p class="lede">La misma gramática de marcas de la vitrina, aplicada al estado de cobro.</p>
+    <table class="admin">
+      <thead>
+        <tr><th>Cuadro</th><th>Padre</th><th>Monto</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="fno">01A</td><td>Fernando Ríos</td><td class="mono">$ 45.000</td>
+          <td><div class="status"><span class="mk"><svg viewBox="0 0 60 60" style="width:100%;height:100%;"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#0a0a0a" stroke-width="4"/></svg></span> Pagado</div></td>
+        </tr>
+        <tr>
+          <td class="fno">02A</td><td>Carla Pérez</td><td class="mono">$ 45.000</td>
+          <td><div class="status"><span class="mk"><svg viewBox="0 0 60 60" style="width:100%;height:100%;"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#8c8a80" stroke-width="4" stroke-dasharray="8 8"/></svg></span> Pendiente</div></td>
+        </tr>
+        <tr>
+          <td class="fno">03A</td><td>Marcelo Diaz</td><td class="mono">$ 45.000</td>
+          <td><div class="status"><span class="mk"><svg viewBox="0 0 60 60" style="width:100%;height:100%;"><line x1="14" y1="14" x2="46" y2="46" stroke="#0a0a0a" stroke-width="4"/><line x1="46" y1="14" x2="14" y2="46" stroke="#0a0a0a" stroke-width="4"/></svg></span> Vencido</div></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>HALLEY × SURCODIA — SISTEMA DE DISEÑO — 026</p>
+  </footer>
+
+</div>
+
+<script>
+  const circleSVG = `<svg class="wobble-circle" viewBox="0 0 60 60" style="width:100%;height:100%;"><path d="M30 6 C44 6 52 16 51 30 C50 44 40 53 28 52 C14 51 7 40 8 27 C9 14 18 5 30 6" fill="none" stroke="#0a0a0a" stroke-width="3"/></svg>`;
+  document.querySelectorAll('.like-frame').forEach(frame => {
+    frame.addEventListener('click', () => {
+      const wrap = frame.querySelector('.markwrap');
+      frame.classList.toggle('liked');
+      wrap.innerHTML = frame.classList.contains('liked') ? circleSVG : '';
+    });
+  });
+
+  document.querySelectorAll('.cat-nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
