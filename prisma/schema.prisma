@@ -1,6 +1,8 @@
 // Halley — cobros a grupos de padres.
-// Alcance de la demo: sólo el módulo de cobros. Los modelos de portfolio
-// (Categoria/Trabajo/Foto/Prospecto/Like) entran en la siguiente iteración.
+//
+// El padre es una cuenta (email, sin contraseña) que reclama a uno o más
+// alumnos. La cuota vive en el grupo como un plan de N vencimientos, y cada
+// pago se imputa contra la cuota impaga más vieja del alumno.
 
 generator client {
     provider = "prisma-client-js"
@@ -13,53 +15,79 @@ datasource db {
     directUrl = env("DIRECT_URL")
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Grupo y plan de cuotas                                                     */
+/* -------------------------------------------------------------------------- */
+
 model Grupo {
     id      String @id @default(cuid())
     nombre  String // "Egresados 2027 – Colegio San Martín"
-    slug    String @unique // usado en el link público de auto-registro
+    slug    String @unique // link público de registro: /g/[slug]
     colegio String
 
-    montoCuota    Decimal  @db.Decimal(12, 2)
-    cuotaActual   Int      @default(1)
-    cuotasTotales Int      @default(1)
-    venceEl       DateTime
-
-    // Permite que los padres se anoten solos desde /g/[slug], además de la
-    // carga en bloque que hace el administrador.
+    /// Permite que los padres se registren solos desde el link del grupo.
     autoRegistro Boolean @default(true)
 
-    padres         Padre[]
+    cuotas         Cuota[]
+    alumnos        Alumno[]
+    galerias       Galeria[]
     notificaciones Notificacion[]
 
     creadoEn DateTime @default(now())
 }
 
-model Padre {
-    id       String  @id @default(cuid())
-    nombre   String
-    email    String
-    telefono String?
+/// Una cuota del plan: "la 3 de 6, $45.000, vence el 05/09".
+model Cuota {
+    id      String @id @default(cuid())
+    grupoId String
+    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+    numero  Int
+    monto   Decimal  @db.Decimal(12, 2)
+    venceEl DateTime
+
+    pagos Pago[]
+
+    creadoEn DateTime @default(now())
+
+    @@unique([grupoId, numero])
+    @@index([grupoId])
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Alumno y cuenta del padre                                                  */
+/* -------------------------------------------------------------------------- */
+
+model Alumno {
+    id     String @id @default(cuid())
+    nombre String
 
     grupoId String
     grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    // Link personal sin login: /p/[token]
+    /// Email al que el admin manda la invitación inicial, antes de que exista
+    /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
+    emailContacto String?
+
+    /// Cuenta que reclamó a este alumno. Una vez reclamado no se puede volver
+    /// a reclamar: sin esto, dos personas se pisarían y la segunda vería los
+    /// datos de la primera.
+    cuentaId String?
+    cuenta   Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+
+    /// Link personal sin login (/p/[token]). Sigue funcionando para el padre
+    /// que no se quiere registrar y es el que ya salió por mail.
     token String @unique
 
-    // Datos que devuelve la Customers API de Talo (en la demo, el mock).
+    /// Customer de Talo: va por alumno, no por cuenta, para que cada
+    /// transferencia se pueda imputar sin ambigüedad aunque haya hermanos.
     taloCustomerId String @unique
     cvu            String
     alias          String
 
-    // Override opcional por padre (becas / descuentos). Si es null vale el del grupo.
-    montoCuota Decimal? @db.Decimal(12, 2)
-
-    estado EstadoPago @default(PENDIENTE)
-
-    // El padre apretó "Ya transferí" — sirve para cruzar contra el webhook.
+    /// La familia avisó que transfirió. No confirma nada: sirve para cruzarlo
+    /// contra lo que informa Talo.
     reportoTransferenciaEl DateTime?
-    invitadoEl             DateTime?
-    origen                 OrigenPadre @default(ADMIN)
 
     pagos          Pago[]
     notificaciones Notificacion[]
@@ -67,25 +95,101 @@ model Padre {
     creadoEn DateTime @default(now())
 
     @@index([grupoId])
+    @@index([cuentaId])
 }
 
+/// Cuenta del padre. Sin contraseña: se entra con un link mandado al email.
+model Cuenta {
+    id     String  @id @default(cuid())
+    email  String  @unique
+    nombre String?
+
+    alumnos  Alumno[]
+    sesiones Sesion[]
+
+    creadoEn   DateTime  @default(now())
+    ultimoAcceso DateTime?
+}
+
+/// Sesión abierta, referenciada por una cookie httpOnly.
+model Sesion {
+    id       String @id @default(cuid())
+    token    String @unique
+    cuentaId String
+    cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+
+    expiraEl DateTime
+    creadoEn DateTime @default(now())
+
+    @@index([cuentaId])
+}
+
+/// Magic link: un solo uso, con vencimiento corto.
+model EnlaceAcceso {
+    id    String @id @default(cuid())
+    token String @unique
+    email String
+
+    /// Si el link viene de un registro, el alumno que se está reclamando.
+    alumnoId String?
+
+    expiraEl DateTime
+    usadoEl  DateTime?
+    creadoEn DateTime  @default(now())
+
+    @@index([email])
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Pagos                                                                      */
+/* -------------------------------------------------------------------------- */
+
 model Pago {
-    id      String @id @default(cuid())
-    padreId String
-    padre   Padre  @relation(fields: [padreId], references: [id], onDelete: Cascade)
+    id       String @id @default(cuid())
+    alumnoId String
+    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+    /// Cuota contra la que se imputó. Se completa al recibir el pago: se aplica
+    /// a la impaga más vieja.
+    cuotaId String?
+    cuota   Cuota?  @relation(fields: [cuotaId], references: [id], onDelete: SetNull)
 
     monto             Decimal @db.Decimal(12, 2)
     taloTransactionId String  @unique
 
     recibidoEn DateTime @default(now())
 
-    @@index([padreId])
+    @@index([alumnoId])
+    @@index([cuotaId])
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Galería                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/// Galería del grupo. Por ahora es el link de Drive que carga el admin; el
+/// visor propio con las fotos alojadas entra en la etapa siguiente.
+model Galeria {
+    id      String @id @default(cuid())
+    grupoId String
+    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+    titulo    String
+    linkDrive String?
+    /// La galería alojada dura un año; después queda sólo el respaldo en Drive.
+    venceEl   DateTime?
+
+    creadoEn DateTime @default(now())
+
+    @@index([grupoId])
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Notificaciones                                                             */
+/* -------------------------------------------------------------------------- */
+
 /// Bandeja de salida: todo mensaje que el sistema dispara queda registrado acá
-/// y se muestra en el panel. Con EMAIL_MODE=bandeja se queda sólo en el
-/// registro; con EMAIL_MODE=resend además sale por Resend y se anota el
-/// resultado en `enviadoEl` / `errorEnvio`.
+/// y se muestra en el panel. Con EMAIL_MODE=resend además sale por Resend.
 model Notificacion {
     id           String           @id @default(cuid())
     tipo         TipoNotificacion
@@ -97,10 +201,10 @@ model Notificacion {
     resendId   String?
     errorEnvio String?
 
-    padreId String?
-    padre   Padre?  @relation(fields: [padreId], references: [id], onDelete: Cascade)
-    grupoId String?
-    grupo   Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+    alumnoId String?
+    alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+    grupoId  String?
+    grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
     creadoEn DateTime @default(now())
 
@@ -109,10 +213,9 @@ model Notificacion {
 
 /// Sólo existe mientras Talo está en modo mock: guarda las transferencias
 /// simuladas para que el webhook pueda confirmar monto y fecha igual que lo
-/// haría contra `GET /customers/{id}/transactions/{id}`. Se borra el día que
-/// entren las credenciales reales.
+/// haría contra `GET /customers/{id}/transactions/{id}`.
 model TransaccionMockTalo {
-    id         String   @id // transaction_id
+    id         String   @id
     customerId String
     monto      Decimal  @db.Decimal(12, 2)
     creadoEn   DateTime @default(now())
@@ -120,19 +223,15 @@ model TransaccionMockTalo {
     @@index([customerId])
 }
 
-enum EstadoPago {
+enum EstadoCuota {
     PENDIENTE
-    PAGADO
-    VENCIDO
-}
-
-enum OrigenPadre {
-    ADMIN
-    AUTO_REGISTRO
+    PAGADA
+    VENCIDA
 }
 
 enum TipoNotificacion {
     INVITACION
+    ACCESO
     CONFIRMACION_PADRE
     AVISO_ADMIN
     RECORDATORIO

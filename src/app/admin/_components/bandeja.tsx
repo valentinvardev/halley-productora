@@ -8,6 +8,7 @@ import { api } from "~/trpc/react";
 
 const ROTULO = {
   INVITACION: "Invitación",
+  ACCESO: "Link de acceso",
   CONFIRMACION_PADRE: "Confirmación",
   AVISO_ADMIN: "Aviso a Halley",
   RECORDATORIO: "Recordatorio",

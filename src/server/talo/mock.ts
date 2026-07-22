@@ -39,7 +39,7 @@ export function armarAlias(colegio: string, nombre: string) {
 }
 
 async function aliasDisponible(alias: string) {
-  const existe = await db.padre.findFirst({
+  const existe = await db.alumno.findFirst({
     where: { alias },
     select: { id: true },
   });

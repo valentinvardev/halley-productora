@@ -1,34 +1,36 @@
 import { talo } from "~/server/talo";
 import { db } from "./db";
-import { montoDe } from "./dominio";
+import { imputarPagos, sumarPagos } from "./dominio";
 import { notificarPagoRecibido } from "./notificaciones";
 
 /**
  * Procesamiento de un pago avisado por webhook.
  *
  * Corre *después* de haberle respondido 200 a Talo: consulta la transacción
- * para confirmar monto y fecha, registra el pago y dispara las notificaciones.
- * Es idempotente — Talo reintenta los webhooks y el mismo transaction_id no
- * puede generar dos pagos.
+ * para confirmar monto y fecha, registra el pago contra la cuota que
+ * corresponde y dispara las notificaciones. Es idempotente — Talo reintenta los
+ * webhooks y el mismo transaction_id no puede generar dos pagos.
  */
 export async function procesarPagoRecibido(payload: {
   transactionId: string;
   customerId: string;
 }) {
-  // En paralelo: cada viaje a la base cuesta caro y estas dos consultas no
-  // dependen entre sí. El padre pasa de pendiente a pagado en la menor cantidad
-  // de idas y vueltas posible.
-  const [padre, yaRegistrado] = await Promise.all([
-    db.padre.findUnique({
+  // En paralelo: cada viaje a la base cuesta caro y no dependen entre sí.
+  const [alumno, yaRegistrado] = await Promise.all([
+    db.alumno.findUnique({
       where: { taloCustomerId: payload.customerId },
-      include: { grupo: true },
+      include: {
+        grupo: { include: { cuotas: true } },
+        cuenta: true,
+        pagos: true,
+      },
     }),
     db.pago.findUnique({
       where: { taloTransactionId: payload.transactionId },
     }),
   ]);
 
-  if (!padre) {
+  if (!alumno) {
     console.error(
       `[talo] webhook para un customer desconocido: ${payload.customerId}`,
     );
@@ -50,38 +52,44 @@ export async function procesarPagoRecibido(payload: {
     return { ok: false as const, motivo: "transaccion-no-encontrada" };
   }
 
+  // La transferencia se imputa a la cuota impaga más vieja: es la regla que
+  // espera cualquiera que deba varias cuotas.
+  const antes = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  const cuotaDestino = antes.proxima;
+
   const pago = await db.pago.create({
     data: {
-      padreId: padre.id,
+      alumnoId: alumno.id,
+      cuotaId: cuotaDestino?.id ?? null,
       monto: tx.monto,
       taloTransactionId: tx.transactionId,
       recibidoEn: tx.creadoEn,
     },
   });
 
-  // Sólo damos la cuota por saldada si lo acreditado cubre el monto esperado;
-  // un pago parcial queda registrado pero el padre sigue figurando pendiente.
-  const esperado = montoDe(padre, padre.grupo);
+  const despues = imputarPagos(alumno.grupo.cuotas, antes.pagado + tx.monto);
 
-  // El caso normal es que la transferencia cubra la cuota entera: ahí no hace
-  // falta preguntar por los pagos anteriores. La suma se consulta sólo cuando
-  // este pago solo no alcanza.
-  let total = tx.monto;
-  if (total < esperado) {
-    const acreditado = await db.pago.aggregate({
-      where: { padreId: padre.id },
-      _sum: { monto: true },
-    });
-    total = Number(acreditado._sum.monto ?? 0);
+  // Sólo confirmamos si la transferencia efectivamente saldó la cuota; un pago
+  // parcial queda registrado y la cuota sigue figurando impaga.
+  const saldoLaCuota =
+    !!cuotaDestino &&
+    despues.cuotas.find((c) => c.id === cuotaDestino.id)?.estado === "PAGADA";
+
+  if (saldoLaCuota) {
+    await notificarPagoRecibido(
+      {
+        alumno,
+        grupo: alumno.grupo,
+        email: alumno.cuenta?.email ?? alumno.emailContacto,
+      },
+      { monto: tx.monto, cuota: cuotaDestino.numero, deuda: despues.deuda },
+    );
   }
 
-  if (total >= esperado) {
-    await db.padre.update({
-      where: { id: padre.id },
-      data: { estado: "PAGADO" },
-    });
-    await notificarPagoRecibido({ padre, grupo: padre.grupo }, total);
-  }
-
-  return { ok: true as const, motivo: "registrado", pago, total, esperado };
+  return {
+    ok: true as const,
+    motivo: saldoLaCuota ? "cuota-saldada" : "pago-parcial",
+    pago,
+    deuda: despues.deuda,
+  };
 }

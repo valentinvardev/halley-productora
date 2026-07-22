@@ -10,7 +10,7 @@ import {
   IconoSobre,
   IconoSobreReenvio,
 } from "~/app/_components/iconos";
-import { EstadoCobro } from "~/app/_components/marca";
+import { Marca } from "~/app/_components/marca";
 import {
   Boton,
   BotonTexto,
@@ -42,27 +42,34 @@ export function DetalleGrupo({ id }: { id: string }) {
     }
   };
 
-  const invitarPendientes = api.padre.invitarPendientes.useMutation({
-    onSuccess: (r) => refrescar(`Invitaciones enviadas: ${r.enviados}`),
+  const invitarTodos = api.alumno.invitarTodos.useMutation({
+    onSuccess: (r) =>
+      refrescar(
+        `Invitaciones enviadas: ${r.enviados}${r.sinEmail ? ` · sin email: ${r.sinEmail}` : ""}`,
+      ),
   });
-  const recordarPendientes = api.padre.recordarPendientes.useMutation({
+  const recordarPendientes = api.alumno.recordarPendientes.useMutation({
     onSuccess: (r) => refrescar(`Recordatorios enviados: ${r.enviados}`),
   });
-  const invitar = api.padre.invitar.useMutation({
-    onSuccess: () => refrescar("Invitación enviada"),
+  const invitar = api.alumno.invitar.useMutation({
+    onSuccess: (r) =>
+      refrescar(r.enviado ? "Invitación enviada" : "Ese alumno no tiene email"),
   });
-  const recordar = api.padre.recordar.useMutation({
-    onSuccess: () => refrescar("Recordatorio enviado"),
+  const recordar = api.alumno.recordar.useMutation({
+    onSuccess: (r) =>
+      refrescar(r.enviado ? "Recordatorio enviado" : "Nada que recordar"),
   });
-  const eliminar = api.padre.eliminar.useMutation({
-    onSuccess: () => refrescar("Padre eliminado"),
+  const desvincular = api.alumno.desvincular.useMutation({
+    onSuccess: () => refrescar("Cuenta desvinculada"),
+  });
+  const eliminar = api.alumno.eliminar.useMutation({
+    onSuccess: () => refrescar("Alumno eliminado"),
   });
   const simular = api.pago.simular.useMutation({
     onSuccess: async () => {
       await refrescar("Transferencia simulada — esperando el webhook…");
       // El webhook se procesa después de responderle 200 a Talo, así que al
-      // volver de la mutación el pago todavía no está. Insistimos un par de
-      // veces para que la fila se marque enseguida y no en el próximo ciclo.
+      // volver de la mutación el pago todavía no está.
       setTimeout(() => void refrescar(), 700);
       setTimeout(() => void refrescar(), 1800);
     },
@@ -79,27 +86,22 @@ export function DetalleGrupo({ id }: { id: string }) {
 
   return (
     <>
-      <Link
-        href="/admin"
-        className="eyebrow mb-6 inline-block hover:text-ink"
-      >
+      <Link href="/admin" className="eyebrow mb-6 inline-block hover:text-ink">
         ← Grupos
       </Link>
 
       <Encabezado
-        eyebrow={`${grupo.colegio} · Cuota ${grupo.cuotaActual} de ${grupo.cuotasTotales} · Vence ${fecha(grupo.venceEl)}`}
+        eyebrow={`${grupo.colegio} · ${grupo.cuotas.length} cuotas`}
         titulo={grupo.nombre}
         acciones={
           <>
             <Boton
               variante="fantasma"
-              onClick={() =>
-                invitarPendientes.mutate({ grupoId: id, soloNoInvitados: true })
-              }
-              disabled={invitarPendientes.isPending}
+              onClick={() => invitarTodos.mutate({ grupoId: id })}
+              disabled={invitarTodos.isPending}
             >
               <IconoSobre />
-              Invitar no invitados
+              Invitar a todos
             </Boton>
             <Boton
               variante="fantasma"
@@ -115,13 +117,13 @@ export function DetalleGrupo({ id }: { id: string }) {
 
       <div className="mb-8 flex flex-wrap border border-ink">
         <Dato rotulo="Recaudado" valor={pesos(grupo.resumen.recaudado)} />
-        <Dato rotulo="Esperado" valor={pesos(grupo.resumen.esperado)} />
+        <Dato rotulo="Plan total" valor={pesos(grupo.resumen.esperado)} />
         <Dato
-          rotulo="Pagados"
-          valor={`${grupo.resumen.pagados}/${grupo.resumen.padres}`}
+          rotulo="Al día"
+          valor={`${grupo.resumen.alDia}/${grupo.resumen.alumnos}`}
         />
-        <Dato rotulo="Pendientes" valor={grupo.resumen.pendientes} />
-        <Dato rotulo="Vencidos" valor={grupo.resumen.vencidos} />
+        <Dato rotulo="Con saldo" valor={grupo.resumen.conDeuda} />
+        <Dato rotulo="Con vencidas" valor={grupo.resumen.vencidos} />
       </div>
 
       {aviso && (
@@ -130,11 +132,29 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Plan de cuotas del grupo */}
+      <div className="mb-8">
+        <div className="eyebrow mb-2">Plan de cuotas</div>
+        <div className="flex flex-wrap gap-2">
+          {grupo.cuotas.map((c) => (
+            <div key={c.id} className="border border-gray-20 px-3 py-2">
+              <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                Cuota {c.numero}
+              </div>
+              <div className="font-mono text-[12.5px]">{pesos(c.monto)}</div>
+              <div className="font-mono text-[10px] text-gray-45">
+                {fecha(c.venceEl)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
           <div>
             <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-gray-45">
-              Link de auto-registro del grupo
+              Link de registro del grupo — es el que se le pasa a las familias
             </div>
             <div className="mt-1 font-mono text-[12px] break-all">
               {grupo.linkRegistro}
@@ -144,16 +164,18 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
-      <AltaPadres grupoId={id} alTerminar={refrescar} />
+      <Galerias grupoId={id} galerias={grupo.galerias} alGuardar={refrescar} />
 
-      {grupo.padres.length === 0 ? (
-        <Vacio>Todavía no hay padres cargados en este grupo</Vacio>
+      <AltaAlumnos grupoId={id} alTerminar={refrescar} />
+
+      {grupo.alumnos.length === 0 ? (
+        <Vacio>Todavía no hay alumnos cargados en este grupo</Vacio>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] border-collapse border border-ink">
+          <table className="w-full min-w-[900px] border-collapse border border-ink">
             <thead>
               <tr>
-                {["Cuadro", "Padre", "Alias", "Monto", "Estado", ""].map((h) => (
+                {["Cuadro", "Alumno", "Alias", "Plan", "Cuotas", ""].map((h) => (
                   <th
                     key={h}
                     className="border-b border-ink px-3.5 py-2.5 text-left font-mono text-[10.5px] uppercase tracking-[0.05em] text-gray-70"
@@ -164,78 +186,126 @@ export function DetalleGrupo({ id }: { id: string }) {
               </tr>
             </thead>
             <tbody>
-              {grupo.padres.map((p, i) => (
-                <tr key={p.id} className="border-b border-gray-20 last:border-b-0">
+              {grupo.alumnos.map((a, i) => (
+                <tr key={a.id} className="border-b border-gray-20 last:border-b-0">
                   <td className="px-3.5 py-3 font-mono text-[12px] text-gray-45">
                     {cuadro(i)}
                   </td>
 
                   <td className="px-3.5 py-3">
-                    <div className="text-[13.5px]">{p.nombre}</div>
+                    <div className="text-[13.5px]">{a.nombre}</div>
                     <div className="font-mono text-[10.5px] text-gray-45">
-                      {p.email}
+                      {a.cuenta?.email ?? a.emailContacto ?? "sin email"}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      {p.origen === "AUTO_REGISTRO" && <Tag>Se anotó solo</Tag>}
-                      {!p.invitadoEl && <Tag>Sin invitar</Tag>}
-                      {p.reportoTransferenciaEl && p.estado !== "PAGADO" && (
-                        <Tag activo>Dice que transfirió</Tag>
+                      {a.cuenta ? (
+                        <Tag activo>Registrado</Tag>
+                      ) : (
+                        <Tag>Sin cuenta</Tag>
                       )}
                     </div>
                   </td>
 
                   <td className="px-3.5 py-3">
-                    <div className="font-mono text-[11.5px]">{p.alias}</div>
+                    <div className="font-mono text-[11.5px]">{a.alias}</div>
                     <div className="font-mono text-[10px] text-gray-45">
-                      CVU {p.cvu}
+                      CVU {a.cvu}
                     </div>
                   </td>
 
-                  <td className="px-3.5 py-3 font-mono text-[13px] whitespace-nowrap">
-                    {pesos(p.monto)}
-                    {p.tieneMontoPropio && (
-                      <span className="ml-1 text-[10px] text-gray-45">·ajustado</span>
+                  <td className="px-3.5 py-3 font-mono text-[12.5px] whitespace-nowrap">
+                    {pesos(a.plan.pagado)}
+                    <span className="text-gray-45"> / {pesos(a.plan.total)}</span>
+                    {a.plan.deuda > 0 && (
+                      <div className="text-[10.5px] text-gray-45">
+                        debe {pesos(a.plan.deuda)}
+                      </div>
+                    )}
+                    {a.plan.aFavor > 0 && (
+                      <div className="text-[10.5px] text-gray-45">
+                        a favor {pesos(a.plan.aFavor)}
+                      </div>
                     )}
                   </td>
 
+                  {/* Una marca por cuota: el plan entero de un vistazo. */}
                   <td className="px-3.5 py-3">
-                    <EstadoCobro estado={p.estado} />
-                    {p.pagos[0] && (
+                    <div className="flex gap-1">
+                      {a.plan.cuotas.map((c) => (
+                        <Marca
+                          key={c.id}
+                          tipo={
+                            c.estado === "PAGADA"
+                              ? "confirmado"
+                              : c.estado === "VENCIDA"
+                                ? "tachado"
+                                : "punteado"
+                          }
+                          className="h-4 w-4"
+                          grosor={c.estado === "PAGADA" ? 4 : 5}
+                          color={
+                            c.estado === "PENDIENTE"
+                              ? "var(--color-gray-45)"
+                              : "var(--color-ink)"
+                          }
+                        />
+                      ))}
+                    </div>
+                    {a.plan.proxima && (
                       <div className="mt-1 font-mono text-[10px] text-gray-45">
-                        {fechaHora(p.pagos[0].recibidoEn)}
+                        próxima: {a.plan.proxima.numero} ·{" "}
+                        {fecha(a.plan.proxima.venceEl)}
+                      </div>
+                    )}
+                    {a.pagos[0] && (
+                      <div className="font-mono text-[10px] text-gray-45">
+                        último pago {fechaHora(a.pagos[0].recibidoEn)}
                       </div>
                     )}
                   </td>
 
                   <td className="px-3.5 py-3">
                     <div className="flex flex-wrap justify-end gap-x-3 gap-y-1.5">
-                      <Copiar valor={p.link} etiqueta="Link" />
+                      <Copiar valor={a.link} etiqueta="Link" />
                       <BotonTexto
-                        onClick={() => invitar.mutate({ padreId: p.id })}
+                        onClick={() => invitar.mutate({ alumnoId: a.id })}
                         disabled={ocupado}
                       >
                         Invitar
                       </BotonTexto>
-                      {p.estado !== "PAGADO" && (
+                      {a.plan.deuda > 0 && (
                         <BotonTexto
-                          onClick={() => recordar.mutate({ padreId: p.id })}
+                          onClick={() => recordar.mutate({ alumnoId: a.id })}
                           disabled={ocupado}
                         >
                           Recordar
                         </BotonTexto>
                       )}
-                      {grupo.modoDemo && p.estado !== "PAGADO" && (
+                      {grupo.modoDemo && a.plan.deuda > 0 && (
                         <BotonTexto
-                          onClick={() => simular.mutate({ padreId: p.id })}
+                          onClick={() => simular.mutate({ alumnoId: a.id })}
                           disabled={ocupado}
                         >
                           Simular pago
                         </BotonTexto>
                       )}
+                      {a.cuenta && (
+                        <BotonTexto
+                          onClick={() => {
+                            if (confirm(`¿Desvincular la cuenta de ${a.nombre}?`)) {
+                              desvincular.mutate({ alumnoId: a.id });
+                            }
+                          }}
+                          disabled={ocupado}
+                          className="text-gray-45"
+                        >
+                          Desvincular
+                        </BotonTexto>
+                      )}
                       <BotonTexto
                         onClick={() => {
-                          if (confirm(`¿Eliminar a ${p.nombre}?`)) {
-                            eliminar.mutate({ padreId: p.id });
+                          if (confirm(`¿Eliminar a ${a.nombre}?`)) {
+                            eliminar.mutate({ alumnoId: a.id });
                           }
                         }}
                         disabled={ocupado}
@@ -255,9 +325,123 @@ export function DetalleGrupo({ id }: { id: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ alta */
+/* --------------------------------------------------------------- galerías */
 
-function AltaPadres({
+function Galerias({
+  grupoId,
+  galerias,
+  alGuardar,
+}: {
+  grupoId: string;
+  galerias: {
+    id: string;
+    titulo: string;
+    linkDrive: string | null;
+    venceEl: Date | null;
+  }[];
+  alGuardar: (mensaje?: string) => Promise<void>;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [link, setLink] = useState("");
+
+  const guardar = api.grupo.guardarGaleria.useMutation({
+    onSuccess: async () => {
+      setTitulo("");
+      setLink("");
+      setAbierto(false);
+      await alGuardar("Galería guardada");
+    },
+  });
+  const eliminar = api.grupo.eliminarGaleria.useMutation({
+    onSuccess: () => alGuardar("Galería eliminada"),
+  });
+
+  return (
+    <div className="mb-8">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="eyebrow">Galería del grupo</div>
+        {!abierto && (
+          <BotonTexto onClick={() => setAbierto(true)}>
+            <IconoMas />
+            Agregar galería
+          </BotonTexto>
+        )}
+      </div>
+
+      {galerias.length === 0 && !abierto && (
+        <Vacio>Sin galería asignada</Vacio>
+      )}
+
+      {galerias.map((g) => (
+        <div
+          key={g.id}
+          className="mb-2 flex flex-wrap items-center justify-between gap-3 border border-gray-20 px-4 py-3"
+        >
+          <div>
+            <div className="text-[13.5px]">{g.titulo}</div>
+            <div className="font-mono text-[10.5px] text-gray-45 break-all">
+              {g.linkDrive ?? "sin link de Drive"}
+              {g.venceEl && ` · vence ${fecha(g.venceEl)}`}
+            </div>
+          </div>
+          <BotonTexto
+            onClick={() => eliminar.mutate({ id: g.id })}
+            className="text-gray-45"
+          >
+            Eliminar
+          </BotonTexto>
+        </div>
+      ))}
+
+      {abierto && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const vence = new Date();
+            vence.setFullYear(vence.getFullYear() + 1);
+            guardar.mutate({ grupoId, titulo, linkDrive: link, venceEl: vence });
+          }}
+          className="grid gap-4 border border-ink p-6"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo
+              label="Título"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Sesión de fotos — Egresados 2027"
+              required
+            />
+            <Campo
+              label="Link de Drive"
+              type="url"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="https://drive.google.com/..."
+              hint="Se publica un año. Después queda como respaldo."
+            />
+          </div>
+          <div className="flex gap-3">
+            <Boton type="submit" disabled={guardar.isPending}>
+              Guardar galería
+            </Boton>
+            <Boton
+              type="button"
+              variante="fantasma"
+              onClick={() => setAbierto(false)}
+            >
+              Cancelar
+            </Boton>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- alta */
+
+function AltaAlumnos({
   grupoId,
   alTerminar,
 }: {
@@ -270,17 +454,17 @@ function AltaPadres({
   const [email, setEmail] = useState("");
   const [texto, setTexto] = useState("");
 
-  const agregar = api.padre.agregar.useMutation({
+  const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
       setNombre("");
       setEmail("");
       await alTerminar(
-        r.yaExistia ? "Ese email ya estaba en el grupo" : "Padre agregado e invitado",
+        r.yaExistia ? "Ese alumno ya estaba en el grupo" : "Alumno agregado",
       );
     },
   });
 
-  const enBloque = api.padre.agregarEnBloque.useMutation({
+  const enBloque = api.alumno.agregarEnBloque.useMutation({
     onSuccess: async (r) => {
       setTexto("");
       setModo("cerrado");
@@ -295,7 +479,7 @@ function AltaPadres({
       <div className="mb-8 flex gap-3">
         <Boton onClick={() => setModo("uno")}>
           <IconoMas />
-          Agregar padre
+          Agregar alumno
         </Boton>
         <Boton variante="fantasma" onClick={() => setModo("bloque")}>
           <IconoLista />
@@ -326,25 +510,30 @@ function AltaPadres({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            agregar.mutate({ grupoId, nombre, email, invitar: true });
+            agregar.mutate({
+              grupoId,
+              nombre,
+              emailContacto: email,
+              invitar: true,
+            });
           }}
           className="grid gap-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo
-              label="Nombre y apellido"
+              label="Nombre del alumno"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Fernando Ríos"
               required
             />
             <Campo
-              label="Email"
+              label="Email de la familia (opcional)"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="fernando@mail.com"
-              required
+              placeholder="familia@mail.com"
+              hint="Se usa para mandarle la invitación a registrarse."
             />
           </div>
           <div className="flex gap-3">
@@ -369,17 +558,17 @@ function AltaPadres({
           className="grid gap-4"
         >
           <CampoTexto
-            label="Un padre por línea"
-            hint="Formato: nombre, email — también acepta punto y coma o tabulación (pegado desde Excel)."
+            label="Un alumno por línea"
+            hint="Formato: nombre, email de la familia (el email es opcional). También acepta punto y coma o tabulación."
             rows={7}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder={"Fernando Ríos, fernando@mail.com\nCarla Pérez, carla@mail.com"}
+            placeholder={"Fernando Ríos, familia.rios@mail.com\nCarla Pérez"}
             required
           />
           <div className="flex gap-3">
             <Boton type="submit" disabled={enBloque.isPending}>
-              {enBloque.isPending ? "Creando en Talo…" : "Cargar e invitar a todos"}
+              {enBloque.isPending ? "Creando en Talo…" : "Cargar e invitar"}
             </Boton>
             <Boton
               type="button"

@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 import { Registro } from "./registro";
 
 export const metadata: Metadata = {
-  title: "Anotate — Halley Producciones",
+  title: "Registrate — Halley Producciones",
 };
 
 export default async function GrupoPublicoPage({
@@ -15,20 +15,11 @@ export default async function GrupoPublicoPage({
 }) {
   const { slug } = await params;
 
-  const grupo = await db.grupo.findUnique({ where: { slug } });
-  if (!grupo || !grupo.autoRegistro) notFound();
+  const grupo = await db.grupo.findUnique({
+    where: { slug },
+    select: { autoRegistro: true },
+  });
+  if (!grupo?.autoRegistro) notFound();
 
-  return (
-    <Registro
-      slug={slug}
-      grupo={{
-        nombre: grupo.nombre,
-        colegio: grupo.colegio,
-        montoCuota: Number(grupo.montoCuota),
-        venceEl: grupo.venceEl,
-        cuotaActual: grupo.cuotaActual,
-        cuotasTotales: grupo.cuotasTotales,
-      }}
-    />
-  );
+  return <Registro slug={slug} />;
 }

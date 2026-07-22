@@ -11,6 +11,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { COOKIE_ADMIN, cookieValida, leerCookie } from "~/server/auth";
+import { COOKIE_SESION, cuentaDeSesion } from "~/server/cuentas";
 import { db } from "~/server/db";
 
 /**
@@ -26,9 +27,14 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+  // Dos identidades independientes: el administrador de Halley (clave
+  // compartida) y la cuenta del padre (sesión por email). Nunca se mezclan.
+  const cuenta = await cuentaDeSesion(leerCookie(opts.headers, COOKIE_SESION));
+
   return {
     db,
     esAdmin: cookieValida(leerCookie(opts.headers, COOKIE_ADMIN)),
+    cuenta,
     ...opts,
   };
 };
@@ -116,4 +122,17 @@ export const adminProcedure = t.procedure
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({ ctx });
+  });
+
+/**
+ * Procedimiento del padre: exige una sesión válida. Deja `ctx.cuenta` no nula,
+ * así ninguna consulta puede olvidarse de filtrar por la cuenta que pregunta.
+ */
+export const cuentaProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.cuenta) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    return next({ ctx: { ...ctx, cuenta: ctx.cuenta } });
   });

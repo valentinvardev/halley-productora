@@ -1,33 +1,42 @@
 import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
-import { estadoVisible, linkGrupo, linkPadre, montoDe } from "~/server/dominio";
+import {
+  imputarPagos,
+  linkAlumno,
+  linkGrupo,
+  sumarPagos,
+} from "~/server/dominio";
 import { taloEsMock } from "~/server/talo";
 import { slugify } from "~/lib/slug";
 
-type PadreConPagos = {
-  estado: "PENDIENTE" | "PAGADO" | "VENCIDO";
-  montoCuota: unknown;
-  pagos: { monto: unknown }[];
-};
+type CuotaDb = { id: string; numero: number; monto: unknown; venceEl: Date };
+type AlumnoDb = { pagos: { monto: unknown }[] };
 
-function resumir(
-  grupo: { montoCuota: unknown; venceEl: Date },
-  padres: PadreConPagos[],
-) {
-  const esperado = padres.reduce((t, p) => t + montoDe(p, grupo), 0);
-  const recaudado = padres.reduce(
-    (t, p) => t + p.pagos.reduce((s, pago) => s + Number(pago.monto), 0),
-    0,
-  );
+/** Estado de cobranza del grupo entero, sumando el plan de cada alumno. */
+function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
+  let esperado = 0;
+  let recaudado = 0;
+  let alDia = 0;
+  let conDeuda = 0;
+  let vencidos = 0;
 
-  const estados = padres.map((p) => estadoVisible(p.estado, grupo.venceEl));
+  for (const alumno of alumnos) {
+    const plan = imputarPagos(cuotas, sumarPagos(alumno.pagos));
+    esperado += plan.total;
+    recaudado += plan.pagado;
+
+    if (plan.deuda === 0) alDia += 1;
+    else conDeuda += 1;
+    if (!plan.alDia) vencidos += 1;
+  }
 
   return {
-    padres: padres.length,
-    pagados: estados.filter((e) => e === "PAGADO").length,
-    pendientes: estados.filter((e) => e === "PENDIENTE").length,
-    vencidos: estados.filter((e) => e === "VENCIDO").length,
+    alumnos: alumnos.length,
+    cuotas: cuotas.length,
+    alDia,
+    conDeuda,
+    vencidos,
     esperado,
     recaudado,
   };
@@ -38,9 +47,8 @@ export const grupoRouter = createTRPCRouter({
     const grupos = await ctx.db.grupo.findMany({
       orderBy: { creadoEn: "desc" },
       include: {
-        padres: {
-          select: { estado: true, montoCuota: true, pagos: { select: { monto: true } } },
-        },
+        cuotas: true,
+        alumnos: { select: { pagos: { select: { monto: true } } } },
       },
     });
 
@@ -49,13 +57,9 @@ export const grupoRouter = createTRPCRouter({
       nombre: g.nombre,
       slug: g.slug,
       colegio: g.colegio,
-      montoCuota: Number(g.montoCuota),
-      cuotaActual: g.cuotaActual,
-      cuotasTotales: g.cuotasTotales,
-      venceEl: g.venceEl,
       autoRegistro: g.autoRegistro,
       creadoEn: g.creadoEn,
-      resumen: resumir(g, g.padres),
+      resumen: resumir(g.cuotas, g.alumnos),
     }));
   }),
 
@@ -65,9 +69,14 @@ export const grupoRouter = createTRPCRouter({
       const grupo = await ctx.db.grupo.findUniqueOrThrow({
         where: { id: input.id },
         include: {
-          padres: {
+          cuotas: { orderBy: { numero: "asc" } },
+          galerias: { orderBy: { creadoEn: "desc" } },
+          alumnos: {
             orderBy: { creadoEn: "asc" },
-            include: { pagos: { orderBy: { recibidoEn: "desc" } } },
+            include: {
+              cuenta: true,
+              pagos: { orderBy: { recibidoEn: "desc" } },
+            },
           },
         },
       });
@@ -77,53 +86,68 @@ export const grupoRouter = createTRPCRouter({
         nombre: grupo.nombre,
         slug: grupo.slug,
         colegio: grupo.colegio,
-        montoCuota: Number(grupo.montoCuota),
-        cuotaActual: grupo.cuotaActual,
-        cuotasTotales: grupo.cuotasTotales,
-        venceEl: grupo.venceEl,
         autoRegistro: grupo.autoRegistro,
         linkRegistro: linkGrupo(grupo.slug),
-        /** Con Talo en mock el panel muestra el botón de simular transferencia. */
         modoDemo: taloEsMock,
-        resumen: resumir(grupo, grupo.padres),
-        padres: grupo.padres.map((p) => ({
-          id: p.id,
-          nombre: p.nombre,
-          email: p.email,
-          telefono: p.telefono,
-          alias: p.alias,
-          cvu: p.cvu,
-          monto: montoDe(p, grupo),
-          tieneMontoPropio: p.montoCuota !== null,
-          estado: estadoVisible(p.estado, grupo.venceEl),
-          origen: p.origen,
-          invitadoEl: p.invitadoEl,
-          reportoTransferenciaEl: p.reportoTransferenciaEl,
-          link: linkPadre(p.token),
-          pagos: p.pagos.map((pago) => ({
-            id: pago.id,
-            monto: Number(pago.monto),
-            recibidoEn: pago.recibidoEn,
-            taloTransactionId: pago.taloTransactionId,
-          })),
+        resumen: resumir(grupo.cuotas, grupo.alumnos),
+        cuotas: grupo.cuotas.map((c) => ({
+          id: c.id,
+          numero: c.numero,
+          monto: Number(c.monto),
+          venceEl: c.venceEl,
         })),
+        galerias: grupo.galerias.map((g) => ({
+          id: g.id,
+          titulo: g.titulo,
+          linkDrive: g.linkDrive,
+          venceEl: g.venceEl,
+        })),
+        alumnos: grupo.alumnos.map((a) => {
+          const plan = imputarPagos(grupo.cuotas, sumarPagos(a.pagos));
+          return {
+            id: a.id,
+            nombre: a.nombre,
+            emailContacto: a.emailContacto,
+            alias: a.alias,
+            cvu: a.cvu,
+            link: linkAlumno(a.token),
+            cuenta: a.cuenta ? { email: a.cuenta.email } : null,
+            plan: {
+              total: plan.total,
+              pagado: plan.pagado,
+              deuda: plan.deuda,
+              aFavor: plan.aFavor,
+              alDia: plan.alDia,
+              cuotas: plan.cuotas,
+              proxima: plan.proxima,
+            },
+            pagos: a.pagos.map((p) => ({
+              id: p.id,
+              monto: Number(p.monto),
+              recibidoEn: p.recibidoEn,
+              taloTransactionId: p.taloTransactionId,
+            })),
+          };
+        }),
       };
     }),
 
+  /**
+   * Crea el grupo y su plan de cuotas de una vez: N cuotas del mismo monto,
+   * una por mes a partir del primer vencimiento.
+   */
   crear: adminProcedure
     .input(
       z.object({
         nombre: z.string().min(3),
         colegio: z.string().min(2),
         montoCuota: z.number().positive(),
-        cuotaActual: z.number().int().min(1).default(1),
-        cuotasTotales: z.number().int().min(1).default(1),
-        venceEl: z.date(),
+        cantidadCuotas: z.number().int().min(1).max(36),
+        primerVencimiento: z.date(),
         autoRegistro: z.boolean().default(true),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // El slug va en el link público de auto-registro: tiene que ser único.
       const base = slugify(input.nombre) || "grupo";
       let slug = base;
       let intento = 1;
@@ -132,24 +156,36 @@ export const grupoRouter = createTRPCRouter({
         slug = `${base}-${intento}`;
       }
 
-      const grupo = await ctx.db.grupo.create({ data: { ...input, slug } });
+      const grupo = await ctx.db.grupo.create({
+        data: {
+          nombre: input.nombre,
+          colegio: input.colegio,
+          autoRegistro: input.autoRegistro,
+          slug,
+          cuotas: {
+            create: Array.from({ length: input.cantidadCuotas }, (_, i) => {
+              const vence = new Date(input.primerVencimiento);
+              vence.setMonth(vence.getMonth() + i);
+              return { numero: i + 1, monto: input.montoCuota, venceEl: vence };
+            }),
+          },
+        },
+      });
+
       return { id: grupo.id, slug: grupo.slug };
     }),
 
-  actualizar: adminProcedure
+  actualizarCuota: adminProcedure
     .input(
       z.object({
-        id: z.string(),
-        montoCuota: z.number().positive().optional(),
+        cuotaId: z.string(),
+        monto: z.number().positive().optional(),
         venceEl: z.date().optional(),
-        cuotaActual: z.number().int().min(1).optional(),
-        cuotasTotales: z.number().int().min(1).optional(),
-        autoRegistro: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...datos } = input;
-      await ctx.db.grupo.update({ where: { id }, data: datos });
+      const { cuotaId, ...datos } = input;
+      await ctx.db.cuota.update({ where: { id: cuotaId }, data: datos });
       return { ok: true };
     }),
 
@@ -157,6 +193,42 @@ export const grupoRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.grupo.delete({ where: { id: input.id } });
+      return { ok: true };
+    }),
+
+  /* --------------------------------------------------------------- galería */
+
+  guardarGaleria: adminProcedure
+    .input(
+      z.object({
+        grupoId: z.string(),
+        id: z.string().optional(),
+        titulo: z.string().min(2),
+        linkDrive: z.string().url().or(z.literal("")).optional(),
+        venceEl: z.date().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const datos = {
+        titulo: input.titulo,
+        linkDrive: input.linkDrive || null,
+        venceEl: input.venceEl ?? null,
+      };
+
+      if (input.id) {
+        await ctx.db.galeria.update({ where: { id: input.id }, data: datos });
+      } else {
+        await ctx.db.galeria.create({
+          data: { ...datos, grupoId: input.grupoId },
+        });
+      }
+      return { ok: true };
+    }),
+
+  eliminarGaleria: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.galeria.delete({ where: { id: input.id } });
       return { ok: true };
     }),
 });

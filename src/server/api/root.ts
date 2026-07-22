@@ -1,8 +1,10 @@
+import { alumnoRouter } from "~/server/api/routers/alumno";
+import { cuentaRouter } from "~/server/api/routers/cuenta";
 import { demoRouter } from "~/server/api/routers/demo";
 import { grupoRouter } from "~/server/api/routers/grupo";
 import { notificacionRouter } from "~/server/api/routers/notificacion";
-import { padreRouter } from "~/server/api/routers/padre";
 import { pagoRouter } from "~/server/api/routers/pago";
+import { publicoRouter } from "~/server/api/routers/publico";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -12,7 +14,9 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   grupo: grupoRouter,
-  padre: padreRouter,
+  alumno: alumnoRouter,
+  cuenta: cuentaRouter,
+  publico: publicoRouter,
   pago: pagoRouter,
   notificacion: notificacionRouter,
   demo: demoRouter,

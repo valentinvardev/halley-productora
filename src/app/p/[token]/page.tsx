@@ -18,13 +18,13 @@ export default async function PadrePage({
 
   // Se resuelve en el servidor y viaja como estado inicial: la tarjeta llega
   // pintada, sin pantalla de carga. Después el cliente sigue con el polling.
-  const inicial = await api.padre.porToken({ token }).catch(() => null);
+  const inicial = await api.publico.porToken({ token }).catch(() => null);
   if (!inicial) notFound();
 
   const qrSvg = await qrDePago({
     cvu: inicial.cvu,
     alias: inicial.alias,
-    monto: inicial.monto,
+    monto: inicial.plan.proxima?.saldo ?? 0,
     titular: inicial.nombre,
   });
 

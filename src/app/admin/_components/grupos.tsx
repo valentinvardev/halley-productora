@@ -6,29 +6,29 @@ import { useState } from "react";
 import { CampoFecha } from "~/app/_components/campo-fecha";
 import { Marca } from "~/app/_components/marca";
 import { Boton, Campo, Dato, Encabezado, Vacio } from "~/app/_components/ui";
-import { fecha, pesos } from "~/lib/format";
+import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
-/** Tira de marcas al estilo hoja de contacto: un cuadro por padre. */
+/** Tira de marcas al estilo hoja de contacto: un cuadro por alumno. */
 function Tira({
-  pagados,
-  pendientes,
+  alDia,
+  conDeuda,
   vencidos,
 }: {
-  pagados: number;
-  pendientes: number;
+  alDia: number;
+  conDeuda: number;
   vencidos: number;
 }) {
   const marcas = [
-    ...Array<"confirmado">(pagados).fill("confirmado"),
-    ...Array<"punteado">(pendientes).fill("punteado"),
+    ...Array<"confirmado">(alDia).fill("confirmado"),
+    ...Array<"punteado">(Math.max(conDeuda - vencidos, 0)).fill("punteado"),
     ...Array<"tachado">(vencidos).fill("tachado"),
   ].slice(0, 40);
 
   if (marcas.length === 0) {
     return (
       <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-gray-45">
-        Sin padres cargados
+        Sin alumnos cargados
       </span>
     );
   }
@@ -40,7 +40,6 @@ function Tira({
           key={i}
           tipo={tipo}
           className="h-4 w-4"
-          // El tilde necesita un trazo más fino para leerse a este tamaño.
           grosor={tipo === "confirmado" ? 4 : 5}
           color={
             tipo === "punteado" ? "var(--color-gray-45)" : "var(--color-ink)"
@@ -63,26 +62,25 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
   const [nombre, setNombre] = useState("");
   const [colegio, setColegio] = useState("");
   const [monto, setMonto] = useState("45000");
-  const [cuotaActual, setCuotaActual] = useState("1");
-  const [cuotasTotales, setCuotasTotales] = useState("6");
+  const [cantidad, setCantidad] = useState("6");
   const [vence, setVence] = useState("");
 
-  function enviar(e: React.FormEvent) {
-    e.preventDefault();
-    crear.mutate({
-      nombre,
-      colegio,
-      montoCuota: Number(monto),
-      cuotaActual: Number(cuotaActual),
-      cuotasTotales: Number(cuotasTotales),
-      // Mediodía local: evita que el input date se corra un día por zona horaria.
-      venceEl: new Date(`${vence}T12:00:00`),
-      autoRegistro: true,
-    });
-  }
-
   return (
-    <form onSubmit={enviar} className="mb-10 grid gap-5 border border-ink p-8">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        crear.mutate({
+          nombre,
+          colegio,
+          montoCuota: Number(monto),
+          cantidadCuotas: Number(cantidad),
+          // Mediodía local: evita que el selector se corra un día por zona horaria.
+          primerVencimiento: new Date(`${vence}T12:00:00`),
+          autoRegistro: true,
+        });
+      }}
+      className="mb-10 grid gap-5 border border-ink p-8"
+    >
       <div className="eyebrow">Nuevo grupo</div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -102,9 +100,9 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Campo
-          label="Monto de la cuota"
+          label="Monto de cada cuota"
           type="number"
           min={1}
           value={monto}
@@ -112,22 +110,20 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
           required
         />
         <Campo
-          label="Cuota número"
+          label="Cantidad de cuotas"
           type="number"
           min={1}
-          value={cuotaActual}
-          onChange={(e) => setCuotaActual(e.target.value)}
+          max={36}
+          value={cantidad}
+          onChange={(e) => setCantidad(e.target.value)}
+          hint="Una por mes, a partir del primer vencimiento."
           required
         />
-        <Campo
-          label="De un total de"
-          type="number"
-          min={1}
-          value={cuotasTotales}
-          onChange={(e) => setCuotasTotales(e.target.value)}
-          required
+        <CampoFecha
+          label="Vence la primera"
+          valor={vence}
+          alCambiar={setVence}
         />
-        <CampoFecha label="Vence el" valor={vence} alCambiar={setVence} />
       </div>
 
       {crear.error && (
@@ -135,14 +131,12 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
       )}
 
       <div className="flex items-center gap-3">
-        {/* El selector propio no dispara la validación nativa del formulario:
-            la fecha se exige acá. */}
         <Boton type="submit" disabled={crear.isPending || !vence}>
-          {crear.isPending ? "Creando…" : "Crear grupo"}
+          {crear.isPending ? "Creando…" : "Crear grupo y plan"}
         </Boton>
         {!vence && (
           <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
-            Falta la fecha de vencimiento
+            Falta la fecha del primer vencimiento
           </span>
         )}
         <Boton type="button" variante="fantasma" onClick={alCerrar}>
@@ -167,7 +161,7 @@ export function Grupos() {
       <Encabezado
         eyebrow="Cobros — grupos"
         titulo="Estado por grupo"
-        bajada="Cada grupo es un rollo: círculo con tilde es pagado, punteado pendiente, tachado vencido."
+        bajada="Cada grupo es un rollo: círculo con tilde es al día, punteado con saldo, tachado con cuotas vencidas."
         acciones={
           !abierto ? (
             <Boton onClick={() => setAbierto(true)}>Nuevo grupo</Boton>
@@ -207,14 +201,14 @@ export function Grupos() {
               <div>
                 <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
                 <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.06em] text-gray-70">
-                  {g.colegio} · Cuota {g.cuotaActual} de {g.cuotasTotales} ·
-                  Vence {fecha(g.venceEl)}
+                  {g.colegio} · {g.resumen.cuotas} cuotas ·{" "}
+                  {g.resumen.alumnos} alumnos
                 </div>
               </div>
               <div className="max-w-[260px]">
                 <Tira
-                  pagados={g.resumen.pagados}
-                  pendientes={g.resumen.pendientes}
+                  alDia={g.resumen.alDia}
+                  conDeuda={g.resumen.conDeuda}
                   vencidos={g.resumen.vencidos}
                 />
               </div>
@@ -222,13 +216,12 @@ export function Grupos() {
 
             <div className="flex flex-wrap">
               <Dato rotulo="Recaudado" valor={pesos(g.resumen.recaudado)} />
-              <Dato rotulo="Esperado" valor={pesos(g.resumen.esperado)} />
-              <Dato rotulo="Padres" valor={g.resumen.padres} />
+              <Dato rotulo="Plan total" valor={pesos(g.resumen.esperado)} />
               <Dato
-                rotulo="Pagados"
-                valor={`${g.resumen.pagados}/${g.resumen.padres}`}
+                rotulo="Al día"
+                valor={`${g.resumen.alDia}/${g.resumen.alumnos}`}
               />
-              <Dato rotulo="Vencidos" valor={g.resumen.vencidos} />
+              <Dato rotulo="Con vencidas" valor={g.resumen.vencidos} />
             </div>
           </Link>
         ))}
