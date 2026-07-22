@@ -10,10 +10,14 @@ export const metadata: Metadata = {
 
 export default async function GrupoPublicoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ alumno?: string }>;
 }) {
   const { slug } = await params;
+  // El link que manda el admin trae al alumno: llega con su hijo ya elegido.
+  const { alumno } = await searchParams;
 
   const grupo = await db.grupo.findUnique({
     where: { slug },
@@ -21,5 +25,5 @@ export default async function GrupoPublicoPage({
   });
   if (!grupo?.autoRegistro) notFound();
 
-  return <Registro slug={slug} />;
+  return <Registro slug={slug} alumnoInicial={alumno ?? null} />;
 }

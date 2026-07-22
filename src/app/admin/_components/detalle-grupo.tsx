@@ -266,7 +266,10 @@ export function DetalleGrupo({ id }: { id: string }) {
 
                   <td className="px-3.5 py-3">
                     <div className="flex flex-wrap justify-end gap-x-3 gap-y-1.5">
-                      <Copiar valor={a.link} etiqueta="Link" />
+                      {/* El link que se manda es el de registro: la familia
+                          entra a su panel, no a una pantalla de pago suelta. */}
+                      <Copiar valor={a.linkRegistro} etiqueta="Link" />
+                      <Copiar valor={a.linkPago} etiqueta="Pago directo" />
                       <BotonTexto
                         onClick={() => invitar.mutate({ alumnoId: a.id })}
                         disabled={ocupado}

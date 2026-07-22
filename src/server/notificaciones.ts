@@ -1,6 +1,6 @@
 import { env } from "~/env";
 import { fecha, pesos } from "~/lib/format";
-import { linkAlumno, linkGrupo } from "./dominio";
+import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
 import { emailHabilitado, enviarEmail } from "./email";
 
@@ -71,8 +71,8 @@ export async function notificarInvitacion(
           ]
         : []),
       "",
-      `Entrá con tu email y elegí a ${alumno.nombre} de la lista:`,
-      linkGrupo(grupo.slug),
+      `Creá tu cuenta para seguir los pagos de ${alumno.nombre} y ver la galería:`,
+      linkRegistroAlumno(grupo.slug, alumno.id),
       "",
       "No hace falta contraseña: te mandamos un link para entrar.",
       "",

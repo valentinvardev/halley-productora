@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Desplegable } from "~/app/_components/desplegable";
+import { MarcoAcceso } from "~/app/_components/marco-acceso";
 import { Boton, Campo } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
@@ -12,35 +13,44 @@ import { api } from "~/trpc/react";
  * Registro de la familia: elige a su hijo de la lista del grupo y deja su
  * email. No hay contraseña — le llega un link para entrar.
  */
-export function Registro({ slug }: { slug: string }) {
+export function Registro({
+  slug,
+  alumnoInicial,
+}: {
+  slug: string;
+  /** Viene del link que manda Halley: llega con su hijo ya elegido. */
+  alumnoInicial?: string | null;
+}) {
   const { data: grupo } = api.cuenta.grupoPorSlug.useQuery({ slug });
 
-  const [alumnoId, setAlumnoId] = useState<string | null>(null);
+  const [alumnoId, setAlumnoId] = useState<string | null>(alumnoInicial ?? null);
   const [email, setEmail] = useState("");
 
   const registrarse = api.cuenta.registrarse.useMutation();
 
   if (!grupo) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-mono text-[11px] uppercase tracking-[0.08em] text-gray-45">
-        Cargando…
-      </div>
+      <MarcoAcceso solapa="registro" slug={slug}>
+        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gray-45">
+          Cargando…
+        </p>
+      </MarcoAcceso>
     );
   }
 
   /* ------------------------------------------------------ link ya enviado */
   if (registrarse.isSuccess) {
     return (
-      <Marco>
+      <MarcoAcceso solapa="registro" slug={slug}>
         <div className="eyebrow">{grupo.colegio}</div>
-        <h1 className="mt-1 text-[21px] leading-snug">Revisá tu correo</h1>
+        <h1 className="mt-1 text-[26px] leading-tight">Revisá tu correo</h1>
         <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
           Le mandamos un link a <strong>{registrarse.data.email}</strong> para
           entrar. Vence en 30 minutos y sirve una sola vez.
         </p>
 
         {registrarse.data.url && (
-          <div className="mt-6 border border-gray-20 bg-paper p-4">
+          <div className="mt-6 border border-gray-20 bg-paper-dim p-4">
             <div className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-gray-45">
               Demo — el mail no sale de verdad
             </div>
@@ -52,7 +62,7 @@ export function Registro({ slug }: { slug: string }) {
             </Link>
           </div>
         )}
-      </Marco>
+      </MarcoAcceso>
     );
   }
 
@@ -65,9 +75,9 @@ export function Registro({ slug }: { slug: string }) {
   }));
 
   return (
-    <Marco>
+    <MarcoAcceso solapa="registro" slug={slug}>
       <div className="eyebrow">{grupo.colegio}</div>
-      <h1 className="mt-1 text-[21px] leading-snug">{grupo.nombre}</h1>
+      <h1 className="mt-1 text-[26px] leading-tight">{grupo.nombre}</h1>
 
       <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
         Registrate para seguir los pagos y ver la galería. Sin contraseña: te
@@ -119,23 +129,6 @@ export function Registro({ slug }: { slug: string }) {
       >
         {registrarse.isPending ? "Enviando el link…" : "Registrarme"}
       </Boton>
-
-      <p className="mt-5 text-center font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
-        ¿Ya te registraste?{" "}
-        <Link href="/entrar" className="underline underline-offset-2 hover:text-ink">
-          Entrar
-        </Link>
-      </p>
-    </Marco>
-  );
-}
-
-function Marco({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-paper-dimmer px-4 py-10">
-      <div className="w-full max-w-[400px] border border-ink bg-lienzo px-7 py-8">
-        {children}
-      </div>
-    </div>
+    </MarcoAcceso>
   );
 }

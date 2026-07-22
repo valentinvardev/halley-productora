@@ -88,3 +88,11 @@ export function linkAlumno(token: string) {
 export function linkGrupo(slug: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/g/${slug}`;
 }
+
+/**
+ * Registro con el alumno ya elegido. Es el link que se le manda a cada familia:
+ * lleva a crear la cuenta —no a pagar suelto— con su hijo preseleccionado.
+ */
+export function linkRegistroAlumno(slug: string, alumnoId: string) {
+  return `${linkGrupo(slug)}?alumno=${alumnoId}`;
+}

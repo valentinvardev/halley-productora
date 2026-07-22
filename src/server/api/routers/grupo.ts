@@ -5,6 +5,7 @@ import {
   imputarPagos,
   linkAlumno,
   linkGrupo,
+  linkRegistroAlumno,
   sumarPagos,
 } from "~/server/dominio";
 import { taloEsMock } from "~/server/talo";
@@ -110,7 +111,10 @@ export const grupoRouter = createTRPCRouter({
             emailContacto: a.emailContacto,
             alias: a.alias,
             cvu: a.cvu,
-            link: linkAlumno(a.token),
+            /** El que se le manda a la familia: crea la cuenta. */
+            linkRegistro: linkRegistroAlumno(grupo.slug, a.id),
+            /** Pago sin registrarse: sigue existiendo como salida de emergencia. */
+            linkPago: linkAlumno(a.token),
             cuenta: a.cuenta ? { email: a.cuenta.email } : null,
             plan: {
               total: plan.total,
