@@ -428,6 +428,84 @@
   isolation: isolate;
 }
 
+/* ---------------------------------------------------------------------------
+   Servicios: los paneles que se apilan.
+
+   Cada categoría ocupa una pantalla entera y queda clavada mientras se
+   scrollea su tramo; la siguiente entra deslizándose por encima. El apilado es
+   `position: sticky` puro, sin JS y sin librería, así que funciona en todos
+   lados.
+
+   El tramo tiene que ser más alto que el panel: un sticky del mismo alto que
+   su contenedor nunca llega a clavarse.
+--------------------------------------------------------------------------- */
+.tramo-servicio {
+  height: 160svh;
+  view-timeline-name: --tramo;
+  view-timeline-axis: block;
+}
+
+.panel-servicio {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 30rem;
+  overflow: clip;
+}
+
+/**
+ * El parallax.
+ *
+ * El fondo se corre más lento que el panel mientras el tramo cruza la
+ * pantalla. Va con animaciones atadas al scroll —sin escuchar eventos, sin
+ * recalcular nada en cada cuadro— y por eso queda detrás de un `@supports`:
+ * donde no esté, la imagen se queda quieta y no se rompe nada más.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .fondo-servicio {
+      animation: deriva linear both;
+      animation-timeline: --tramo;
+      animation-range: cover 0% cover 100%;
+    }
+
+    /* El contenido del panel que se va se apaga antes de que lo tape el que
+       viene: si no, se leen dos titulares encimados. */
+    .contenido-servicio {
+      animation: despedir linear both;
+      animation-timeline: --tramo;
+      animation-range: exit 0% exit 70%;
+    }
+  }
+}
+
+@keyframes deriva {
+  from {
+    transform: translateY(-8%) scale(1.2);
+  }
+  to {
+    transform: translateY(8%) scale(1.2);
+  }
+}
+
+@keyframes despedir {
+  to {
+    opacity: 0;
+    transform: translateY(-2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tramo-servicio {
+    height: auto;
+  }
+  .panel-servicio {
+    position: relative;
+    height: auto;
+    min-height: 0;
+  }
+}
+
 /* El panel de la cuenta baja desde su botón, no aparece de golpe. */
 @keyframes asomar {
   from {

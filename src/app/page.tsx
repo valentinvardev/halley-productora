@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { FUENTES_MARCA } from "./_components/fuentes";
@@ -10,7 +11,7 @@ import {
   IconoWhatsApp,
 } from "./_components/iconos";
 import { Logotipo } from "./_components/logotipo";
-import { Medio, existeEnPublico } from "./_components/medio";
+import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
 import { botonFantasma, botonSolido } from "./_components/ui";
 import {
@@ -77,30 +78,47 @@ export default function Landing() {
 
 function Hero() {
   const hayVideo = existeEnPublico(VIDEO_PORTADA);
+  const hayPoster = existeEnPublico(POSTER_PORTADA);
+  // Con cualquiera de los dos el fondo pasa a ser oscuro, y eso es lo que
+  // decide cómo se pintan los botones.
+  const hayFondo = hayVideo || hayPoster;
 
   return (
     <section className="hero aisla relative flex flex-col justify-center overflow-hidden border-b border-gray-20">
       {hayVideo ? (
-        <>
-          <video
-            src={VIDEO_PORTADA}
-            poster={existeEnPublico(POSTER_PORTADA) ? POSTER_PORTADA : undefined}
-            muted
-            loop
-            autoPlay
-            playsInline
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          {/* Oscurece el fondo antes de la mezcla: con el video más parejo, la
-              inversa del titular sale siempre del lado claro. */}
-          <div
-            className="absolute inset-0 bg-[rgb(0_0_0/0.42)]"
-            aria-hidden="true"
-          />
-        </>
+        <video
+          src={VIDEO_PORTADA}
+          poster={hayPoster ? POSTER_PORTADA : undefined}
+          muted
+          loop
+          autoPlay
+          playsInline
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : hayPoster ? (
+        // Mientras no esté el video, el primer cuadro alcanza para ver cómo va
+        // a quedar: el titular ya se lee contra una imagen, no contra el papel.
+        <Image
+          src={POSTER_PORTADA}
+          alt=""
+          aria-hidden="true"
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+        />
       ) : (
         <Estela />
+      )}
+
+      {/* Empareja el fondo antes de la mezcla: con la imagen más pareja, la
+          inversa del titular sale siempre del lado claro. */}
+      {hayFondo && (
+        <div
+          className="absolute inset-0 bg-[rgb(0_0_0/0.42)]"
+          aria-hidden="true"
+        />
       )}
 
       <div className="relative mx-auto w-full max-w-[1140px] px-6 sm:px-10">
@@ -131,14 +149,14 @@ function Hero() {
             href={linkWhatsApp("Hola Halley, quiero pedir un presupuesto.")}
             target="_blank"
             rel="noreferrer"
-            className={hayVideo ? botonSobreVideo : botonSolido}
+            className={hayFondo ? botonSobreVideo : botonSolido}
           >
             <IconoWhatsApp />
             Pedir presupuesto
           </a>
           <a
             href="#servicios"
-            className={hayVideo ? botonSobreVideoFantasma : botonFantasma}
+            className={hayFondo ? botonSobreVideoFantasma : botonFantasma}
           >
             <IconoFlecha />
             Ver servicios
@@ -150,7 +168,7 @@ function Hero() {
         href="#concepto"
         aria-label="Bajar"
         className={`absolute bottom-6 left-1/2 -translate-x-1/2 ${
-          hayVideo ? "text-white/70 hover:text-white" : "text-gray-45 hover:text-ink"
+          hayFondo ? "text-white/70 hover:text-white" : "text-gray-45 hover:text-ink"
         }`}
       >
         <IconoBajar className="h-4 w-4" />
@@ -232,16 +250,17 @@ function Concepto() {
 /* ---------------------------------------------------------------- servicios */
 
 /**
- * Las bandas.
+ * Los paneles.
  *
- * El manual presenta los servicios como franjas horizontales apiladas y no
- * como tarjetas: se usa ese mismo gesto. Cada banda lleva su propio material y
- * lleva a su página.
+ * Antes eran franjas horizontales de unos 200px: alcanzaban para listar los
+ * servicios, no para mostrar trabajo. Ahora cada categoría se lleva una
+ * pantalla entera, queda clavada mientras se recorre su tramo y la siguiente
+ * entra deslizándose por encima.
  */
 function Servicios() {
   return (
     <section id="servicios" className="border-b border-gray-20">
-      <div className="mx-auto max-w-[1140px] px-6 pt-20 sm:px-10 sm:pt-24">
+      <div className="mx-auto max-w-[1140px] px-6 pt-20 pb-14 sm:px-10 sm:pt-24">
         <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
           Qué hacemos
         </p>
@@ -250,38 +269,54 @@ function Servicios() {
         </h2>
       </div>
 
-      <div className="mt-12 border-t border-gray-20">
-        {SERVICIOS.map((s) => (
-          <Link
-            key={s.slug}
-            href={`/servicios/${s.slug}`}
-            className="group block border-b border-gray-20 transition-colors duration-300 hover:bg-paper-dimmer focus-visible:bg-paper-dimmer"
-          >
-            <div className="mx-auto flex max-w-[1140px] flex-col gap-6 px-6 py-8 sm:px-10 sm:py-10 lg:flex-row lg:items-center lg:gap-10">
-              <h3 className="font-titulo text-[clamp(2rem,5vw,3.6rem)] leading-[0.88] uppercase lg:w-[24%] lg:shrink-0">
-                {s.nombre}
-              </h3>
-
-              <Medio
+      <div className="relative">
+        {SERVICIOS.map((s, i) => (
+          <div key={s.slug} className="tramo-servicio">
+            <article className="panel-servicio aisla relative flex items-end">
+              <Image
                 src={`/servicios/${s.slug}-portada.jpg`}
-                alt={s.nombre}
-                proporcion="aspect-[16/10]"
-                className="lg:w-[26%] lg:shrink-0"
+                alt=""
+                aria-hidden="true"
+                fill
+                sizes="100vw"
+                priority={i === 0}
+                className="fondo-servicio object-cover"
+              />
+              {/* Aclara la parte de abajo, que es donde va a leerse el texto. */}
+              <div
+                className="absolute inset-0 bg-gradient-to-t from-[rgb(0_0_0/0.72)] via-[rgb(0_0_0/0.28)] to-transparent"
+                aria-hidden="true"
               />
 
-              <div className="lg:flex-1">
-                <p className="text-[15.5px] leading-snug">{s.linea}</p>
-                <p className="mt-2.5 max-w-[52ch] text-[14px] leading-relaxed text-gray-70">
+              <div className="contenido-servicio relative mx-auto w-full max-w-[1140px] px-6 pb-14 sm:px-10 sm:pb-20">
+                <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] text-white/70">
+                  {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
+                </p>
+
+                {/* El mismo filtro negativo que el titular de la portada: sobre
+                    una foto que todavía no existe, no hay color que sirva
+                    siempre. */}
+                <h3 className="negativo mt-3 font-titulo text-[clamp(2.6rem,min(9vw,13svh),7rem)] leading-[0.86] uppercase">
+                  {s.nombre}
+                </h3>
+
+                <p className="mt-4 max-w-[46ch] text-[16px] leading-snug text-white">
+                  {s.linea}
+                </p>
+                <p className="mt-2.5 max-w-[54ch] text-[14px] leading-relaxed text-white/70">
                   {s.detalle}
                 </p>
-              </div>
 
-              <span className="inline-flex shrink-0 items-center gap-2 font-rotulo text-[12.5px] uppercase tracking-[0.12em] text-gray-45 transition-colors group-hover:text-ink">
-                Ver {s.nombre.toLowerCase()}
-                <IconoFlecha />
-              </span>
-            </div>
-          </Link>
+                <Link
+                  href={`/servicios/${s.slug}`}
+                  className="mt-7 inline-flex items-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black"
+                >
+                  Ver {s.nombre.toLowerCase()}
+                  <IconoFlecha />
+                </Link>
+              </div>
+            </article>
+          </div>
         ))}
       </div>
     </section>
