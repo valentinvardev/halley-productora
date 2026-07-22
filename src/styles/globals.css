@@ -211,6 +211,87 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Capas: modales y cajón lateral.
+
+   Los dos son `<dialog>` nativos, así que entran y salen con transición de CSS
+   en vez de con estado en React. Para poder animar la aparición hace falta
+   transicionar `display` y `overlay`, que son propiedades discretas: de ahí el
+   `allow-discrete` y el `@starting-style` con el estado del que arrancan.
+
+   Donde el navegador no lo soporte aparecen y desaparecen de golpe — que es
+   exactamente lo que hacían antes.
+--------------------------------------------------------------------------- */
+.capa {
+  opacity: 0;
+  transition:
+    opacity 0.22s ease,
+    transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1),
+    display 0.26s allow-discrete,
+    overlay 0.26s allow-discrete;
+}
+
+.capa[open] {
+  opacity: 1;
+  transform: none;
+}
+
+/* El modal sube y crece un poco; el cajón entra desde el borde derecho. */
+.capa-modal {
+  transform: translateY(12px) scale(0.97);
+}
+
+.capa-cajon {
+  transform: translateX(100%);
+}
+
+@starting-style {
+  .capa-modal[open] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  .capa-cajon[open] {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* El fondo se oscurece y se desenfoca: el contenido de atrás sigue ahí, pero
+   deja de competir por la atención. */
+.capa::backdrop {
+  background: rgb(10 10 10 / 0);
+  backdrop-filter: blur(0px);
+  transition:
+    background 0.26s ease,
+    backdrop-filter 0.26s ease,
+    display 0.26s allow-discrete,
+    overlay 0.26s allow-discrete;
+}
+
+.capa[open]::backdrop {
+  background: rgb(10 10 10 / 0.55);
+  backdrop-filter: blur(5px);
+}
+
+@starting-style {
+  .capa[open]::backdrop {
+    background: rgb(10 10 10 / 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capa,
+  .capa::backdrop {
+    transition: none;
+  }
+  .capa-modal,
+  .capa-cajon {
+    transform: none;
+  }
+}
+
 /* Trazo de lápiz graso: el círculo se dibuja al aparecer. */
 @keyframes trazo {
   from {

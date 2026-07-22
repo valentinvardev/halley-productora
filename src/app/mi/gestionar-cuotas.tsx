@@ -6,6 +6,7 @@ import { Marca } from "~/app/_components/marca";
 import { Modal } from "~/app/_components/modal";
 import {
   MARCA_ESTADO,
+  PlanCuotas,
   type CuotaVista,
 } from "~/app/_components/plan-cuotas";
 import { botonSolido } from "~/app/_components/ui";
@@ -51,17 +52,25 @@ export function GestionarCuotas({
       titulo="Gestionar cuotas"
     >
       {deuda === 0 ? (
-        <div className="flex items-center gap-4 border border-ink px-5 py-6">
-          <Marca tipo="confirmado" className="h-11 w-11 shrink-0" grosor={3} />
-          <div>
-            <div className="font-rotulo text-[12px] uppercase tracking-[0.08em]">
-              Plan saldado
+        /* Saldado el modal deja de ser un lugar donde hacer algo y pasa a ser
+           el comprobante: la lista queda, sin ningún botón de pago. */
+        <>
+          <div className="flex items-center gap-4 border border-ink px-5 py-5">
+            <Marca tipo="confirmado" className="h-11 w-11 shrink-0" grosor={3} />
+            <div>
+              <div className="font-rotulo text-[12px] uppercase tracking-[0.08em]">
+                Plan saldado
+              </div>
+              <p className="mt-1 text-[13px] text-gray-70">
+                Las {cuotas.length} cuotas están pagas.
+              </p>
             </div>
-            <p className="mt-1 text-[13px] text-gray-70">
-              Las {cuotas.length} cuotas están pagas. No queda nada por hacer.
-            </p>
           </div>
-        </div>
+
+          <div className="mt-3">
+            <PlanCuotas cuotas={cuotas} />
+          </div>
+        </>
       ) : (
         <>
           <div className="border border-ink">

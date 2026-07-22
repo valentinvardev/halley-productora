@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { salir } from "~/app/_acciones/sesion";
+import { Barra } from "~/app/_components/barra";
+import { itemCajon } from "~/app/_components/cajon";
 import { Copiar } from "~/app/_components/copiar";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
-import { BotonTema } from "~/app/_components/tema";
 import {
   Boton,
+  BotonTexto,
   Dato,
   TiraDatos,
   Vacio,
@@ -40,27 +42,19 @@ export function Panel({
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-gray-20 bg-paper/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-[760px] items-center justify-between px-6">
-          <span className="font-display text-[15px] font-semibold">
-            Halley — mis pagos
-          </span>
-          <div className="flex items-center gap-5">
-            <span className="hidden nota text-[11.5px] text-gray-45 sm:inline">
-              {email}
-            </span>
-            <BotonTema />
-            <form action={salir}>
-              <button
-                type="submit"
-                className="cursor-pointer font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
-              >
-                Salir
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <Barra
+        marca="Halley"
+        href="/mi"
+        ancho="max-w-[760px]"
+        identidad={{ titulo: "Mi cuenta", detalle: email }}
+        salir={
+          <form action={salir}>
+            <button type="submit" className={`${itemCajon} text-gray-45`}>
+              Salir
+            </button>
+          </form>
+        }
+      />
 
       <main className="mx-auto max-w-[760px] px-6 py-10">
         {hijos.length === 0 && (
@@ -78,6 +72,42 @@ export function Panel({
               </div>
               <h1 className="mt-1 text-[26px] leading-tight">{hijo.nombre}</h1>
 
+              {hijo.plan.deuda === 0 ? (
+                /* Plan terminado: no queda nada que cobrar, así que no queda
+                   nada que mostrar del cobro. Sólo el agradecimiento, y el
+                   detalle a un clic para quien quiera revisarlo. */
+                <div className="mt-6 border border-ink p-7 text-center sm:p-9">
+                  <Marca
+                    tipo="confirmado"
+                    className="mx-auto h-20 w-20"
+                    grosor={3}
+                  />
+                  <h2 className="mt-6 text-[22px] leading-tight">
+                    Gracias por confiar en nosotros
+                  </h2>
+                  <p className="nota mx-auto mt-3 max-w-[46ch]">
+                    Las {hijo.plan.cuotas.length} cuotas están pagas: no queda
+                    nada por abonar. Te mandamos el comprobante de cada una por
+                    email.
+                  </p>
+
+                  <div className="mt-7 inline-flex items-baseline gap-3 border-t border-gray-20 pt-4">
+                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
+                      Total abonado
+                    </span>
+                    <span className="font-display text-[26px] leading-none">
+                      {pesos(hijo.plan.pagado)}
+                    </span>
+                  </div>
+
+                  <div className="mt-5">
+                    <BotonTexto onClick={() => setGestionando(hijo.id)}>
+                      Ver el detalle de lo pagado
+                    </BotonTexto>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* Estado del plan */}
               <TiraDatos className="mt-6">
                 <Dato rotulo="Plan" valor={pesos(hijo.plan.total)} />
@@ -99,7 +129,7 @@ export function Panel({
               </TiraDatos>
 
               {/* Cómo pagar la próxima */}
-              {hijo.plan.proxima ? (
+              {hijo.plan.proxima && (
                 <div className="mt-6 border border-ink p-6">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <div>
@@ -142,24 +172,8 @@ export function Panel({
                     comprobante por mail.
                   </p>
                 </div>
-              ) : (
-                <div className="mt-6 flex flex-wrap items-center gap-4 border border-ink p-6">
-                  <Marca tipo="confirmado" className="h-12 w-12" grosor={3} />
-                  <div className="flex-1">
-                    <div className="font-rotulo text-[12px] uppercase tracking-[0.08em]">
-                      Plan saldado
-                    </div>
-                    <p className="mt-1 text-[13px] text-gray-70">
-                      No queda nada por pagar. Gracias.
-                    </p>
-                  </div>
-                  <Boton
-                    variante="fantasma"
-                    onClick={() => setGestionando(hijo.id)}
-                  >
-                    Gestionar cuotas
-                  </Boton>
-                </div>
+              )}
+                </>
               )}
 
               <GestionarCuotas
@@ -199,12 +213,18 @@ export function Panel({
                 )}
               </div>
 
-              {/* El plan completo */}
-              <h2 className="mt-10 mb-3 text-[17px]">Tus cuotas</h2>
-              <PlanCuotas
-                cuotas={hijo.plan.cuotas}
-                destacar={hijo.plan.proxima?.id}
-              />
+              {/* El plan completo. Saldado no se muestra: la lista entera de
+                  cuotas pagas no le dice nada nuevo a nadie, y para revisarla
+                  está el detalle de la tarjeta de arriba. */}
+              {hijo.plan.deuda > 0 && (
+                <>
+                  <h2 className="mt-10 mb-3 text-[17px]">Tus cuotas</h2>
+                  <PlanCuotas
+                    cuotas={hijo.plan.cuotas}
+                    destacar={hijo.plan.proxima?.id}
+                  />
+                </>
+              )}
 
               {/* Galería */}
               <h2 className="mt-10 mb-3 text-[17px]">Galería</h2>

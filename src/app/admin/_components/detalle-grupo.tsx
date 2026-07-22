@@ -289,10 +289,9 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Se remonta al cambiar de alumno para que no arrastre el email a medio
-          escribir ni una confirmación pendiente de otra fila. */}
+      {/* Queda siempre montado: si se desmontara al cerrar, el modal
+          desaparecería de golpe en vez de irse con su animación. */}
       <AccionesAlumno
-        key={gestionando?.id}
         alumno={gestionando}
         modoDemo={grupo.modoDemo}
         alCerrar={() => setGestionandoId(null)}

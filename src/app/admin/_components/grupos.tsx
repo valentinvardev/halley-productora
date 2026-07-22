@@ -119,26 +119,32 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
           hint="Una por mes, a partir del primer vencimiento."
           required
         />
-        <CampoFecha
-          label="Vence la primera"
-          valor={vence}
-          alCambiar={setVence}
-        />
+        {/* El aviso de que falta la fecha va acá, pegado al campo que lo
+            provoca, y no entre los botones: ahí se metía en el medio de
+            "crear" y "cancelar", que en el teléfono quedaban apretados contra
+            un texto que no tenía nada que ver con ellos. */}
+        <div>
+          <CampoFecha
+            label="Vence la primera"
+            valor={vence}
+            alCambiar={setVence}
+          />
+          {!vence && (
+            <p className="nota mt-1.5 text-[11.5px] text-marca">
+              Falta la fecha del primer vencimiento
+            </p>
+          )}
+        </div>
       </div>
 
       {crear.error && (
         <p className="nota text-marca">{crear.error.message}</p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Boton type="submit" disabled={crear.isPending || !vence}>
           {crear.isPending ? "Creando…" : "Crear grupo y plan"}
         </Boton>
-        {!vence && (
-          <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
-            Falta la fecha del primer vencimiento
-          </span>
-        )}
         <Boton type="button" variante="fantasma" onClick={alCerrar}>
           Cancelar
         </Boton>

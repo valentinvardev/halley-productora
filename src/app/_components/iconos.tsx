@@ -173,6 +173,27 @@ export function IconoProbeta(props: Props) {
   );
 }
 
+/** Navegación en pantallas chicas. */
+export function IconoHamburguesa(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M1.5 4 L14.5 4" />
+      <path d="M1.5 8 L14.5 8" />
+      <path d="M1.5 12 L14.5 12" />
+    </Svg>
+  );
+}
+
+/** La cuenta con la que se está adentro. */
+export function IconoPerfil(props: Props) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="5.6" r="2.9" strokeWidth={1.3} />
+      <path d="M2.4 14 A5.6 5.6 0 0 1 13.6 14" strokeWidth={1.3} />
+    </Svg>
+  );
+}
+
 /** Menú de acciones: la elipsis. */
 export function IconoPuntos(props: Props) {
   return (

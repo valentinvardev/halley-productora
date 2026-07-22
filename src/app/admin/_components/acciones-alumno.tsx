@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
 import {
@@ -101,6 +101,26 @@ export function AccionesAlumno({
   /** Qué acción irreversible está esperando el segundo clic. */
   const [confirmando, setConfirmando] = useState<string | null>(null);
 
+  // El último alumno mostrado sobrevive al cierre. Sin esto el modal se
+  // vaciaría de golpe y la animación de salida correría sobre una caja en
+  // blanco.
+  const ultimo = useRef(alumno);
+  if (alumno) ultimo.current = alumno;
+  const datos = alumno ?? ultimo.current;
+
+  // Cada vez que se abre se empieza limpio: sin el email a medio escribir ni
+  // el aviso de la vez anterior. Ajustar estado durante el render es la forma
+  // que React recomienda para esto — un efecto pintaría primero lo viejo.
+  const [estabaAbierto, setEstabaAbierto] = useState(!!alumno);
+  if (!!alumno !== estabaAbierto) {
+    setEstabaAbierto(!!alumno);
+    if (alumno) {
+      setEmail("");
+      setMensaje(null);
+      setConfirmando(null);
+    }
+  }
+
   const avisar = async (texto: string) => {
     setMensaje(texto);
     await alRefrescar();
@@ -151,14 +171,11 @@ export function AccionesAlumno({
     desvincular.isPending ||
     eliminar.isPending;
 
-  function cerrar() {
-    setMensaje(null);
-    setConfirmando(null);
-    setEmail("");
-    alCerrar();
-  }
+  // Cerrar no limpia nada: el contenido tiene que seguir en pantalla mientras
+  // dura la animación de salida. La limpieza pasa al volver a abrir.
+  const cerrar = alCerrar;
 
-  if (!alumno) return null;
+  if (!datos) return null;
 
   /** Botón que pide un segundo clic antes de hacer algo sin vuelta atrás. */
   const confirmar = (clave: string, accion: () => void) => () => {
@@ -172,10 +189,10 @@ export function AccionesAlumno({
 
   return (
     <Modal
-      abierto
+      abierto={!!alumno}
       alCerrar={cerrar}
       eyebrow="Acciones"
-      titulo={alumno.nombre}
+      titulo={datos.nombre}
     >
       <div className="grid gap-5">
         {mensaje && (
@@ -188,37 +205,37 @@ export function AccionesAlumno({
             deciden mirando esto, no al revés. */}
         <Seccion titulo="Estado del plan">
           <TiraDatos>
-            <Dato rotulo="Pagado" valor={pesos(alumno.plan.pagado)} />
+            <Dato rotulo="Pagado" valor={pesos(datos.plan.pagado)} />
             <Dato
               rotulo="Falta"
-              valor={pesos(alumno.plan.deuda)}
+              valor={pesos(datos.plan.deuda)}
               detalle={
-                alumno.plan.deuda === 0
+                datos.plan.deuda === 0
                   ? "Plan completo"
-                  : `de ${pesos(alumno.plan.total)}`
+                  : `de ${pesos(datos.plan.total)}`
               }
             />
-            {alumno.plan.aFavor > 0 && (
-              <Dato rotulo="A favor" valor={pesos(alumno.plan.aFavor)} />
+            {datos.plan.aFavor > 0 && (
+              <Dato rotulo="A favor" valor={pesos(datos.plan.aFavor)} />
             )}
           </TiraDatos>
 
           <div className="mt-3">
             <PlanCuotas
-              cuotas={alumno.plan.cuotas}
-              destacar={alumno.plan.proxima?.id}
+              cuotas={datos.plan.cuotas}
+              destacar={datos.plan.proxima?.id}
             />
           </div>
         </Seccion>
 
         <Seccion titulo="Transferencias recibidas">
-          {alumno.pagos.length === 0 ? (
+          {datos.pagos.length === 0 ? (
             <p className="nota border border-dashed border-gray-20 px-3.5 py-3 text-gray-45">
               Todavía no entró ninguna transferencia de esta familia.
             </p>
           ) : (
             <div className="border border-gray-20">
-              {alumno.pagos.map((p) => (
+              {datos.pagos.map((p) => (
                 <div
                   key={p.id}
                   className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
@@ -248,12 +265,12 @@ export function AccionesAlumno({
             <Enlace
               titulo="Acceso al panel"
               nota="Es el que se le manda a la familia: entra a su panel."
-              valor={alumno.linkRegistro}
+              valor={datos.linkRegistro}
             />
             <Enlace
               titulo="Pago directo"
               nota="Abre la cuota sin cuenta ni registro."
-              valor={alumno.linkPago}
+              valor={datos.linkPago}
             />
           </div>
         </Seccion>
@@ -262,12 +279,12 @@ export function AccionesAlumno({
           <Campo
             label="Email de la familia"
             type="email"
-            placeholder={alumno.emailContacto ?? "mama@mail.com"}
+            placeholder={datos.emailContacto ?? "mama@mail.com"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             hint={
-              alumno.emailContacto
-                ? `Guardado: ${alumno.emailContacto} — escribí otro para reemplazarlo`
+              datos.emailContacto
+                ? `Guardado: ${datos.emailContacto} — escribí otro para reemplazarlo`
                 : "Este alumno todavía no tiene contacto cargado"
             }
           />
@@ -275,8 +292,8 @@ export function AccionesAlumno({
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <Boton
               variante="fantasma"
-              onClick={() => invitar.mutate({ alumnoId: alumno.id, email })}
-              disabled={ocupado || (!email && !alumno.emailContacto)}
+              onClick={() => invitar.mutate({ alumnoId: datos.id, email })}
+              disabled={ocupado || (!email && !datos.emailContacto)}
             >
               <IconoSobre />
               Invitar
@@ -284,12 +301,12 @@ export function AccionesAlumno({
 
             <Boton
               variante="fantasma"
-              onClick={() => recordar.mutate({ alumnoId: alumno.id })}
-              disabled={ocupado || alumno.plan.deuda === 0}
+              onClick={() => recordar.mutate({ alumnoId: datos.id })}
+              disabled={ocupado || datos.plan.deuda === 0}
               title={
-                alumno.plan.deuda === 0
+                datos.plan.deuda === 0
                   ? "No debe nada"
-                  : `Debe ${pesos(alumno.plan.deuda)}`
+                  : `Debe ${pesos(datos.plan.deuda)}`
               }
             >
               <IconoCampana />
@@ -298,12 +315,12 @@ export function AccionesAlumno({
           </div>
         </Seccion>
 
-        {modoDemo && alumno.plan.deuda > 0 && (
+        {modoDemo && datos.plan.deuda > 0 && (
           <Seccion titulo="Demo">
             <Boton
               variante="fantasma"
               className="w-full"
-              onClick={() => simular.mutate({ alumnoId: alumno.id })}
+              onClick={() => simular.mutate({ alumnoId: datos.id })}
               disabled={ocupado}
             >
               <IconoProbeta />
@@ -315,10 +332,10 @@ export function AccionesAlumno({
           </Seccion>
         )}
 
-        {alumno.responsables.length > 0 && (
+        {datos.responsables.length > 0 && (
           <Seccion titulo="Responsables">
             <div className="border border-gray-20">
-              {alumno.responsables.map((r) => (
+              {datos.responsables.map((r) => (
                 <div
                   key={r.id}
                   className="flex items-center justify-between gap-3 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
@@ -346,14 +363,14 @@ export function AccionesAlumno({
             variante="fantasma"
             className="w-full border-marca text-marca hover:bg-marca hover:text-paper"
             onClick={confirmar("eliminar", () =>
-              eliminar.mutate({ alumnoId: alumno.id }),
+              eliminar.mutate({ alumnoId: datos.id }),
             )}
             disabled={ocupado}
           >
             <IconoPapelera />
             {confirmando === "eliminar"
-              ? `Confirmar — se borra a ${alumno.nombre} y sus pagos`
-              : `Eliminar a ${alumno.nombre}`}
+              ? `Confirmar — se borra a ${datos.nombre} y sus pagos`
+              : `Eliminar a ${datos.nombre}`}
           </Boton>
         </Seccion>
       </div>

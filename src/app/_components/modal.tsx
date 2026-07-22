@@ -55,7 +55,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) alCerrar();
       }}
-      className="m-auto hidden max-h-[calc(100vh-2rem)] w-[min(560px,calc(100vw-2rem))] border border-ink bg-paper p-0 text-ink backdrop:bg-[rgba(10,10,10,0.55)] open:flex open:flex-col"
+      className="capa capa-modal m-auto hidden max-h-[calc(100vh-2rem)] w-[min(560px,calc(100vw-2rem))] border border-ink bg-paper p-0 text-ink open:flex open:flex-col"
     >
       <header className="flex shrink-0 items-start justify-between gap-4 border-b border-ink px-6 py-4">
         <div>
