@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
-import { crearAlumno, invitarFamilia, parsearAlumnos } from "~/server/alumnos";
+import {
+  crearAlumno,
+  destinatarios,
+  invitarFamilia,
+  parsearAlumnos,
+} from "~/server/alumnos";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
 import { notificarRecordatorio } from "~/server/notificaciones";
 
@@ -85,24 +90,27 @@ export const alumnoRouter = createTRPCRouter({
         where: { id: input.alumnoId },
         include: {
           grupo: { include: { cuotas: true } },
-          cuenta: true,
+          tutores: { include: { cuenta: true } },
           pagos: true,
         },
       });
 
-      const email = alumno.cuenta?.email ?? alumno.emailContacto;
+      const emails = destinatarios(alumno);
       const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
-      if (!email || !plan.proxima) return { enviado: false as const };
+      if (emails.length === 0 || !plan.proxima) return { enviado: false as const };
 
-      await notificarRecordatorio(
-        { alumno, grupo: alumno.grupo, email },
-        {
-          numero: plan.proxima.numero,
-          monto: plan.proxima.saldo,
-          venceEl: plan.proxima.venceEl,
-          vencida: plan.proxima.estado === "VENCIDA",
-        },
-      );
+      // El recordatorio va a todos los responsables del alumno.
+      for (const email of emails) {
+        await notificarRecordatorio(
+          { alumno, grupo: alumno.grupo, email },
+          {
+            numero: plan.proxima.numero,
+            monto: plan.proxima.saldo,
+            venceEl: plan.proxima.venceEl,
+            vencida: plan.proxima.estado === "VENCIDA",
+          },
+        );
+      }
       return { enviado: true as const };
     }),
 
@@ -114,39 +122,38 @@ export const alumnoRouter = createTRPCRouter({
         where: { grupoId: input.grupoId },
         include: {
           grupo: { include: { cuotas: true } },
-          cuenta: true,
+          tutores: { include: { cuenta: true } },
           pagos: true,
         },
       });
 
       let enviados = 0;
       for (const alumno of alumnos) {
-        const email = alumno.cuenta?.email ?? alumno.emailContacto;
         const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
-        if (!email || !plan.proxima) continue;
+        if (!plan.proxima) continue;
 
-        await notificarRecordatorio(
-          { alumno, grupo: alumno.grupo, email },
-          {
-            numero: plan.proxima.numero,
-            monto: plan.proxima.saldo,
-            venceEl: plan.proxima.venceEl,
-            vencida: plan.proxima.estado === "VENCIDA",
-          },
-        );
-        enviados += 1;
+        // A todos los responsables del alumno, no a uno solo.
+        for (const email of destinatarios(alumno)) {
+          await notificarRecordatorio(
+            { alumno, grupo: alumno.grupo, email },
+            {
+              numero: plan.proxima.numero,
+              monto: plan.proxima.saldo,
+              venceEl: plan.proxima.venceEl,
+              vencida: plan.proxima.estado === "VENCIDA",
+            },
+          );
+          enviados += 1;
+        }
       }
       return { enviados };
     }),
 
-  /** Suelta al alumno de la cuenta que lo reclamó (reclamo equivocado). */
+  /** Saca a un responsable de un alumno (registro equivocado). */
   desvincular: adminProcedure
-    .input(z.object({ alumnoId: z.string() }))
+    .input(z.object({ tutorId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.alumno.update({
-        where: { id: input.alumnoId },
-        data: { cuentaId: null },
-      });
+      await ctx.db.tutor.delete({ where: { id: input.tutorId } });
       return { ok: true };
     }),
 

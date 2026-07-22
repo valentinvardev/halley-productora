@@ -69,11 +69,10 @@ model Alumno {
     /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
     emailContacto String?
 
-    /// Cuenta que reclamó a este alumno. Una vez reclamado no se puede volver
-    /// a reclamar: sin esto, dos personas se pisarían y la segunda vería los
-    /// datos de la primera.
-    cuentaId String?
-    cuenta   Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+    /// Quiénes gestionan la cuota de este alumno. Un chico puede tener dos
+    /// papás —o un tutor más—, así que son varios y no uno; el tope está en
+    /// MAX_RESPONSABLES.
+    tutores Tutor[]
 
     /// Link personal sin login (/p/[token]). Sigue funcionando para el padre
     /// que no se quiere registrar y es el que ya salió por mail.
@@ -95,6 +94,22 @@ model Alumno {
     creadoEn DateTime @default(now())
 
     @@index([grupoId])
+}
+
+/// Vínculo entre una cuenta y un alumno. Los responsables son todos iguales:
+/// cualquiera ve el plan, paga y puede sacar a otro.
+model Tutor {
+    id String @id @default(cuid())
+
+    cuentaId String
+    cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+    alumnoId String
+    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+    creadoEn DateTime @default(now())
+
+    @@unique([cuentaId, alumnoId])
+    @@index([alumnoId])
     @@index([cuentaId])
 }
 
@@ -104,7 +119,7 @@ model Cuenta {
     email  String  @unique
     nombre String?
 
-    alumnos  Alumno[]
+    tutorias Tutor[]
     sesiones Sesion[]
 
     creadoEn   DateTime  @default(now())

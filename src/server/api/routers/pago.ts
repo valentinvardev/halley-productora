@@ -94,13 +94,18 @@ export const pagoRouter = createTRPCRouter({
   simularDesdeCuenta: cuentaProcedure
     .input(z.object({ alumnoId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const alumno = await ctx.db.alumno.findUnique({
-        where: { id: input.alumnoId },
-        select: { id: true, cuentaId: true },
+      // Sólo se puede pagar por un alumno del que se es responsable.
+      const vinculo = await ctx.db.tutor.findUnique({
+        where: {
+          cuentaId_alumnoId: {
+            cuentaId: ctx.cuenta.id,
+            alumnoId: input.alumnoId,
+          },
+        },
       });
-      if (!alumno || alumno.cuentaId !== ctx.cuenta.id) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
+      if (!vinculo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const alumno = { id: input.alumnoId };
 
       return simularTransferencia(alumno.id);
     }),

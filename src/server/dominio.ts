@@ -4,6 +4,13 @@ import { env } from "~/env";
  * Reglas de negocio compartidas entre routers, webhook y páginas.
  */
 
+/**
+ * Cuántas cuentas pueden gestionar la cuota de un mismo alumno. Da lugar a los
+ * dos padres y a un tercero (una abuela, un tutor), que es donde se corta lo
+ * razonable: más que eso deja de ser una familia y empieza a ser una filtración.
+ */
+export const MAX_RESPONSABLES = 3;
+
 export type EstadoCuota = "PENDIENTE" | "PAGADA" | "VENCIDA";
 
 type CuotaPlan = {

@@ -170,6 +170,34 @@ export function Panel({
                 </div>
               )}
 
+              {/* Quiénes más gestionan esta cuota */}
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-gray-45">
+                    Responsables de {hijo.nombre.split(" ")[0]}
+                  </div>
+                  <div className="mt-1 font-mono text-[11px]">
+                    {hijo.responsables
+                      .map((r) => (r.soyYo ? `${r.email} (vos)` : r.email))
+                      .join(" · ")}
+                  </div>
+                </div>
+
+                {hijo.lugaresLibres > 0 && (
+                  <div className="text-right">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                      Queda{hijo.lugaresLibres > 1 ? "n" : ""}{" "}
+                      {hijo.lugaresLibres} lugar
+                      {hijo.lugaresLibres > 1 ? "es" : ""}
+                    </div>
+                    <Copiar
+                      valor={hijo.linkRegistro}
+                      etiqueta="Copiar link para el otro responsable"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* El plan completo */}
               <h2 className="mt-10 mb-3 text-[17px]">Tus cuotas</h2>
               <PlanCuotas

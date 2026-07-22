@@ -60,7 +60,7 @@ export function DetalleGrupo({ id }: { id: string }) {
       refrescar(r.enviado ? "Recordatorio enviado" : "Nada que recordar"),
   });
   const desvincular = api.alumno.desvincular.useMutation({
-    onSuccess: () => refrescar("Cuenta desvinculada"),
+    onSuccess: () => refrescar("Responsable desvinculado"),
   });
   const eliminar = api.alumno.eliminar.useMutation({
     onSuccess: () => refrescar("Alumno eliminado"),
@@ -194,12 +194,28 @@ export function DetalleGrupo({ id }: { id: string }) {
 
                   <td className="px-3.5 py-3">
                     <div className="text-[13.5px]">{a.nombre}</div>
-                    <div className="font-mono text-[10.5px] text-gray-45">
-                      {a.cuenta?.email ?? a.emailContacto ?? "sin email"}
-                    </div>
+                    {/* Los responsables registrados; si no hay ninguno, el
+                        contacto que cargó el admin. */}
+                    {a.responsables.length > 0 ? (
+                      a.responsables.map((r) => (
+                        <div
+                          key={r.id}
+                          className="font-mono text-[10.5px] text-gray-45"
+                        >
+                          {r.email}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="font-mono text-[10.5px] text-gray-45">
+                        {a.emailContacto ?? "sin email"}
+                      </div>
+                    )}
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      {a.cuenta ? (
-                        <Tag activo>Registrado</Tag>
+                      {a.responsables.length > 0 ? (
+                        <Tag activo>
+                          {a.responsables.length} responsable
+                          {a.responsables.length > 1 ? "s" : ""}
+                        </Tag>
                       ) : (
                         <Tag>Sin cuenta</Tag>
                       )}
@@ -292,19 +308,20 @@ export function DetalleGrupo({ id }: { id: string }) {
                           Simular pago
                         </BotonTexto>
                       )}
-                      {a.cuenta && (
+                      {a.responsables.map((r) => (
                         <BotonTexto
+                          key={r.id}
                           onClick={() => {
-                            if (confirm(`¿Desvincular la cuenta de ${a.nombre}?`)) {
-                              desvincular.mutate({ alumnoId: a.id });
+                            if (confirm(`¿Desvincular a ${r.email}?`)) {
+                              desvincular.mutate({ tutorId: r.id });
                             }
                           }}
                           disabled={ocupado}
                           className="text-gray-45"
                         >
-                          Desvincular
+                          Sacar {r.email.split("@")[0]}
                         </BotonTexto>
-                      )}
+                      ))}
                       <BotonTexto
                         onClick={() => {
                           if (confirm(`¿Eliminar a ${a.nombre}?`)) {

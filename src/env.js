@@ -31,6 +31,16 @@ export const env = createEnv({
      * "resend" además los manda de verdad — requiere RESEND_API_KEY.
      * En los dos casos quedan guardados y visibles en el panel.
      */
+    /**
+     * Cómo entran las familias.
+     * "directo" — con el email alcanza: entra en el momento. Es lo que se usa
+     *   en la demo, donde parar a revisar un correo rompe el recorrido.
+     * "enlace" — se manda un link de un solo uso al email y se canjea. Es lo
+     *   que corresponde en producción: sin esto, saber el email de otro
+     *   alcanza para entrar a su cuenta.
+     */
+    AUTH_PADRES: z.enum(["directo", "enlace"]).default("directo"),
+
     EMAIL_MODE: z.enum(["bandeja", "resend"]).default("bandeja"),
     RESEND_API_KEY: z.string().optional(),
     /** Remitente verificado en Resend. */
@@ -60,6 +70,7 @@ export const env = createEnv({
     TALO_MODE: process.env.TALO_MODE,
     TALO_API_URL: process.env.TALO_API_URL,
     TALO_API_KEY: process.env.TALO_API_KEY,
+    AUTH_PADRES: process.env.AUTH_PADRES,
     EMAIL_MODE: process.env.EMAIL_MODE,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,

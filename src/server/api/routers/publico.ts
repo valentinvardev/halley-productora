@@ -26,6 +26,7 @@ export const publicoRouter = createTRPCRouter({
             },
           },
           pagos: { orderBy: { recibidoEn: "desc" } },
+          _count: { select: { tutores: true } },
         },
       });
       if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
@@ -37,7 +38,7 @@ export const publicoRouter = createTRPCRouter({
         alias: alumno.alias,
         cvu: alumno.cvu,
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
-        tieneCuenta: alumno.cuentaId !== null,
+        tieneCuenta: alumno._count.tutores > 0,
         modoDemo: taloEsMock,
         grupo: {
           nombre: alumno.grupo.nombre,

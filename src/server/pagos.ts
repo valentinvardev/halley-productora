@@ -1,4 +1,5 @@
 import { talo } from "~/server/talo";
+import { destinatarios } from "./alumnos";
 import { db } from "./db";
 import { imputarPagos, sumarPagos } from "./dominio";
 import { notificarPagoRecibido } from "./notificaciones";
@@ -21,7 +22,7 @@ export async function procesarPagoRecibido(payload: {
       where: { taloCustomerId: payload.customerId },
       include: {
         grupo: { include: { cuotas: true } },
-        cuenta: true,
+        tutores: { include: { cuenta: true } },
         pagos: true,
       },
     }),
@@ -76,12 +77,10 @@ export async function procesarPagoRecibido(payload: {
     despues.cuotas.find((c) => c.id === cuotaDestino.id)?.estado === "PAGADA";
 
   if (saldoLaCuota) {
+    // El comprobante va a todos los responsables: si pagó uno, el otro también
+    // tiene que enterarse.
     await notificarPagoRecibido(
-      {
-        alumno,
-        grupo: alumno.grupo,
-        email: alumno.cuenta?.email ?? alumno.emailContacto,
-      },
+      { alumno, grupo: alumno.grupo, emails: destinatarios(alumno) },
       { monto: tx.monto, cuota: cuotaDestino.numero, deuda: despues.deuda },
     );
   }

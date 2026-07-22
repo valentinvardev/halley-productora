@@ -112,11 +112,11 @@ export async function notificarPagoRecibido(
   {
     alumno,
     grupo,
-    email,
-  }: { alumno: Alumno; grupo: Grupo; email: string | null },
+    emails,
+  }: { alumno: Alumno; grupo: Grupo; emails: string[] },
   pago: { monto: number; cuota: number; deuda: number },
 ) {
-  if (email) {
+  for (const email of emails) {
     await entregar({
       tipo: "CONFIRMACION_PADRE",
       destinatario: email,

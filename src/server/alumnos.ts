@@ -55,40 +55,52 @@ export async function crearAlumno(input: {
   return { alumno, yaExistia: false };
 }
 
-/** Invitación al email de contacto, con el link del grupo para registrarse. */
+/**
+ * A quiénes hay que escribirles por este alumno: a todos los responsables
+ * registrados, y si todavía no hay ninguno, al contacto que cargó el admin.
+ */
+export function destinatarios(alumno: {
+  emailContacto: string | null;
+  tutores: { cuenta: { email: string } }[];
+}) {
+  const registrados = alumno.tutores.map((t) => t.cuenta.email);
+  if (registrados.length > 0) return registrados;
+  return alumno.emailContacto ? [alumno.emailContacto] : [];
+}
+
+/** Invitación a registrarse, al contacto o a los responsables que ya haya. */
 export async function invitarFamilia(alumnoId: string) {
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
     include: {
       grupo: { include: { cuotas: true } },
-      cuenta: true,
+      tutores: { include: { cuenta: true } },
       pagos: true,
     },
   });
 
-  // Si la familia ya se registró, el mail va a la cuenta; si no, al contacto
-  // que cargó el admin.
-  const email = alumno.cuenta?.email ?? alumno.emailContacto;
-  if (!email) return { enviado: false as const };
+  const emails = destinatarios(alumno);
+  if (emails.length === 0) return { enviado: false as const };
 
   const plan = imputarPagos(
     alumno.grupo.cuotas,
     alumno.pagos.reduce((t, p) => t + Number(p.monto), 0),
   );
 
-  await notificarInvitacion(
-    { alumno, grupo: alumno.grupo, email },
-    plan.proxima
-      ? {
-          numero: plan.proxima.numero,
-          total: alumno.grupo.cuotas.length,
-          monto: plan.proxima.monto,
-          venceEl: plan.proxima.venceEl,
-        }
-      : null,
-  );
+  const cuota = plan.proxima
+    ? {
+        numero: plan.proxima.numero,
+        total: alumno.grupo.cuotas.length,
+        monto: plan.proxima.saldo,
+        venceEl: plan.proxima.venceEl,
+      }
+    : null;
 
-  return { enviado: true as const };
+  for (const email of emails) {
+    await notificarInvitacion({ alumno, grupo: alumno.grupo, email }, cuota);
+  }
+
+  return { enviado: true as const, cantidad: emails.length };
 }
 
 /**

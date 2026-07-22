@@ -75,7 +75,7 @@ export const grupoRouter = createTRPCRouter({
           alumnos: {
             orderBy: { creadoEn: "asc" },
             include: {
-              cuenta: true,
+              tutores: { include: { cuenta: true }, orderBy: { creadoEn: "asc" } },
               pagos: { orderBy: { recibidoEn: "desc" } },
             },
           },
@@ -115,7 +115,10 @@ export const grupoRouter = createTRPCRouter({
             linkRegistro: linkRegistroAlumno(grupo.slug, a.id),
             /** Pago sin registrarse: sigue existiendo como salida de emergencia. */
             linkPago: linkAlumno(a.token),
-            cuenta: a.cuenta ? { email: a.cuenta.email } : null,
+            responsables: a.tutores.map((t) => ({
+              id: t.id,
+              email: t.cuenta.email,
+            })),
             plan: {
               total: plan.total,
               pagado: plan.pagado,

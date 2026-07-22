@@ -13,13 +13,15 @@ import { BotonTema } from "./tema";
  */
 export function MarcoAcceso({
   solapa,
-  slug,
+  alCambiarSolapa,
   children,
 }: {
-  /** Cuál de las dos solapas está activa. */
   solapa: "registro" | "login";
-  /** Grupo al que pertenece el registro; sin esto la solapa lleva a /entrar. */
-  slug?: string;
+  /**
+   * Si se pasa, las solapas cambian en el lugar (es la página del grupo, que
+   * tiene las dos cosas). Si no, llevan a las páginas sueltas.
+   */
+  alCambiarSolapa?: (solapa: "registro" | "login") => void;
   children: ReactNode;
 }) {
   return (
@@ -34,7 +36,7 @@ export function MarcoAcceso({
 
         <main className="flex flex-1 items-center justify-center px-8 pb-12">
           <div className="w-full max-w-[400px]">
-            <Solapas solapa={solapa} slug={slug} />
+            <Solapas solapa={solapa} alCambiar={alCambiarSolapa} />
             {children}
           </div>
         </main>
@@ -59,26 +61,44 @@ export function MarcoAcceso({
 
 function Solapas({
   solapa,
-  slug,
+  alCambiar,
 }: {
   solapa: "registro" | "login";
-  slug?: string;
+  alCambiar?: (solapa: "registro" | "login") => void;
 }) {
-  const clases = (activa: boolean) =>
+  const clases = (activa: boolean, primera: boolean) =>
     `flex-1 border border-ink px-4 py-3 text-center font-mono text-[11px] uppercase tracking-[0.06em] transition-colors ${
-      activa ? "bg-ink text-paper" : "bg-transparent hover:bg-paper-dim"
-    }`;
+      primera ? "border-r-0" : ""
+    } ${activa ? "bg-ink text-paper" : "bg-transparent hover:bg-paper-dim"}`;
+
+  if (alCambiar) {
+    return (
+      <div className="mb-8 flex">
+        <button
+          type="button"
+          onClick={() => alCambiar("registro")}
+          className={clases(solapa === "registro", true)}
+        >
+          Registrarme
+        </button>
+        <button
+          type="button"
+          onClick={() => alCambiar("login")}
+          className={clases(solapa === "login", false)}
+        >
+          Ya tengo cuenta
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-8 flex">
-      <Link
-        href={slug ? `/g/${slug}` : "/registro"}
-        className={`${clases(solapa === "registro")} border-r-0`}
-      >
+      <Link href="/registro" className={clases(solapa === "registro", true)}>
         Registrarme
       </Link>
-      <Link href="/entrar" className={clases(solapa === "login")}>
-        Iniciar sesión
+      <Link href="/entrar" className={clases(solapa === "login", false)}>
+        Ya tengo cuenta
       </Link>
     </div>
   );

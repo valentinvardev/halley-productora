@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import { env } from "~/env";
 import { db } from "./db";
+import { MAX_RESPONSABLES } from "./dominio";
 
 /**
  * Autenticación de padres: sólo email, sin contraseña.
@@ -50,6 +51,71 @@ export async function crearEnlaceAcceso(
   };
 }
 
+/**
+ * ¿Puede esta persona sumarse como responsable de este alumno?
+ *
+ * Vive acá y no en la acción de servidor para tener una sola implementación de
+ * la regla: la usan el registro y cualquier otra puerta que se abra después.
+ */
+export async function puedeSumarResponsable(alumnoId: string, email: string) {
+  const alumno = await db.alumno.findUnique({
+    where: { id: alumnoId },
+    include: { tutores: { include: { cuenta: true } } },
+  });
+
+  if (!alumno) return { ok: false as const, motivo: "no-existe" as const };
+
+  // Quien ya es responsable siempre puede volver a entrar.
+  const yaEs = alumno.tutores.some(
+    (t) => t.cuenta.email === normalizarEmail(email),
+  );
+  if (yaEs) return { ok: true as const, alumno };
+
+  if (alumno.tutores.length >= MAX_RESPONSABLES) {
+    return { ok: false as const, motivo: "sin-lugar" as const, alumno };
+  }
+
+  return { ok: true as const, alumno };
+}
+
+/**
+ * Abre la sesión: crea la cuenta si es la primera vez, la vincula al alumno que
+ * se está reclamando y devuelve el token para la cookie.
+ *
+ * Es el punto común de los dos modos de acceso — el directo entra por acá y el
+ * de enlace también, después de canjear el token.
+ */
+export async function abrirSesion(email: string, alumnoId?: string) {
+  const cuenta = await db.cuenta.upsert({
+    where: { email: normalizarEmail(email) },
+    update: { ultimoAcceso: new Date() },
+    create: { email: normalizarEmail(email), ultimoAcceso: new Date() },
+  });
+
+  // El vínculo se crea sólo si todavía queda lugar: entre que se pidió entrar
+  // y se entró, otros pudieron haber ocupado los cupos.
+  if (alumnoId) {
+    const ocupados = await db.tutor.count({ where: { alumnoId } });
+    if (ocupados < MAX_RESPONSABLES) {
+      await db.tutor.upsert({
+        where: { cuentaId_alumnoId: { cuentaId: cuenta.id, alumnoId } },
+        update: {},
+        create: { cuentaId: cuenta.id, alumnoId },
+      });
+    }
+  }
+
+  const sesion = await db.sesion.create({
+    data: {
+      token: tokenAleatorio(),
+      cuentaId: cuenta.id,
+      expiraEl: new Date(Date.now() + DIAS_SESION * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return sesion.token;
+}
+
 export type ResultadoCanje =
   | { ok: true; sesion: string }
   | { ok: false; motivo: "invalido" | "vencido" | "usado" };
@@ -67,36 +133,15 @@ export async function canjearEnlace(token: string): Promise<ResultadoCanje> {
     return { ok: false, motivo: "vencido" };
   }
 
-  const cuenta = await db.cuenta.upsert({
-    where: { email: enlace.email },
-    update: { ultimoAcceso: new Date() },
-    create: { email: enlace.email, ultimoAcceso: new Date() },
-  });
-
-  // El alumno se vincula sólo si sigue libre: entre que se pidió el link y se
-  // abrió, otra persona pudo haberlo reclamado.
-  if (enlace.alumnoId) {
-    await db.alumno.updateMany({
-      where: { id: enlace.alumnoId, cuentaId: null },
-      data: { cuentaId: cuenta.id },
-    });
-  }
-
   const [sesion] = await Promise.all([
-    db.sesion.create({
-      data: {
-        token: tokenAleatorio(),
-        cuentaId: cuenta.id,
-        expiraEl: new Date(Date.now() + DIAS_SESION * 24 * 60 * 60 * 1000),
-      },
-    }),
+    abrirSesion(enlace.email, enlace.alumnoId ?? undefined),
     db.enlaceAcceso.update({
       where: { id: enlace.id },
       data: { usadoEl: new Date() },
     }),
   ]);
 
-  return { ok: true, sesion: sesion.token };
+  return { ok: true, sesion };
 }
 
 /** Devuelve la cuenta de una sesión válida, o null. */
