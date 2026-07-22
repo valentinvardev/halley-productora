@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bebas_Neue, Montserrat } from "next/font/google";
 
+import { FUENTES_MARCA } from "./_components/fuentes";
 import {
   IconoBajar,
   IconoFlecha,
@@ -25,25 +25,6 @@ export const metadata: Metadata = {
   description:
     "Dron, fotografía y video para egresados, bodas, quince años y marcas. Los momentos son fugaces: Halley los hace eternos.",
 };
-
-/**
- * Las tipografías de la marca se cargan acá y no en el layout raíz: sólo las
- * usa esta parte del sitio, y no tiene sentido que el panel se baje dos
- * familias que no va a pintar.
- */
-const bebas = Bebas_Neue({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-bebas",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-montserrat",
-});
-
-export const FUENTES_MARCA = `${bebas.variable} ${montserrat.variable}`;
 
 const SECCIONES = [
   { href: "#servicios", texto: "Servicios" },

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Bebas_Neue, Montserrat } from "next/font/google";
 
+import { FUENTES_MARCA } from "~/app/_components/fuentes";
 import {
   IconoFlecha,
   IconoInstagram,
@@ -22,18 +22,6 @@ import {
   linkWhatsApp,
   servicioPorSlug,
 } from "~/app/_datos/servicios";
-
-const bebas = Bebas_Neue({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-bebas",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-montserrat",
-});
 
 /** Son cuatro y no cambian: se generan en el build. */
 export function generateStaticParams() {
@@ -68,7 +56,7 @@ export default async function ServicioPage({
   const consulta = consultaDe(servicio);
 
   return (
-    <div className={`landing ${bebas.variable} ${montserrat.variable}`}>
+    <div className={`landing ${FUENTES_MARCA}`}>
       <NavPublica
         secciones={[
           { href: "/#servicios", texto: "Servicios" },
