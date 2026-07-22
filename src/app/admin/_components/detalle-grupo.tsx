@@ -32,6 +32,7 @@ import {
 import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
+import { EsqueletoDetalle } from "./esqueletos";
 
 export function DetalleGrupo({ id }: { id: string }) {
   const utils = api.useUtils();
@@ -62,7 +63,7 @@ export function DetalleGrupo({ id }: { id: string }) {
   const recordarPendientes = api.alumno.recordarPendientes.useMutation({
     onSuccess: (r) => refrescar(`Recordatorios enviados: ${r.enviados}`),
   });
-  if (isLoading) return <Vacio>Cargando…</Vacio>;
+  if (isLoading) return <EsqueletoDetalle />;
   if (!grupo) return <Vacio>No encontramos el grupo</Vacio>;
 
   // Se resuelve contra la lista en cada render y no se guarda una copia: la

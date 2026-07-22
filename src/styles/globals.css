@@ -292,6 +292,52 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Esperas.
+
+   Dos formas, según se sepa o no cómo va a quedar la pantalla: el esqueleto
+   cuando ya conocemos la forma del contenido, y la barra cuando estamos
+   esperando algo de afuera y no hay forma que anticipar.
+--------------------------------------------------------------------------- */
+@keyframes latido {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.esqueleto {
+  animation: latido 1.4s ease-in-out infinite;
+}
+
+@keyframes recorrido {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+.barra-carga > span {
+  animation: recorrido 1.15s cubic-bezier(0.5, 0, 0.4, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto {
+    animation: none;
+    opacity: 0.55;
+  }
+  .barra-carga > span {
+    animation: none;
+    width: 100%;
+    opacity: 0.45;
+  }
+}
+
 /* Trazo de lápiz graso: el círculo se dibuja al aparecer. */
 @keyframes trazo {
   from {

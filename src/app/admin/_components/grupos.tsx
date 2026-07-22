@@ -8,6 +8,7 @@ import { Marca } from "~/app/_components/marca";
 import { Boton, Campo, Dato, Encabezado, Vacio } from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
+import { EsqueletoGrupos } from "./esqueletos";
 
 /** Tira de marcas al estilo hoja de contacto: un cuadro por alumno. */
 function Tira({
@@ -177,7 +178,7 @@ export function Grupos() {
 
       {abierto && <FormularioGrupo alCerrar={() => setAbierto(false)} />}
 
-      {isLoading && <Vacio>Cargando…</Vacio>}
+      {isLoading && <EsqueletoGrupos soloTarjetas />}
 
       {!isLoading && grupos?.length === 0 && (
         <div className="grid gap-5 border border-dashed border-gray-20 px-6 py-12 text-center">
@@ -201,6 +202,12 @@ export function Grupos() {
           <Link
             key={g.id}
             href={`/admin/grupos/${g.id}`}
+            // Next ya prefetchea la pantalla al acercarse; esto prefetchea los
+            // datos. Entre que el puntero entra a la tarjeta y el clic pasan
+            // unos cientos de milisegundos, que suele ser todo lo que tarda la
+            // consulta: cuando la pantalla abre, muchas veces ya están.
+            onMouseEnter={() => void utils.grupo.detalle.prefetch({ id: g.id })}
+            onFocus={() => void utils.grupo.detalle.prefetch({ id: g.id })}
             className="block border border-ink transition-colors hover:bg-paper-dim"
           >
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">

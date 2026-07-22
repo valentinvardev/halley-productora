@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Encabezado, Tag, Vacio } from "~/app/_components/ui";
 import { fechaHora } from "~/lib/format";
 import { api } from "~/trpc/react";
+import { EsqueletoBandeja } from "./esqueletos";
 
 const ROTULO = {
   INVITACION: "Invitación",
@@ -34,7 +35,7 @@ export function Bandeja() {
         }
       />
 
-      {isLoading && <Vacio>Cargando…</Vacio>}
+      {isLoading && <EsqueletoBandeja soloLista />}
       {!isLoading && notificaciones?.length === 0 && (
         <Vacio>Todavía no se disparó ninguna notificación</Vacio>
       )}

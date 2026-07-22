@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
+import { BarraCarga } from "~/app/_components/esqueleto";
 import { IconoVolver } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { Boton, BotonTexto, botonFantasma } from "~/app/_components/ui";
@@ -89,6 +90,14 @@ export function PantallaPago({
   });
 
   const varias = data.numeros.length > 1;
+
+  /**
+   * Estamos esperando que entre la plata: o porque la familia avisó que
+   * transfirió, o porque se acaba de disparar la transferencia simulada. Son
+   * dos caminos distintos hacia la misma espera.
+   */
+  const esperandoPago =
+    esperando || simular.isPending || !!data.reportoTransferenciaEl;
 
   return (
     <div className="flex min-h-screen flex-col bg-paper-dimmer px-4 py-8">
@@ -199,18 +208,28 @@ export function PantallaPago({
                 <Copiar valor={data.cvu} etiqueta="CVU" />
               </div>
 
-              {data.reportoTransferenciaEl ? (
-                <p className="nota mt-6 border border-gray-20 bg-paper px-3 py-3 text-center">
-                  Avisaste que transferiste. En cuanto se acredite volvés solo a
-                  tu panel.
-                </p>
+              {/* Una vez que la familia avisó que transfirió, la pantalla
+                  queda esperando algo que no depende de ella. La barra es para
+                  eso: no promete un porcentaje que nadie conoce, sólo dice que
+                  el sistema sigue mirando. */}
+              {esperandoPago ? (
+                <div className="mt-6 border border-ink px-4 py-4 text-center">
+                  <BarraCarga />
+                  <div className="mt-3.5 font-rotulo text-[12px] uppercase tracking-[0.08em]">
+                    Esperando la acreditación
+                  </div>
+                  <p className="nota mt-1.5 text-[11.5px] text-gray-45">
+                    Suele tardar unos segundos. Cuando entre, volvés solo a tu
+                    panel.
+                  </p>
+                </div>
               ) : (
                 <Boton
                   className="mt-6 w-full"
                   onClick={() => reportar.mutate({ alumnoId })}
                   disabled={reportar.isPending}
                 >
-                  Ya transferí
+                  {reportar.isPending ? "Avisando…" : "Ya transferí"}
                 </Boton>
               )}
 
@@ -219,9 +238,9 @@ export function PantallaPago({
                   <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
                     Demo — Talo simulado
                   </div>
-                  {esperando ? (
-                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
-                      Esperando la acreditación…
+                  {esperandoPago ? (
+                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
+                      Transferencia enviada al webhook
                     </span>
                   ) : (
                     <BotonTexto
