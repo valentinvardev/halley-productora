@@ -13,7 +13,7 @@ import {
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
-import { botonFantasma, botonSolido } from "./_components/ui";
+import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import {
   INSTAGRAM,
   MAIL,
@@ -149,7 +149,7 @@ function Hero() {
             href={linkWhatsApp("Hola Halley, quiero pedir un presupuesto.")}
             target="_blank"
             rel="noreferrer"
-            className={hayFondo ? botonSobreVideo : botonSolido}
+            className={botonWhatsApp}
           >
             <IconoWhatsApp />
             Pedir presupuesto
@@ -178,8 +178,6 @@ function Hero() {
 }
 
 /* Sobre el video el tema no decide nada: el fondo es oscuro siempre. */
-const botonSobreVideo =
-  "inline-flex items-center justify-center gap-2 border border-white bg-white px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-black transition-colors hover:bg-transparent hover:text-white";
 const botonSobreVideoFantasma =
   "inline-flex items-center justify-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
 
@@ -375,7 +373,7 @@ function Contacto() {
               href={linkWhatsApp("Hola Halley, quiero consultar por un evento.")}
               target="_blank"
               rel="noreferrer"
-              className={botonSolido}
+              className={botonWhatsApp}
             >
               <IconoWhatsApp />
               Escribir por WhatsApp

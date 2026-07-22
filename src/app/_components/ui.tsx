@@ -11,6 +11,20 @@ export const botonBase =
 export const botonSolido = `${botonBase} bg-ink text-paper hover:bg-paper hover:text-ink`;
 export const botonFantasma = `${botonBase} bg-transparent text-ink hover:bg-ink hover:text-paper`;
 
+/**
+ * El botón de WhatsApp, en su verde.
+ *
+ * No es el #25D366 de la marca: con texto blanco encima da 1,98:1, ilegible.
+ * Éste es el mismo verde bajado hasta 5,29:1, que se sigue leyendo como
+ * WhatsApp y además se lee.
+ *
+ * No compone sobre `botonBase` porque tendría que pisarle el `border-ink`, y
+ * entre dos utilidades del mismo tipo gana la que Tailwind emita última, no la
+ * que se escriba después.
+ */
+export const botonWhatsApp =
+  "inline-flex items-center justify-center gap-2 border border-[#0b7c3e] bg-[#0b7c3e] px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors duration-150 hover:border-[#095f30] hover:bg-[#095f30]";
+
 export function Boton({
   variante = "solido",
   className = "",

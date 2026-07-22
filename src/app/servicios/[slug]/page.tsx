@@ -13,7 +13,7 @@ import {
 import { Logotipo } from "~/app/_components/logotipo";
 import { Medio } from "~/app/_components/medio";
 import { NavPublica } from "~/app/_components/nav-publica";
-import { botonFantasma, botonSolido } from "~/app/_components/ui";
+import { botonFantasma, botonSolido, botonWhatsApp } from "~/app/_components/ui";
 import {
   INSTAGRAM,
   MAIL,
@@ -91,7 +91,7 @@ export default async function ServicioPage({
               href={linkWhatsApp(consulta)}
               target="_blank"
               rel="noreferrer"
-              className={botonSolido}
+              className={botonWhatsApp}
             >
               <IconoWhatsApp />
               Pedir presupuesto
@@ -109,6 +109,29 @@ export default async function ServicioPage({
           proporcion="aspect-[21/9]"
           prioridad
         />
+      </section>
+
+      {/* ---------------------------------------------------------- galería */}
+      {/* Va apenas debajo de la portada, antes que el detalle: quien entra a
+          una categoría quiere ver trabajo, no leer una lista. El detalle
+          convence después, con la muestra ya vista. */}
+      <section className="border-b border-gray-20">
+        <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
+          <h2 className="max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.4rem)] leading-[0.92] uppercase">
+            De {servicio.nombre.toLowerCase()} que ya cubrimos
+          </h2>
+
+          <div className="mt-11 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: servicio.piezas }, (_, i) => (
+              <Medio
+                key={i}
+                src={`/servicios/${servicio.slug}-${String(i + 1).padStart(2, "0")}.jpg`}
+                alt={`${servicio.nombre} ${i + 1}`}
+                proporcion="aspect-[4/3]"
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ---------------------------------------------------------- incluye */}
@@ -135,26 +158,6 @@ export default async function ServicioPage({
         </div>
       </section>
 
-      {/* ---------------------------------------------------------- galería */}
-      <section className="border-b border-gray-20">
-        <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
-          <h2 className="max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.4rem)] leading-[0.92] uppercase">
-            De {servicio.nombre.toLowerCase()} que ya cubrimos
-          </h2>
-
-          <div className="mt-11 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: servicio.piezas }, (_, i) => (
-              <Medio
-                key={i}
-                src={`/servicios/${servicio.slug}-${String(i + 1).padStart(2, "0")}.jpg`}
-                alt={`${servicio.nombre} ${i + 1}`}
-                proporcion="aspect-[4/3]"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* -------------------------------------------------------------- CTA */}
       <section id="pedir" className="border-b border-gray-20 bg-paper-dimmer">
         <div className="mx-auto max-w-[1140px] px-6 py-20 text-center sm:px-10 sm:py-28">
@@ -171,7 +174,7 @@ export default async function ServicioPage({
               href={linkWhatsApp(consulta)}
               target="_blank"
               rel="noreferrer"
-              className={botonSolido}
+              className={botonWhatsApp}
             >
               <IconoWhatsApp />
               Pedir presupuesto
