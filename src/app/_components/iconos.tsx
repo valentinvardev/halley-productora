@@ -80,6 +80,65 @@ export function IconoMas(props: Props) {
   );
 }
 
+/* --------------------------------------------------- rótulos de las métricas */
+
+/** Recaudado: el billete. */
+export function IconoBillete(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="1.5" y="4" width="13" height="8" />
+      <circle cx="8" cy="8" r="1.9" />
+      <path d="M3.6 8 L3.7 8" />
+      <path d="M12.3 8 L12.4 8" />
+    </Svg>
+  );
+}
+
+/** Plan total: lo que se espera juntar. */
+export function IconoObjetivo(props: Props) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="8" r="6" />
+      <circle cx="8" cy="8" r="2.4" />
+    </Svg>
+  );
+}
+
+/** Con saldo: todavía falta, pero no venció. */
+export function IconoReloj(props: Props) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M8 4.3 L8 8 L10.7 9.6" />
+    </Svg>
+  );
+}
+
+/** Con vencidas: lo que ya pasó de fecha. */
+export function IconoAlerta(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M8 1.8 L15 13.8 L1 13.8 Z" strokeLinejoin="round" />
+      <path d="M8 6 L8 9.6" />
+      <path d="M8 11.6 L8 11.7" />
+    </Svg>
+  );
+}
+
+/** Plan de cuotas: el calendario del vencimiento. */
+export function IconoCalendario(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="1.5" y="3" width="13" height="11.5" />
+      <path d="M1.5 6.5 L14.5 6.5" />
+      <path d="M4.8 1.5 L4.8 4" />
+      <path d="M11.2 1.5 L11.2 4" />
+    </Svg>
+  );
+}
+
+/* ------------------------------------------------------------------ acciones */
+
 /** Recordatorio a una familia puntual. */
 export function IconoCampana(props: Props) {
   return (

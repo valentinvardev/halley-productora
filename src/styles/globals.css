@@ -12,8 +12,21 @@
   --color-paper: #f6f5f0;
   --color-paper-dim: #eeece4;
   --color-paper-dimmer: #e2e0d5;
-  --color-gray-70: #4a4a45;
-  --color-gray-45: #8c8a80;
+  /**
+   * Los grises del texto.
+   *
+   * Sobre el papel (#f6f5f0), el gris-45 viejo (#8c8a80) daba 3,2:1 — abajo del
+   * 4,5:1 que pide la WCAG para texto normal, y se notaba: las notas al pie y
+   * los rótulos chicos se leían con esfuerzo. Ahora dan 5,0:1 y 10:1, y el
+   * gris-45 sigue arriba de 4,5:1 incluso sobre la superficie más oscura
+   * (paper-dim, 4,65:1). El negativo tenía el mismo problema al revés —su
+   * gris-45 daba 4,1:1 sobre el lienzo— y se corrigió igual, más arriba en vez
+   * de más abajo.
+   *
+   * Gris-20 no se toca: es estructural (bordes y divisores), no texto.
+   */
+  --color-gray-70: #3d3d38;
+  --color-gray-45: #6b6960;
   --color-gray-20: #d5d3c7;
   --color-marca: #d0342c;
   /** Superficie de los campos y las tarjetas tipo placa. */
@@ -54,7 +67,7 @@
       --color-paper-dim: #1c1c19;
       --color-paper-dimmer: #0b0b0a;
       --color-gray-70: #b0ada2;
-      --color-gray-45: #7c7a71;
+      --color-gray-45: #8f8d83;
       --color-gray-20: #35352f;
       --color-marca: #e2564c;
       --color-lienzo: #191916;
@@ -67,7 +80,7 @@
     --color-paper-dim: #1c1c19;
     --color-paper-dimmer: #0b0b0a;
     --color-gray-70: #b0ada2;
-    --color-gray-45: #7c7a71;
+    --color-gray-45: #8f8d83;
     --color-gray-20: #35352f;
     --color-marca: #e2564c;
     --color-lienzo: #191916;

@@ -5,11 +5,17 @@ import { useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
 import {
+  IconoAlerta,
+  IconoBillete,
+  IconoCalendario,
   IconoLista,
   IconoMas,
+  IconoObjetivo,
   IconoPuntos,
+  IconoReloj,
   IconoSobre,
   IconoSobreReenvio,
+  IconoTilde,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import {
@@ -96,14 +102,31 @@ export function DetalleGrupo({ id }: { id: string }) {
       />
 
       <div className="mb-8 flex flex-wrap border border-ink">
-        <Dato rotulo="Recaudado" valor={pesos(grupo.resumen.recaudado)} />
-        <Dato rotulo="Plan total" valor={pesos(grupo.resumen.esperado)} />
+        <Dato
+          rotulo="Recaudado"
+          valor={pesos(grupo.resumen.recaudado)}
+          icono={<IconoBillete />}
+        />
+        <Dato
+          rotulo="Plan total"
+          valor={pesos(grupo.resumen.esperado)}
+          icono={<IconoObjetivo />}
+        />
         <Dato
           rotulo="Al día"
           valor={`${grupo.resumen.alDia}/${grupo.resumen.alumnos}`}
+          icono={<IconoTilde />}
         />
-        <Dato rotulo="Con saldo" valor={grupo.resumen.conDeuda} />
-        <Dato rotulo="Con vencidas" valor={grupo.resumen.vencidos} />
+        <Dato
+          rotulo="Con saldo"
+          valor={grupo.resumen.conDeuda}
+          icono={<IconoReloj />}
+        />
+        <Dato
+          rotulo="Con vencidas"
+          valor={grupo.resumen.vencidos}
+          icono={<IconoAlerta />}
+        />
       </div>
 
       {aviso && (
@@ -112,23 +135,7 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Plan de cuotas del grupo */}
-      <div className="mb-8">
-        <div className="eyebrow mb-2">Plan de cuotas</div>
-        <div className="flex flex-wrap gap-2">
-          {grupo.cuotas.map((c) => (
-            <div key={c.id} className="border border-gray-20 px-3 py-2">
-              <div className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
-                Cuota {c.numero}
-              </div>
-              <div className="font-mono text-[12.5px]">{pesos(c.monto)}</div>
-              <div className="font-mono text-[10px] text-gray-45">
-                {fecha(c.venceEl)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <PlanDelGrupo cuotas={grupo.cuotas} />
 
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
@@ -291,6 +298,73 @@ export function DetalleGrupo({ id }: { id: string }) {
         alRefrescar={refrescar}
       />
     </>
+  );
+}
+
+/* ------------------------------------------------------------ plan del grupo */
+
+/**
+ * El plan en una sola tarjeta.
+ *
+ * Antes había una tarjetita por cuota: seis cajas repitiendo el mismo monto y
+ * el mismo día del mes, con el ojo saltando de una a otra para reconstruir lo
+ * que en realidad es una frase. El plan casi siempre es regular, así que se
+ * dice de una: "6 cuotas de $45.000, el 10 de cada mes".
+ *
+ * Cuando no es regular —montos distintos— no se inventa uniformidad: se dice
+ * el rango y se aclara.
+ */
+function PlanDelGrupo({
+  cuotas,
+}: {
+  cuotas: { id: string; numero: number; monto: number; venceEl: Date }[];
+}) {
+  const primera = cuotas[0];
+  const ultima = cuotas[cuotas.length - 1];
+  if (!primera || !ultima) return null;
+
+  const montos = cuotas.map((c) => c.monto);
+  const minimo = Math.min(...montos);
+  const maximo = Math.max(...montos);
+  const uniforme = minimo === maximo;
+  const total = montos.reduce((t, m) => t + m, 0);
+
+  // ¿Caen siempre el mismo día del mes? Es lo habitual y se dice mucho mejor
+  // que repetir seis fechas.
+  const dias = new Set(cuotas.map((c) => c.venceEl.getDate()));
+  const diaFijo = dias.size === 1 ? primera.venceEl.getDate() : null;
+
+  return (
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-6 border border-ink px-6 py-5">
+      <div>
+        <div className="eyebrow flex items-center gap-1.5">
+          <IconoCalendario />
+          Plan de cuotas
+        </div>
+
+        <div className="mt-2.5 font-display text-[30px] leading-none">
+          {cuotas.length} {cuotas.length === 1 ? "cuota" : "cuotas"}
+          {uniforme && ` de ${pesos(minimo)}`}
+        </div>
+
+        <p className="nota mt-2.5 max-w-[52ch]">
+          {diaFijo
+            ? `Vencen el ${diaFijo} de cada mes, de ${fecha(primera.venceEl)} a ${fecha(ultima.venceEl)}.`
+            : `La primera vence el ${fecha(primera.venceEl)} y la última el ${fecha(ultima.venceEl)}.`}
+          {!uniforme &&
+            ` Los montos van de ${pesos(minimo)} a ${pesos(maximo)}.`}
+        </p>
+      </div>
+
+      <div className="text-right">
+        <div className="font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
+          Total por alumno
+        </div>
+        <div className="mt-1.5 font-display text-[26px] leading-none">
+          {pesos(total)}
+        </div>
+      </div>
+    </div>
   );
 }
 

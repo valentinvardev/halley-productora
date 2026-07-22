@@ -131,19 +131,23 @@ export function Encabezado({
   );
 }
 
-/** Dato suelto con rótulo mono arriba — se usa en las tiras de métricas. */
+/** Dato suelto con su rótulo arriba — se usa en las tiras de métricas. */
 export function Dato({
   rotulo,
   valor,
   detalle,
+  icono,
 }: {
   rotulo: string;
   valor: ReactNode;
   detalle?: string;
+  /** Va al lado del rótulo, del mismo color: acompaña, no compite. */
+  icono?: ReactNode;
 }) {
   return (
     <div className="flex-1 border-r border-gray-20 px-4 py-3.5 last:border-r-0">
-      <div className="font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
+      <div className="flex items-center gap-1.5 font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
+        {icono}
         {rotulo}
       </div>
       <div className="mt-1 font-display text-[22px] leading-none">{valor}</div>
