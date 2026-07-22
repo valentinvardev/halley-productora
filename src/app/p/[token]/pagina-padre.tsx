@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Copiar } from "~/app/_components/copiar";
 import { Marca } from "~/app/_components/marca";
 import { Boton, BotonTexto } from "~/app/_components/ui";
@@ -16,10 +18,21 @@ export function PaginaPadre({
   inicial: RouterOutputs["padre"]["porToken"];
 }) {
   const utils = api.useUtils();
+
+  // Mientras esperamos que entre el webhook preguntamos más seguido, para que
+  // la confirmación aparezca apenas se acredita y no hasta 3 segundos después.
+  const [esperandoAcreditacion, setEsperandoAcreditacion] = useState(false);
+
   const { data } = api.padre.porToken.useQuery(
     { token },
-    // Sin estado propio: la página siempre refleja lo que dice el backend.
-    { refetchInterval: 3000, initialData: inicial },
+    {
+      initialData: inicial,
+      // Sin estado propio: la página siempre refleja lo que dice el backend.
+      refetchInterval: (query) => {
+        if (query.state.data?.estado === "PAGADO") return false;
+        return esperandoAcreditacion ? 700 : 3000;
+      },
+    },
   );
 
   const refrescar = () => utils.padre.porToken.invalidate({ token });
@@ -28,7 +41,10 @@ export function PaginaPadre({
     onSuccess: refrescar,
   });
   const simular = api.pago.simularDesdeToken.useMutation({
-    onSuccess: refrescar,
+    onSuccess: async () => {
+      setEsperandoAcreditacion(true);
+      await refrescar();
+    },
   });
 
   if (!data) {
@@ -124,14 +140,20 @@ export function PaginaPadre({
                 <div className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-gray-45">
                   Demo — Talo simulado
                 </div>
-                <BotonTexto
-                  onClick={() => simular.mutate({ token })}
-                  disabled={simular.isPending}
-                >
-                  {simular.isPending
-                    ? "Transfiriendo…"
-                    : "Simular transferencia desde el banco"}
-                </BotonTexto>
+                {esperandoAcreditacion ? (
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-70">
+                    Esperando la acreditación…
+                  </span>
+                ) : (
+                  <BotonTexto
+                    onClick={() => simular.mutate({ token })}
+                    disabled={simular.isPending}
+                  >
+                    {simular.isPending
+                      ? "Transfiriendo…"
+                      : "Simular transferencia desde el banco"}
+                  </BotonTexto>
+                )}
               </div>
             )}
           </>

@@ -58,7 +58,14 @@ export function DetalleGrupo({ id }: { id: string }) {
     onSuccess: () => refrescar("Padre eliminado"),
   });
   const simular = api.pago.simular.useMutation({
-    onSuccess: () => refrescar("Transferencia simulada — esperando el webhook…"),
+    onSuccess: async () => {
+      await refrescar("Transferencia simulada — esperando el webhook…");
+      // El webhook se procesa después de responderle 200 a Talo, así que al
+      // volver de la mutación el pago todavía no está. Insistimos un par de
+      // veces para que la fila se marque enseguida y no en el próximo ciclo.
+      setTimeout(() => void refrescar(), 700);
+      setTimeout(() => void refrescar(), 1800);
+    },
   });
 
   if (isLoading) return <Vacio>Cargando…</Vacio>;

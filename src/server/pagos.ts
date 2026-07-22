@@ -15,10 +15,18 @@ export async function procesarPagoRecibido(payload: {
   transactionId: string;
   customerId: string;
 }) {
-  const padre = await db.padre.findUnique({
-    where: { taloCustomerId: payload.customerId },
-    include: { grupo: true },
-  });
+  // En paralelo: cada viaje a la base cuesta caro y estas dos consultas no
+  // dependen entre sí. El padre pasa de pendiente a pagado en la menor cantidad
+  // de idas y vueltas posible.
+  const [padre, yaRegistrado] = await Promise.all([
+    db.padre.findUnique({
+      where: { taloCustomerId: payload.customerId },
+      include: { grupo: true },
+    }),
+    db.pago.findUnique({
+      where: { taloTransactionId: payload.transactionId },
+    }),
+  ]);
 
   if (!padre) {
     console.error(
@@ -27,9 +35,6 @@ export async function procesarPagoRecibido(payload: {
     return { ok: false as const, motivo: "customer-desconocido" };
   }
 
-  const yaRegistrado = await db.pago.findUnique({
-    where: { taloTransactionId: payload.transactionId },
-  });
   if (yaRegistrado) {
     return { ok: true as const, motivo: "duplicado", pago: yaRegistrado };
   }
@@ -57,11 +62,18 @@ export async function procesarPagoRecibido(payload: {
   // Sólo damos la cuota por saldada si lo acreditado cubre el monto esperado;
   // un pago parcial queda registrado pero el padre sigue figurando pendiente.
   const esperado = montoDe(padre, padre.grupo);
-  const acreditado = await db.pago.aggregate({
-    where: { padreId: padre.id },
-    _sum: { monto: true },
-  });
-  const total = Number(acreditado._sum.monto ?? 0);
+
+  // El caso normal es que la transferencia cubra la cuota entera: ahí no hace
+  // falta preguntar por los pagos anteriores. La suma se consulta sólo cuando
+  // este pago solo no alcanza.
+  let total = tx.monto;
+  if (total < esperado) {
+    const acreditado = await db.pago.aggregate({
+      where: { padreId: padre.id },
+      _sum: { monto: true },
+    });
+    total = Number(acreditado._sum.monto ?? 0);
+  }
 
   if (total >= esperado) {
     await db.padre.update({
