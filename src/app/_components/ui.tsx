@@ -33,7 +33,7 @@ export function BotonTexto({
 }: ComponentProps<"button">) {
   return (
     <button
-      className={`cursor-pointer font-mono text-[10.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70 disabled:no-underline disabled:opacity-40 ${className}`}
+      className={`inline-flex cursor-pointer items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70 disabled:no-underline disabled:opacity-40 ${className}`}
       {...props}
     >
       {children}

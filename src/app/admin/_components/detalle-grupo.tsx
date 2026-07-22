@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
+import {
+  IconoLista,
+  IconoMas,
+  IconoSobre,
+  IconoSobreReenvio,
+} from "~/app/_components/iconos";
 import { EstadoCobro } from "~/app/_components/marca";
 import {
   Boton,
@@ -85,6 +91,7 @@ export function DetalleGrupo({ id }: { id: string }) {
               }
               disabled={invitarPendientes.isPending}
             >
+              <IconoSobre />
               Invitar no invitados
             </Boton>
             <Boton
@@ -92,6 +99,7 @@ export function DetalleGrupo({ id }: { id: string }) {
               onClick={() => recordarPendientes.mutate({ grupoId: id })}
               disabled={recordarPendientes.isPending}
             >
+              <IconoSobreReenvio />
               Recordar pendientes
             </Boton>
           </>
@@ -278,8 +286,12 @@ function AltaPadres({
   if (modo === "cerrado") {
     return (
       <div className="mb-8 flex gap-3">
-        <Boton onClick={() => setModo("uno")}>Agregar padre</Boton>
+        <Boton onClick={() => setModo("uno")}>
+          <IconoMas />
+          Agregar padre
+        </Boton>
         <Boton variante="fantasma" onClick={() => setModo("bloque")}>
+          <IconoLista />
           Cargar lista en bloque
         </Boton>
       </div>

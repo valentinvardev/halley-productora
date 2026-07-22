@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconoCopiar, IconoTilde } from "./iconos";
 import { BotonTexto } from "./ui";
 
 /** Copia un valor al portapapeles y confirma en el mismo botón. */
@@ -35,7 +36,8 @@ export function Copiar({
 
   return (
     <BotonTexto onClick={copiar} className={className}>
-      {copiado ? "Copiado ✓" : etiqueta}
+      {copiado ? <IconoTilde /> : <IconoCopiar />}
+      {copiado ? "Copiado" : etiqueta}
     </BotonTexto>
   );
 }
