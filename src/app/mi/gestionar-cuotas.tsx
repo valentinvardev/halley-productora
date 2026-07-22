@@ -54,7 +54,7 @@ export function GestionarCuotas({
         <div className="flex items-center gap-4 border border-ink px-5 py-6">
           <Marca tipo="confirmado" className="h-11 w-11 shrink-0" grosor={3} />
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.08em]">
+            <div className="font-rotulo text-[13px] uppercase tracking-[0.08em]">
               Plan saldado
             </div>
             <p className="mt-1 text-[13px] text-gray-70">
@@ -86,13 +86,13 @@ export function GestionarCuotas({
                     />
                   </span>
 
-                  <span className="w-12 shrink-0 font-mono text-[10.5px] tracking-[0.06em] text-gray-45">
+                  <span className="w-12 shrink-0 font-rotulo text-[13px] tracking-[0.06em] text-gray-45">
                     {String(fila.numero).padStart(2, "0")}
                   </span>
 
                   <span className="flex-1 font-mono text-[12.5px]">
                     {pesos(fila.monto)}
-                    <span className="mt-0.5 block text-[10px] uppercase tracking-[0.05em] text-gray-45">
+                    <span className="mt-0.5 block font-rotulo text-[12px] uppercase tracking-[0.05em] text-gray-45">
                       {pagada
                         ? "Pagada"
                         : `${fila.estado === "VENCIDA" ? "Venció" : "Vence"} ${fecha(fila.venceEl)}`}
@@ -100,13 +100,13 @@ export function GestionarCuotas({
                   </span>
 
                   {pagada ? (
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                    <span className="shrink-0 font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
                       Listo
                     </span>
                   ) : (
                     <Link
                       href={`/mi/pagar/${alumnoId}?hasta=${fila.id}`}
-                      className="shrink-0 border border-ink px-3 py-2 text-right font-mono text-[10px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper"
+                      className="shrink-0 border border-ink px-3 py-2 text-right font-rotulo text-[12px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper"
                     >
                       {esProxima ? "Pagar" : "Hasta acá"}
                       <span className="mt-0.5 block text-[11px] tracking-normal">
@@ -119,14 +119,14 @@ export function GestionarCuotas({
             })}
           </div>
 
-          <p className="mt-3 font-mono text-[10px] leading-relaxed text-gray-45">
+          <p className="nota mt-3">
             Las cuotas se saldan de la más vieja a la más nueva. Pagar una de
             más adelante incluye las anteriores — por eso el monto sube.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-ink bg-paper-dim px-4 py-3.5">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-gray-45">
+              <div className="font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
                 Falta en total
               </div>
               <div className="mt-1 font-display text-[24px] leading-none">

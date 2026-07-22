@@ -1,7 +1,7 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 
 import { scriptTema } from "./_components/tema";
 import { TRPCReactProvider } from "~/trpc/react";
@@ -30,13 +30,20 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
+/** Rótulos en versalitas. Sólo trae mayúsculas: no usarla para texto corrido. */
+const bebas = Bebas_Neue({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-bebas",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="es"
-      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable} ${bebas.variable}`}
       suppressHydrationWarning
     >
       <head>

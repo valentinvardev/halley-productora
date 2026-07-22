@@ -43,7 +43,7 @@ export function Registro({
   if (!grupo) {
     return (
       <MarcoAcceso solapa={solapa} alCambiarSolapa={setSolapa}>
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gray-45">
+        <p className="font-rotulo text-[13px] uppercase tracking-[0.08em] text-gray-45">
           Cargando…
         </p>
       </MarcoAcceso>
@@ -63,7 +63,7 @@ export function Registro({
         </p>
         {estado.url && (
           <div className="mt-6 border border-gray-20 bg-paper-dim p-4">
-            <div className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-gray-45">
+            <div className="font-rotulo text-[11.5px] uppercase tracking-[0.1em] text-gray-45">
               Demo — el mail no sale de verdad
             </div>
             <Link
@@ -96,7 +96,7 @@ export function Registro({
               <div className="font-display text-[30px] leading-none">
                 {pesos(grupo.montoCuota)}
               </div>
-              <div className="mt-1.5 font-mono text-[11px] tracking-[0.04em] text-gray-70">
+              <div className="mt-1.5 font-rotulo text-[13px] tracking-[0.05em] text-gray-70">
                 {grupo.cuotas} CUOTAS · LA PRIMERA VENCE{" "}
                 {fecha(grupo.primerVencimiento)}
               </div>
@@ -134,7 +134,7 @@ export function Registro({
             />
 
             {estado && "error" in estado && (
-              <p className="font-mono text-[11px] leading-relaxed text-marca">
+              <p className="nota text-marca">
                 {estado.error}
               </p>
             )}
@@ -162,7 +162,7 @@ export function Registro({
             />
 
             {estado && "error" in estado && (
-              <p className="font-mono text-[11px] leading-relaxed text-marca">
+              <p className="nota text-marca">
                 {estado.error}
               </p>
             )}

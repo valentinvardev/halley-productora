@@ -28,7 +28,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
         </p>
         {estado.url && (
           <div className="mt-6 border border-gray-20 bg-paper-dim p-4">
-            <div className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-gray-45">
+            <div className="font-rotulo text-[11.5px] uppercase tracking-[0.1em] text-gray-45">
               Demo — el mail no sale de verdad
             </div>
             <Link
@@ -48,7 +48,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
       <h1 className="text-[26px] leading-tight">Entrar</h1>
 
       {aviso && (
-        <p className="mt-4 border border-gray-20 bg-paper-dim px-3 py-3 font-mono text-[10.5px] leading-relaxed uppercase tracking-[0.06em] text-gray-70">
+        <p className="nota mt-4 border border-gray-20 bg-paper-dim px-3 py-3">
           {aviso}
         </p>
       )}
@@ -68,7 +68,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
         />
 
         {estado && "error" in estado && (
-          <p className="mt-3 font-mono text-[11px] text-marca">{estado.error}</p>
+          <p className="mt-3 nota text-marca">{estado.error}</p>
         )}
 
         <Boton type="submit" className="mt-6 w-full" disabled={entrando}>
@@ -76,7 +76,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
         </Boton>
       </form>
 
-      <p className="mt-6 font-mono text-[10.5px] leading-relaxed uppercase tracking-[0.06em] text-gray-45">
+      <p className="nota mt-6 text-gray-45">
         ¿Todavía no te registraste? Usá el link que Halley compartió en tu curso.
       </p>
     </MarcoAcceso>

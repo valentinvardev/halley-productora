@@ -28,13 +28,13 @@ export default async function AdminLayout({
           <nav className="flex items-center gap-6">
             <Link
               href="/admin"
-              className="font-mono text-[11px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
+              className="font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
             >
               Grupos
             </Link>
             <Link
               href="/admin/notificaciones"
-              className="font-mono text-[11px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
+              className="font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
             >
               Bandeja
             </Link>
@@ -42,7 +42,7 @@ export default async function AdminLayout({
             <form action={cerrarSesion}>
               <button
                 type="submit"
-                className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
+                className="cursor-pointer font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
               >
                 Salir
               </button>

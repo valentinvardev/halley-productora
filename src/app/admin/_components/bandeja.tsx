@@ -54,20 +54,20 @@ export function Bandeja() {
                 <span className="flex-1 text-[13.5px]">{n.asunto}</span>
                 {n.errorEnvio ? (
                   <span
-                    className="font-mono text-[10px] uppercase tracking-[0.06em] text-marca"
+                    className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-marca"
                     title={n.errorEnvio}
                   >
                     Falló el envío
                   </span>
                 ) : n.enviadoEl ? (
-                  <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                  <span className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
                     Enviado
                   </span>
                 ) : null}
-                <span className="font-mono text-[10.5px] text-gray-45">
+                <span className="nota text-[11.5px] text-gray-45">
                   {n.destinatario}
                 </span>
-                <span className="font-mono text-[10.5px] text-gray-45">
+                <span className="nota text-[11.5px] text-gray-45">
                   {fechaHora(n.creadoEn)}
                 </span>
               </button>
@@ -75,7 +75,7 @@ export function Bandeja() {
               {abierto && (
                 <div className="border-t border-gray-20 bg-lienzo">
                   {n.errorEnvio && (
-                    <div className="border-b border-gray-20 px-5 py-3 font-mono text-[11px] text-marca">
+                    <div className="border-b border-gray-20 px-5 py-3 nota text-marca">
                       Resend rechazó el envío: {n.errorEnvio}
                     </div>
                   )}

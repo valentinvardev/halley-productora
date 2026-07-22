@@ -27,7 +27,7 @@ function Tira({
 
   if (marcas.length === 0) {
     return (
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-gray-45">
+      <span className="font-rotulo text-[12.5px] uppercase tracking-[0.08em] text-gray-45">
         Sin alumnos cargados
       </span>
     );
@@ -127,7 +127,7 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
       </div>
 
       {crear.error && (
-        <p className="font-mono text-[11px] text-marca">{crear.error.message}</p>
+        <p className="nota text-marca">{crear.error.message}</p>
       )}
 
       <div className="flex items-center gap-3">
@@ -135,7 +135,7 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
           {crear.isPending ? "Creando…" : "Crear grupo y plan"}
         </Boton>
         {!vence && (
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
+          <span className="font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-45">
             Falta la fecha del primer vencimiento
           </span>
         )}
@@ -175,7 +175,7 @@ export function Grupos() {
 
       {!isLoading && grupos?.length === 0 && (
         <div className="grid gap-5 border border-dashed border-gray-20 px-6 py-12 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gray-45">
+          <p className="font-rotulo text-[13px] uppercase tracking-[0.08em] text-gray-45">
             Todavía no hay grupos
           </p>
           <div className="flex justify-center">
@@ -200,7 +200,7 @@ export function Grupos() {
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">
               <div>
                 <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
-                <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.06em] text-gray-70">
+                <div className="mt-1 font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-70">
                   {g.colegio} · {g.resumen.cuotas} cuotas ·{" "}
                   {g.resumen.alumnos} alumnos
                 </div>

@@ -127,7 +127,7 @@ export function DetalleGrupo({ id }: { id: string }) {
       </div>
 
       {aviso && (
-        <div className="mb-6 border border-ink bg-paper-dim px-4 py-3 font-mono text-[11px] uppercase tracking-[0.06em]">
+        <div className="nota mb-6 border border-ink bg-paper-dim px-4 py-3 text-ink">
           {aviso}
         </div>
       )}
@@ -138,7 +138,7 @@ export function DetalleGrupo({ id }: { id: string }) {
         <div className="flex flex-wrap gap-2">
           {grupo.cuotas.map((c) => (
             <div key={c.id} className="border border-gray-20 px-3 py-2">
-              <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+              <div className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
                 Cuota {c.numero}
               </div>
               <div className="font-mono text-[12.5px]">{pesos(c.monto)}</div>
@@ -153,8 +153,11 @@ export function DetalleGrupo({ id }: { id: string }) {
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
           <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-gray-45">
-              Link de registro del grupo — es el que se le pasa a las familias
+            <div className="font-rotulo text-[12.5px] uppercase tracking-[0.08em] text-gray-45">
+              Link de registro del grupo
+            </div>
+            <div className="nota text-[11.5px] text-gray-45">
+              Es el que se le pasa a las familias
             </div>
             <div className="mt-1 font-mono text-[12px] break-all">
               {grupo.linkRegistro}
@@ -178,7 +181,7 @@ export function DetalleGrupo({ id }: { id: string }) {
                 {["Cuadro", "Alumno", "Alias", "Plan", "Cuotas", ""].map((h) => (
                   <th
                     key={h}
-                    className="border-b border-ink px-3.5 py-2.5 text-left font-mono text-[10.5px] uppercase tracking-[0.05em] text-gray-70"
+                    className="border-b border-ink px-3.5 py-2.5 text-left font-rotulo text-[12.5px] uppercase tracking-[0.05em] text-gray-70"
                   >
                     {h}
                   </th>
@@ -200,13 +203,13 @@ export function DetalleGrupo({ id }: { id: string }) {
                       a.responsables.map((r) => (
                         <div
                           key={r.id}
-                          className="font-mono text-[10.5px] text-gray-45"
+                          className="nota text-[11.5px] text-gray-45"
                         >
                           {r.email}
                         </div>
                       ))
                     ) : (
-                      <div className="font-mono text-[10.5px] text-gray-45">
+                      <div className="nota text-[11.5px] text-gray-45">
                         {a.emailContacto ?? "sin email"}
                       </div>
                     )}
@@ -400,7 +403,7 @@ function Galerias({
         >
           <div>
             <div className="text-[13.5px]">{g.titulo}</div>
-            <div className="font-mono text-[10.5px] text-gray-45 break-all">
+            <div className="font-mono text-[11px] text-gray-45 break-all">
               {g.linkDrive ?? "sin link de Drive"}
               {g.venceEl && ` · vence ${fecha(g.venceEl)}`}
             </div>
@@ -514,13 +517,13 @@ function AltaAlumnos({
       <div className="mb-4 flex gap-4">
         <button
           onClick={() => setModo("uno")}
-          className={`font-mono text-[11px] uppercase tracking-[0.06em] ${modo === "uno" ? "text-ink underline" : "text-gray-45"}`}
+          className={`font-rotulo text-[13px] uppercase tracking-[0.06em] ${modo === "uno" ? "text-ink underline" : "text-gray-45"}`}
         >
           Uno por uno
         </button>
         <button
           onClick={() => setModo("bloque")}
-          className={`font-mono text-[11px] uppercase tracking-[0.06em] ${modo === "bloque" ? "text-ink underline" : "text-gray-45"}`}
+          className={`font-rotulo text-[13px] uppercase tracking-[0.06em] ${modo === "bloque" ? "text-ink underline" : "text-gray-45"}`}
         >
           En bloque
         </button>

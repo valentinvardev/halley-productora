@@ -61,7 +61,7 @@ export function BuscarGrupo() {
         />
 
         {error && (
-          <p className="mt-3 font-mono text-[11px] leading-relaxed text-marca">
+          <p className="mt-3 nota text-marca">
             No encontramos ese grupo. Revisá el link o pedíselo a Halley.
           </p>
         )}

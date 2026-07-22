@@ -40,14 +40,14 @@ export function Panel({
             Halley — mis pagos
           </span>
           <div className="flex items-center gap-5">
-            <span className="hidden font-mono text-[10.5px] text-gray-45 sm:inline">
+            <span className="hidden nota text-[11.5px] text-gray-45 sm:inline">
               {email}
             </span>
             <BotonTema />
             <form action={salir}>
               <button
                 type="submit"
-                className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
+                className="cursor-pointer font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
               >
                 Salir
               </button>
@@ -106,7 +106,7 @@ export function Panel({
                       </div>
                     </div>
                     {hijo.plan.proxima.estado === "VENCIDA" && (
-                      <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-marca">
+                      <span className="font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-marca">
                         Vencida
                       </span>
                     )}
@@ -130,7 +130,7 @@ export function Panel({
                     </Boton>
                   </div>
 
-                  <p className="mt-4 font-mono text-[10.5px] leading-relaxed text-gray-45">
+                  <p className="nota mt-4">
                     Transferí con el QR o el alias desde tu banco o billetera.
                     Cuando se acredite lo vas a ver acá y te llega el
                     comprobante por mail.
@@ -140,7 +140,7 @@ export function Panel({
                 <div className="mt-6 flex flex-wrap items-center gap-4 border border-ink p-6">
                   <Marca tipo="confirmado" className="h-12 w-12" grosor={3} />
                   <div className="flex-1">
-                    <div className="font-mono text-[11px] uppercase tracking-[0.08em]">
+                    <div className="font-rotulo text-[13px] uppercase tracking-[0.08em]">
                       Plan saldado
                     </div>
                     <p className="mt-1 text-[13px] text-gray-70">
@@ -168,7 +168,7 @@ export function Panel({
               {/* Quiénes más gestionan esta cuota */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-gray-45">
+                  <div className="font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
                     Responsables de {hijo.nombre.split(" ")[0]}
                   </div>
                   <div className="mt-1 font-mono text-[11px]">
@@ -180,7 +180,7 @@ export function Panel({
 
                 {hijo.lugaresLibres > 0 && (
                   <div className="text-right">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                    <div className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
                       Queda{hijo.lugaresLibres > 1 ? "n" : ""}{" "}
                       {hijo.lugaresLibres} lugar
                       {hijo.lugaresLibres > 1 ? "es" : ""}
@@ -213,7 +213,7 @@ export function Panel({
                     >
                       <div>
                         <div className="text-[14px]">{galeria.titulo}</div>
-                        <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
+                        <div className="mt-1 font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-45">
                           {galeria.venceEl
                             ? galeria.vigente
                               ? `Disponible hasta ${fecha(galeria.venceEl)}`
@@ -227,12 +227,12 @@ export function Panel({
                           href={galeria.linkDrive}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-mono text-[10.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
+                          className="font-rotulo text-[12.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
                         >
                           Abrir en Drive
                         </a>
                       ) : (
-                        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-45">
+                        <span className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
                           Sin link todavía
                         </span>
                       )}

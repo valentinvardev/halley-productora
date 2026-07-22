@@ -172,7 +172,7 @@ export function CampoFecha({
         </span>
       </button>
 
-      {hint && <span className="font-mono text-[10.5px] text-gray-45">{hint}</span>}
+      {hint && <span className="nota text-[11.5px] text-gray-45">{hint}</span>}
 
       {abierto && (
         <div
@@ -193,7 +193,7 @@ export function CampoFecha({
             >
               ‹
             </button>
-            <span className="font-mono text-[11px] uppercase tracking-[0.08em]">
+            <span className="font-rotulo text-[13px] uppercase tracking-[0.08em]">
               {mesFmt.format(mes)}
             </span>
             <button
@@ -211,7 +211,7 @@ export function CampoFecha({
             {DIAS.map((d) => (
               <div
                 key={d}
-                className="py-1.5 text-center font-mono text-[9.5px] tracking-[0.06em] text-gray-45"
+                className="py-1.5 text-center font-rotulo text-[11.5px] tracking-[0.06em] text-gray-45"
               >
                 {d}
               </div>
@@ -268,11 +268,11 @@ export function CampoFecha({
             <button
               type="button"
               onClick={() => elegir(hoy)}
-              className="px-1.5 py-1 font-mono text-[10px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
+              className="px-1.5 py-1 font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-70 hover:text-ink"
             >
               Hoy
             </button>
-            <span className="font-mono text-[9.5px] tracking-[0.06em] text-gray-45">
+            <span className="nota text-[11px] text-gray-45">
               ← ↑ ↓ → para moverte
             </span>
           </div>

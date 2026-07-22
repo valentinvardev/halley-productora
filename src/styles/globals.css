@@ -22,6 +22,14 @@
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  /**
+   * Rótulos: los textos cortos en versalitas que encabezan bloques y rotulan
+   * botones. Bebas es condensada y sólo tiene mayúsculas — es exactamente lo
+   * que hace falta acá y exactamente lo que la vuelve inservible para todo lo
+   * demás. Va siempre con `uppercase` y dos píxeles más grande que la mono que
+   * reemplazó, porque las condensadas piden aire.
+   */
+  --font-rotulo: var(--font-bebas), var(--font-inter), sans-serif;
 
   --radius-none: 0px;
 }
@@ -112,12 +120,26 @@
 }
 
 @layer components {
-  /* Eyebrow: el rótulo mono en versalitas que encabeza cada bloque. */
+  /* Eyebrow: el rótulo en versalitas que encabeza cada bloque. */
   .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-rotulo);
+    font-size: 13px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+    color: var(--color-gray-70);
+  }
+
+  /**
+   * Nota al pie: las aclaraciones que acompañan a un bloque.
+   *
+   * Antes iban en mono a 10px, que es donde una monoespaciada deja de leerse:
+   * son oraciones, no datos. Van en la sans del cuerpo y a un tamaño que se
+   * pueda leer sin acercarse a la pantalla.
+   */
+  .nota {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    line-height: 1.55;
     color: var(--color-gray-70);
   }
 }

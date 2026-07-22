@@ -122,7 +122,7 @@ export function Desplegable({
           className="absolute top-full left-0 z-50 mt-1 max-h-[280px] w-full overflow-y-auto border border-ink bg-paper"
         >
           {opciones.length === 0 && (
-            <div className="px-3 py-3 font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-45">
+            <div className="px-3 py-3 font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-45">
               {vacio}
             </div>
           )}
@@ -159,7 +159,7 @@ export function Desplegable({
               >
                 <span>{opcion.etiqueta}</span>
                 {opcion.nota && (
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.06em] opacity-70">
+                  <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] opacity-70">
                     {opcion.nota}
                   </span>
                 )}

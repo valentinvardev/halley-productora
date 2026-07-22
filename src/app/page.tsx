@@ -57,7 +57,7 @@ export default function Home() {
             >
               <Marca tipo={m.tipo} className="mb-3 h-8 w-8" />
               <div className="text-[13px] font-medium">{m.titulo}</div>
-              <div className="mt-1 font-mono text-[11px] leading-relaxed text-gray-70">
+              <div className="nota mt-1">
                 {m.texto}
               </div>
             </div>

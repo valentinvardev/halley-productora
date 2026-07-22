@@ -34,7 +34,7 @@ export function Login() {
         />
 
         {estado?.error && (
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.06em] text-marca">
+          <p className="mt-3 nota text-marca">
             {estado.error}
           </p>
         )}
