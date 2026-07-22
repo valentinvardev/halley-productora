@@ -238,6 +238,21 @@ model TransaccionMockTalo {
     @@index([customerId])
 }
 
+/// Una pieza de la vitrina: la foto o el video que el admin sube por categoría
+/// y que la landing muestra. `s3Key` es la ruta del objeto dentro del bucket
+/// (sin el prefijo del cliente, que lo pone la capa de S3). `orden` fija en qué
+/// posición se ve dentro de su categoría.
+model Contenido {
+    id        String   @id @default(cuid())
+    categoria String
+    s3Key     String   @unique
+    tipo      String   @default("imagen")
+    orden     Int      @default(0)
+    creadoEn  DateTime @default(now())
+
+    @@index([categoria, orden])
+}
+
 enum EstadoCuota {
     PENDIENTE
     PAGADA

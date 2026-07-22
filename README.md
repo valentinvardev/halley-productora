@@ -35,6 +35,9 @@ link de Drive), vitrina/portfolio, likes de prospectos, WhatsApp.
 | **Login de la familia** | Sólo email: se manda un link de un solo uso que dura 30 minutos y se canjea por una sesión. Sin contraseñas que recordar, filtrar ni resetear. |
 | **Quién reclama a un alumno** | Cualquiera con el link del grupo puede elegir a su hijo, pero **el primero que lo reclama se lo queda**: sin eso, dos personas se pisarían y la segunda vería los datos de la primera. El admin puede desvincular desde el panel. La pantalla pública sólo expone nombre del alumno y si está tomado — ni emails ni montos. |
 | **Estado de las cuotas** | No se persiste: se deriva repartiendo lo pagado sobre el plan, de la cuota más vieja a la más nueva. Así un pago parcial, uno de más o dos cuotas juntas se acomodan solos, y el panel no puede terminar diciendo algo distinto de lo que dicen los pagos. |
+| **Mora** | Toda cuota vence el 20. El recargo corre desde ahí: 0 hasta los 2 meses vencida, 3% a los 2, sube parejo hasta 5% a los 5 y se queda ahí. Sale derivado como todo lo demás (`recargoPorMora` en [`dominio.ts`](src/server/dominio.ts)); es una decisión de negocio y se cambia en una constante. |
+| **Galería** | Se libera cuando el plan queda saldado: es lo que se entrega una vez paga la cuota. |
+| **Contenidos (vitrina)** | El admin sube fotos y videos por categoría a S3; la landing los muestra. El navegador sube directo a S3 con una URL firmada —el archivo no pasa por el servidor— y cada pieza se sirve por `/api/contenido/{id}`, que redirige a una URL de lectura firmada para no exponer el bucket. Sin S3 configurado, la landing usa las imágenes de relleno. |
 | **Modo oscuro** | El *negativo*: no hay paleta aparte, se invierten los mismos tokens de color. Sigue la preferencia del sistema y el botón "Negativo / Positivo" la pisa. El QR se mantiene siempre en positivo para que los lectores lo tomen. |
 | **QR** | Codifica alias + CVU + monto como texto. El QR interoperable real lo devuelve Talo junto con el CVU. |
 
@@ -110,7 +113,17 @@ entorno (Settings → Environment Variables):
 | `EMAIL_MODE` | `bandeja` para la demo, `resend` para enviar de verdad |
 | `RESEND_API_KEY` | sólo si `EMAIL_MODE=resend` |
 | `EMAIL_FROM` | remitente verificado en Resend |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | credenciales del bucket S3 |
+| `AWS_REGION` | región del bucket (ej. `us-east-2`) |
+| `AWS_S3_BUCKET` | nombre del bucket |
+| `AWS_S3_PREFIX` | **la carpeta de este cliente** dentro del bucket (ej. `halley`) |
 | `NEXT_PUBLIC_APP_URL` | **el dominio de Vercel**, no `localhost` |
+
+Las cinco de AWS son opcionales: sin ellas la sección **Contenidos** del panel se
+apaga sola y la landing sigue mostrando las imágenes de relleno. `AWS_S3_PREFIX`
+es lo que aísla las fotos de Halley — cambiar ese valor manda el contenido de
+este cliente a su propia carpeta sin pisar la de ningún otro proyecto que
+comparta el bucket.
 
 `NEXT_PUBLIC_APP_URL` es la que más se olvida: de ahí salen los links personales
 que se le mandan a cada padre y ahí le pega el simulador al webhook. Si queda en

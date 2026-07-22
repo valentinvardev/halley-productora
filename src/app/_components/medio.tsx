@@ -27,6 +27,7 @@ export function Medio({
   proporcion = "aspect-[4/3]",
   className = "",
   prioridad = false,
+  directo,
 }: {
   /** Ruta dentro de `public`, por ejemplo `/muestras/bodas-01.jpg`. */
   src: string;
@@ -34,7 +35,33 @@ export function Medio({
   proporcion?: string;
   className?: string;
   prioridad?: boolean;
+  /**
+   * Contenido ya resuelto —el que sube el admin a S3—, servido por su URL
+   * propia. Cuando viene, gana sobre `src`: es material real, no relleno.
+   */
+  directo?: { url: string; tipo: "imagen" | "video" } | null;
 }) {
+  if (directo) {
+    return (
+      <div className={`${proporcion} w-full overflow-hidden ${className}`}>
+        {directo.tipo === "video" ? (
+          <video
+            src={directo.url}
+            muted
+            loop
+            autoPlay
+            playsInline
+            aria-label={alt}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={directo.url} alt={alt} className="h-full w-full object-cover" />
+        )}
+      </div>
+    );
+  }
+
   const hay = existeEnPublico(src);
   const esVideo = /\.(mp4|webm)$/i.test(src);
 

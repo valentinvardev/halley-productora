@@ -45,6 +45,20 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().optional(),
     /** Remitente verificado en Resend. */
     EMAIL_FROM: z.string().default("Halley Producciones <onboarding@resend.dev>"),
+
+    /**
+     * AWS S3 — donde vive el contenido de la vitrina.
+     *
+     * Todas opcionales: sin ellas la subida se apaga sola y la landing sigue
+     * mostrando las imágenes de relleno. AWS_S3_PREFIX es la carpeta de este
+     * cliente dentro del bucket — cambiarla aísla las fotos de Halley de las de
+     * cualquier otro proyecto que comparta el mismo bucket.
+     */
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    AWS_REGION: z.string().default("us-east-2"),
+    AWS_S3_BUCKET: z.string().optional(),
+    AWS_S3_PREFIX: z.string().optional(),
   },
 
   /**
@@ -74,6 +88,11 @@ export const env = createEnv({
     EMAIL_MODE: process.env.EMAIL_MODE,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_S3_PREFIX: process.env.AWS_S3_PREFIX,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   /**

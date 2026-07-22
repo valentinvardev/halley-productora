@@ -233,6 +233,29 @@ export function IconoProbeta(props: Props) {
   );
 }
 
+/** Grupos: la grilla de rollos del panel. */
+export function IconoGrupos(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="2" y="2" width="5" height="5" />
+      <rect x="9" y="2" width="5" height="5" />
+      <rect x="2" y="9" width="5" height="5" />
+      <rect x="9" y="9" width="5" height="5" />
+    </Svg>
+  );
+}
+
+/** Contenidos: la foto de la vitrina. */
+export function IconoImagen(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="2" y="3" width="12" height="10" />
+      <circle cx="5.5" cy="6.5" r="1.2" />
+      <path d="M2 11 L6 8 L9 10.5 L11.5 8.5 L14 11" />
+    </Svg>
+  );
+}
+
 /** Galería bloqueada hasta saldar. */
 export function IconoCandado(props: Props) {
   return (

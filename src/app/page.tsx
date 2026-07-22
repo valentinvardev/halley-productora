@@ -13,6 +13,7 @@ import {
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
+import { contenidoDe } from "~/server/contenido";
 import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import {
   INSTAGRAM,
@@ -26,6 +27,10 @@ export const metadata: Metadata = {
   description:
     "Dron, fotografía y video para egresados, bodas, quince años y marcas. Los momentos son fugaces: Halley los hace eternos.",
 };
+
+// Lee el contenido de la vitrina en cada visita, así lo que el admin sube
+// aparece sin esperar un redeploy.
+export const dynamic = "force-dynamic";
 
 const SECCIONES = [
   { href: "#servicios", texto: "Servicios" },
@@ -255,7 +260,13 @@ function Concepto() {
  * pantalla entera, queda clavada mientras se recorre su tramo y la siguiente
  * entra deslizándose por encima.
  */
-function Servicios() {
+async function Servicios() {
+  // El fondo de cada panel es la primera pieza que el admin subió a esa
+  // categoría; si no hay ninguna, el relleno. Se resuelve en el servidor.
+  const fondos = await Promise.all(
+    SERVICIOS.map((s) => contenidoDe(s.slug).then((c) => c[0] ?? null)),
+  );
+
   return (
     <section id="servicios" className="border-b border-gray-20">
       <div className="mx-auto max-w-[1140px] px-6 pt-20 pb-14 sm:px-10 sm:pt-24">
@@ -268,18 +279,30 @@ function Servicios() {
       </div>
 
       <div className="relative">
-        {SERVICIOS.map((s, i) => (
+        {SERVICIOS.map((s, i) => {
+          const fondo = fondos[i];
+          return (
           <div key={s.slug} className="tramo-servicio">
             <article className="panel-servicio aisla relative flex items-end">
-              <Image
-                src={`/servicios/${s.slug}-portada.jpg`}
-                alt=""
-                aria-hidden="true"
-                fill
-                sizes="100vw"
-                priority={i === 0}
-                className="fondo-servicio object-cover"
-              />
+              {fondo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={fondo.url}
+                  alt=""
+                  aria-hidden="true"
+                  className="fondo-servicio absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={`/servicios/${s.slug}-portada.jpg`}
+                  alt=""
+                  aria-hidden="true"
+                  fill
+                  sizes="100vw"
+                  priority={i === 0}
+                  className="fondo-servicio object-cover"
+                />
+              )}
               {/* Aclara la parte de abajo, que es donde va a leerse el texto. */}
               <div
                 className="absolute inset-0 bg-gradient-to-t from-[rgb(0_0_0/0.72)] via-[rgb(0_0_0/0.28)] to-transparent"
@@ -315,7 +338,8 @@ function Servicios() {
               </div>
             </article>
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

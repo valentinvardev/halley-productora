@@ -22,6 +22,10 @@ import {
   linkWhatsApp,
   servicioPorSlug,
 } from "~/app/_datos/servicios";
+import { contenidoDe } from "~/server/contenido";
+
+/** Se lee el contenido en cada visita: lo que sube el admin aparece al toque. */
+export const dynamic = "force-dynamic";
 
 /** Son cuatro y no cambian: se generan en el build. */
 export function generateStaticParams() {
@@ -54,6 +58,11 @@ export default async function ServicioPage({
 
   const otros = SERVICIOS.filter((s) => s.slug !== servicio.slug);
   const consulta = consultaDe(servicio);
+
+  // El material real que subió el admin. Si no hay, se cae a las muestras.
+  const contenido = await contenidoDe(servicio.slug);
+  const portada = contenido[0] ?? null;
+  const galeria = contenido.slice(1);
 
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
@@ -108,6 +117,7 @@ export default async function ServicioPage({
           alt={`Portada de ${servicio.nombre}`}
           proporcion="aspect-[21/9]"
           prioridad
+          directo={portada}
         />
       </section>
 
@@ -122,14 +132,24 @@ export default async function ServicioPage({
           </h2>
 
           <div className="mt-11 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: servicio.piezas }, (_, i) => (
-              <Medio
-                key={i}
-                src={`/servicios/${servicio.slug}-${String(i + 1).padStart(2, "0")}.jpg`}
-                alt={`${servicio.nombre} ${i + 1}`}
-                proporcion="aspect-[4/3]"
-              />
-            ))}
+            {galeria.length > 0
+              ? galeria.map((pieza) => (
+                  <Medio
+                    key={pieza.id}
+                    src=""
+                    alt={servicio.nombre}
+                    proporcion="aspect-[4/3]"
+                    directo={pieza}
+                  />
+                ))
+              : Array.from({ length: servicio.piezas }, (_, i) => (
+                  <Medio
+                    key={i}
+                    src={`/servicios/${servicio.slug}-${String(i + 1).padStart(2, "0")}.jpg`}
+                    alt={`${servicio.nombre} ${i + 1}`}
+                    proporcion="aspect-[4/3]"
+                  />
+                ))}
           </div>
         </div>
       </section>
