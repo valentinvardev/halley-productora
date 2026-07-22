@@ -85,7 +85,7 @@ export function PantallaPago({
       <div className="mx-auto w-full max-w-[380px]">
         <Link
           href="/mi"
-          className="inline-flex items-center gap-2 font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
+          className="inline-flex items-center gap-2 font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink"
         >
           <IconoVolver className="h-3 w-3" />
           Volver a mi panel
@@ -109,7 +109,7 @@ export function PantallaPago({
 
               {recienPagado ? (
                 <>
-                  <div className="mt-6 font-rotulo text-[13px] uppercase tracking-[0.1em]">
+                  <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
                     Pago acreditado
                   </div>
                   <div className="mt-2 font-display text-[34px] leading-none">
@@ -120,13 +120,13 @@ export function PantallaPago({
                       ? `Con esto queda saldado el plan completo. Te mandamos el comprobante por email.`
                       : `Ya está registrado. Te queda ${pesos(data.plan.deuda)} para terminar el plan.`}
                   </p>
-                  <p className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
+                  <p className="mt-6 font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
                     Volviendo a tu panel…
                   </p>
                 </>
               ) : (
                 <>
-                  <div className="mt-6 font-rotulo text-[13px] uppercase tracking-[0.1em]">
+                  <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
                     {data.plan.deuda === 0 ? "Plan saldado" : "Sin saldo pendiente acá"}
                   </div>
                   <p className="mt-4 text-[13px] leading-relaxed text-gray-70">
@@ -146,7 +146,7 @@ export function PantallaPago({
               <div className="mt-5 font-display text-[40px] leading-none">
                 {pesos(data.monto)}
               </div>
-              <div className="mt-1.5 font-rotulo text-[13px] tracking-[0.05em] text-gray-70">
+              <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
                 {varias
                   ? `CUOTAS ${data.numeros.join(", ")} DE ${data.totalCuotas}`
                   : `CUOTA ${data.numeros[0]} DE ${data.totalCuotas}`}
@@ -171,7 +171,7 @@ export function PantallaPago({
                 dangerouslySetInnerHTML={{ __html: qrSvg }}
               />
 
-              <p className="mt-3 text-center font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
+              <p className="mt-3 text-center font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
                 Escaneá desde tu banco o billetera
               </p>
 
@@ -206,11 +206,11 @@ export function PantallaPago({
 
               {data.modoDemo && (
                 <div className="mt-6 border-t border-gray-20 pt-4 text-center">
-                  <div className="mb-2 font-rotulo text-[11.5px] uppercase tracking-[0.1em] text-gray-45">
+                  <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
                     Demo — Talo simulado
                   </div>
                   {esperando ? (
-                    <span className="font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-70">
+                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
                       Esperando la acreditación…
                     </span>
                   ) : (

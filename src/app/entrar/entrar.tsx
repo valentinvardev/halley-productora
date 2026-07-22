@@ -28,7 +28,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
         </p>
         {estado.url && (
           <div className="mt-6 border border-gray-20 bg-paper-dim p-4">
-            <div className="font-rotulo text-[11.5px] uppercase tracking-[0.1em] text-gray-45">
+            <div className="font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
               Demo — el mail no sale de verdad
             </div>
             <Link

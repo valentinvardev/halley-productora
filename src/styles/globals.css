@@ -24,12 +24,14 @@
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   /**
    * Rótulos: los textos cortos en versalitas que encabezan bloques y rotulan
-   * botones. Bebas es condensada y sólo tiene mayúsculas — es exactamente lo
-   * que hace falta acá y exactamente lo que la vuelve inservible para todo lo
-   * demás. Va siempre con `uppercase` y dos píxeles más grande que la mono que
-   * reemplazó, porque las condensadas piden aire.
+   * botones.
+   *
+   * Barlow es una grotesca de ancho normal — se probó primero una condensada y
+   * a estos cuerpos ahogaba las palabras. Que sea otra familia que la del
+   * cuerpo es a propósito: separa la voz que rotula de la que explica. Para
+   * texto corrido está `.nota`, no ésta.
    */
-  --font-rotulo: var(--font-bebas), var(--font-inter), sans-serif;
+  --font-rotulo: var(--font-barlow), var(--font-inter), sans-serif;
 
   --radius-none: 0px;
 }
@@ -123,7 +125,7 @@
   /* Eyebrow: el rótulo en versalitas que encabeza cada bloque. */
   .eyebrow {
     font-family: var(--font-rotulo);
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-gray-70);

@@ -87,7 +87,7 @@ export function Muestra() {
           <div className="font-display text-[26px] leading-none text-paper drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
             {diapositiva.titulo}
           </div>
-          <div className="mt-2 font-rotulo text-[12.5px] uppercase tracking-[0.12em] text-paper/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
+          <div className="mt-2 font-rotulo text-[11.5px] uppercase tracking-[0.12em] text-paper/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
             {diapositiva.pie}
           </div>
         </div>

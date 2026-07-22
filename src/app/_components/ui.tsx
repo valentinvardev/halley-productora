@@ -6,7 +6,7 @@ import type { ComponentProps, ReactNode } from "react";
 ------------------------------------------------------------------------- */
 
 export const botonBase =
-  "inline-flex items-center justify-center gap-2 border border-ink px-[22px] py-[13px] font-rotulo text-[14px] uppercase tracking-[0.04em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex items-center justify-center gap-2 border border-ink px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40";
 
 export const botonSolido = `${botonBase} bg-ink text-paper hover:bg-paper hover:text-ink`;
 export const botonFantasma = `${botonBase} bg-transparent text-ink hover:bg-ink hover:text-paper`;
@@ -33,7 +33,7 @@ export function BotonTexto({
 }: ComponentProps<"button">) {
   return (
     <button
-      className={`inline-flex cursor-pointer items-center gap-1.5 font-rotulo text-[12.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70 disabled:no-underline disabled:opacity-40 ${className}`}
+      className={`inline-flex cursor-pointer items-center gap-1.5 font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70 disabled:no-underline disabled:opacity-40 ${className}`}
       {...props}
     >
       {children}
@@ -43,7 +43,7 @@ export function BotonTexto({
 
 export function Etiqueta({ children }: { children: ReactNode }) {
   return (
-    <span className="font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-70">
+    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
       {children}
     </span>
   );
@@ -94,7 +94,7 @@ export function Tag({
 }) {
   return (
     <span
-      className={`inline-block border border-ink px-2.5 py-1.5 font-rotulo text-[12.5px] uppercase tracking-[0.05em] ${
+      className={`inline-block border border-ink px-2.5 py-1.5 font-rotulo text-[11.5px] uppercase tracking-[0.05em] ${
         activo ? "bg-ink text-paper" : "text-ink"
       }`}
     >
@@ -143,7 +143,7 @@ export function Dato({
 }) {
   return (
     <div className="flex-1 border-r border-gray-20 px-4 py-3.5 last:border-r-0">
-      <div className="font-rotulo text-[12.5px] uppercase tracking-[0.08em] text-gray-45">
+      <div className="font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
         {rotulo}
       </div>
       <div className="mt-1 font-display text-[22px] leading-none">{valor}</div>

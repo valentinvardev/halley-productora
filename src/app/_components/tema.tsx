@@ -55,7 +55,7 @@ export function BotonTema({ className = "" }: { className?: string }) {
         tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
       }
       title="Positivo / negativo"
-      className={`cursor-pointer font-rotulo text-[13px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink ${className}`}
+      className={`cursor-pointer font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink ${className}`}
     >
       {/* Hasta que el efecto corra mostramos un guion, para no parpadear con
           el valor equivocado durante la hidratación. */}

@@ -54,13 +54,13 @@ export function Bandeja() {
                 <span className="flex-1 text-[13.5px]">{n.asunto}</span>
                 {n.errorEnvio ? (
                   <span
-                    className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-marca"
+                    className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca"
                     title={n.errorEnvio}
                   >
                     Falló el envío
                   </span>
                 ) : n.enviadoEl ? (
-                  <span className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45">
+                  <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
                     Enviado
                   </span>
                 ) : null}

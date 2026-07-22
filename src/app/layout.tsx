@@ -1,7 +1,7 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Bebas_Neue, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Barlow, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 
 import { scriptTema } from "./_components/tema";
 import { TRPCReactProvider } from "~/trpc/react";
@@ -30,11 +30,16 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
-/** Rótulos en versalitas. Sólo trae mayúsculas: no usarla para texto corrido. */
-const bebas = Bebas_Neue({
+/**
+ * Rótulos en versalitas.
+ *
+ * Va sólo en el medio (500): en mayúsculas chicas el peso normal se deshilacha,
+ * y al cargar un único archivo cualquier pedido de otro peso cae igual acá.
+ */
+const barlow = Barlow({
   subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-bebas",
+  weight: ["500"],
+  variable: "--font-barlow",
 });
 
 export default function RootLayout({
@@ -43,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable} ${bebas.variable}`}
+      className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable} ${barlow.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -67,7 +67,7 @@ function Solapas({
   alCambiar?: (solapa: "registro" | "login") => void;
 }) {
   const clases = (activa: boolean, primera: boolean) =>
-    `flex-1 border border-ink px-4 py-3 text-center font-rotulo text-[13px] uppercase tracking-[0.06em] transition-colors ${
+    `flex-1 border border-ink px-4 py-3 text-center font-rotulo text-[12px] uppercase tracking-[0.06em] transition-colors ${
       primera ? "border-r-0" : ""
     } ${activa ? "bg-ink text-paper" : "bg-transparent hover:bg-paper-dim"}`;
 

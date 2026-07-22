@@ -67,7 +67,7 @@ export function PaginaPadre({
             /* --------------------------------------------- plan saldado */
             <div className="mt-8 flex flex-col items-center text-center">
               <Marca tipo="confirmado" className="h-24 w-24" grosor={3} animar />
-              <div className="mt-6 font-rotulo text-[13px] uppercase tracking-[0.1em]">
+              <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
                 Plan saldado
               </div>
               <div className="mt-2 font-display text-[34px] leading-none">
@@ -84,7 +84,7 @@ export function PaginaPadre({
               <div className="mt-5 font-display text-[40px] leading-none">
                 {pesos(proxima.saldo)}
               </div>
-              <div className="mt-1.5 font-rotulo text-[13px] tracking-[0.05em] text-gray-70">
+              <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
                 {proxima.estado === "VENCIDA" ? "VENCIÓ" : "VENCE"}{" "}
                 {fecha(proxima.venceEl)} · CUOTA {proxima.numero} DE{" "}
                 {data.plan.cuotas.length}
@@ -97,7 +97,7 @@ export function PaginaPadre({
                 dangerouslySetInnerHTML={{ __html: qrSvg }}
               />
 
-              <p className="mt-3 text-center font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
+              <p className="mt-3 text-center font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
                 Escaneá desde tu banco o billetera
               </p>
 
@@ -131,11 +131,11 @@ export function PaginaPadre({
 
               {data.modoDemo && (
                 <div className="mt-6 border-t border-gray-20 pt-4 text-center">
-                  <div className="mb-2 font-rotulo text-[11.5px] uppercase tracking-[0.1em] text-gray-45">
+                  <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
                     Demo — Talo simulado
                   </div>
                   {esperandoAcreditacion ? (
-                    <span className="font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-70">
+                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
                       Esperando la acreditación…
                     </span>
                   ) : (
@@ -173,7 +173,7 @@ export function PaginaPadre({
                     href={g.linkDrive}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-rotulo text-[12.5px] uppercase tracking-[0.05em] underline underline-offset-2"
+                    className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2"
                   >
                     Abrir en Drive
                   </a>

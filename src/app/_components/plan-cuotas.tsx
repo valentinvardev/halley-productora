@@ -53,7 +53,7 @@ export function PlanCuotas({
               />
             </span>
 
-            <span className="w-14 shrink-0 font-rotulo text-[13px] tracking-[0.06em] text-gray-45">
+            <span className="w-14 shrink-0 font-rotulo text-[12px] tracking-[0.06em] text-gray-45">
               CUOTA {String(cuota.numero).padStart(2, "0")}
             </span>
 
@@ -66,7 +66,7 @@ export function PlanCuotas({
               )}
             </span>
 
-            <span className="shrink-0 text-right font-rotulo text-[12.5px] uppercase tracking-[0.06em] text-gray-70">
+            <span className="shrink-0 text-right font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
               {cuota.estado === "PAGADA"
                 ? "Pagada"
                 : `${cuota.estado === "VENCIDA" ? "Venció" : "Vence"} ${fecha(cuota.venceEl)}`}
