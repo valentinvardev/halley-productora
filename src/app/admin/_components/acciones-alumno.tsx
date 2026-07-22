@@ -14,7 +14,7 @@ import {
   PlanCuotas,
   type CuotaVista,
 } from "~/app/_components/plan-cuotas";
-import { Boton, BotonTexto, Campo, Dato } from "~/app/_components/ui";
+import { Boton, BotonTexto, Campo, Dato, TiraDatos } from "~/app/_components/ui";
 import { fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
@@ -187,7 +187,7 @@ export function AccionesAlumno({
         {/* Primero el estado, después las acciones: recordar o simular se
             deciden mirando esto, no al revés. */}
         <Seccion titulo="Estado del plan">
-          <div className="flex flex-wrap border border-ink">
+          <TiraDatos>
             <Dato rotulo="Pagado" valor={pesos(alumno.plan.pagado)} />
             <Dato
               rotulo="Falta"
@@ -201,7 +201,7 @@ export function AccionesAlumno({
             {alumno.plan.aFavor > 0 && (
               <Dato rotulo="A favor" valor={pesos(alumno.plan.aFavor)} />
             )}
-          </div>
+          </TiraDatos>
 
           <div className="mt-3">
             <PlanCuotas

@@ -8,7 +8,13 @@ import { Copiar } from "~/app/_components/copiar";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { BotonTema } from "~/app/_components/tema";
-import { Boton, Dato, Vacio, botonSolido } from "~/app/_components/ui";
+import {
+  Boton,
+  Dato,
+  TiraDatos,
+  Vacio,
+  botonSolido,
+} from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { GestionarCuotas } from "./gestionar-cuotas";
@@ -73,7 +79,7 @@ export function Panel({
               <h1 className="mt-1 text-[26px] leading-tight">{hijo.nombre}</h1>
 
               {/* Estado del plan */}
-              <div className="mt-6 flex flex-wrap border border-ink">
+              <TiraDatos className="mt-6">
                 <Dato rotulo="Plan" valor={pesos(hijo.plan.total)} />
                 <Dato rotulo="Pagado" valor={pesos(hijo.plan.pagado)} />
                 <Dato
@@ -90,7 +96,7 @@ export function Panel({
                 {hijo.plan.aFavor > 0 && (
                   <Dato rotulo="A favor" valor={pesos(hijo.plan.aFavor)} />
                 )}
-              </div>
+              </TiraDatos>
 
               {/* Cómo pagar la próxima */}
               {hijo.plan.proxima ? (

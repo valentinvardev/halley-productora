@@ -56,14 +56,24 @@ export function PantallaPago({
     if (!recienPagado) return;
 
     const reloj = setTimeout(() => {
-      // `refresh` rearma el estado inicial del panel del lado del servidor;
-      // sin eso volvería con los datos de antes del pago.
-      router.push("/mi");
-      router.refresh();
+      void (async () => {
+        // El panel guarda su propia copia en React Query, con un staleTime de
+        // 30s: si no se toca, la familia vuelve y ve la cuota que acaba de
+        // pagar todavía impaga hasta que venza ese plazo.
+        //
+        // Va `reset` y no `invalidate` a propósito. Invalidar la marca vieja
+        // pero la deja en la caché, así que el panel igual pinta una vez con
+        // los datos de antes y recién después llega el refetch. Al vaciarla,
+        // en cambio, entra el `initialData` que el servidor acaba de calcular
+        // y la cuota aparece pagada en el primer frame.
+        await utils.cuenta.panel.reset();
+        router.push("/mi");
+        router.refresh();
+      })();
     }, MS_ANTES_DE_VOLVER);
 
     return () => clearTimeout(reloj);
-  }, [recienPagado, router]);
+  }, [recienPagado, router, utils]);
 
   const refrescar = () =>
     utils.cuenta.cobro.invalidate({ alumnoId, hastaCuotaId });

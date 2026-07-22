@@ -131,7 +131,33 @@ export function Encabezado({
   );
 }
 
-/** Dato suelto con su rótulo arriba — se usa en las tiras de métricas. */
+/**
+ * Tira de métricas: la caja que envuelve a los `Dato`.
+ *
+ * El problema que resuelve es el de siempre con `flex-wrap`: cuando los datos
+ * se acomodan en dos filas, entre esas filas no queda ninguna línea y la tira
+ * se lee como un bloque suelto. Acá cada dato trae borde derecho **y** de
+ * abajo, y la fila interna se corre un píxel para afuera en las dos
+ * direcciones; el `overflow-hidden` recorta lo que sobra del borde exterior.
+ *
+ * Así la grilla queda cerrada con cualquier cantidad de datos y en cualquier
+ * ancho, sin saber de antemano dónde va a cortar.
+ */
+export function TiraDatos({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`overflow-hidden border border-ink ${className}`}>
+      <div className="-mr-px -mb-px flex flex-wrap">{children}</div>
+    </div>
+  );
+}
+
+/** Dato suelto con su rótulo arriba — va adentro de una `TiraDatos`. */
 export function Dato({
   rotulo,
   valor,
@@ -145,7 +171,7 @@ export function Dato({
   icono?: ReactNode;
 }) {
   return (
-    <div className="flex-1 border-r border-gray-20 px-4 py-3.5 last:border-r-0">
+    <div className="min-w-[130px] flex-1 border-r border-b border-gray-20 px-4 py-3.5">
       <div className="flex items-center gap-1.5 font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
         {icono}
         {rotulo}

@@ -26,6 +26,7 @@ import {
   Dato,
   Encabezado,
   Tag,
+  TiraDatos,
   Vacio,
 } from "~/app/_components/ui";
 import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
@@ -101,7 +102,7 @@ export function DetalleGrupo({ id }: { id: string }) {
         }
       />
 
-      <div className="mb-8 flex flex-wrap border border-ink">
+      <TiraDatos className="mb-8">
         <Dato
           rotulo="Recaudado"
           valor={pesos(grupo.resumen.recaudado)}
@@ -127,7 +128,7 @@ export function DetalleGrupo({ id }: { id: string }) {
           valor={grupo.resumen.vencidos}
           icono={<IconoAlerta />}
         />
-      </div>
+      </TiraDatos>
 
       {aviso && (
         <div className="nota mb-6 border border-ink bg-paper-dim px-4 py-3 text-ink">
