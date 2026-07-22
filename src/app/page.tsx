@@ -2,9 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bebas_Neue, Montserrat } from "next/font/google";
 
+import {
+  IconoBajar,
+  IconoFlecha,
+  IconoInstagram,
+  IconoSobre,
+  IconoWhatsApp,
+} from "./_components/iconos";
 import { Logotipo } from "./_components/logotipo";
+import { Medio, existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
 import { botonFantasma, botonSolido } from "./_components/ui";
+import {
+  INSTAGRAM,
+  MAIL,
+  SERVICIOS,
+  linkWhatsApp,
+} from "./_datos/servicios";
 
 export const metadata: Metadata = {
   title: "Halley Audiovisual — Productora en Córdoba",
@@ -14,8 +28,8 @@ export const metadata: Metadata = {
 
 /**
  * Las tipografías de la marca se cargan acá y no en el layout raíz: sólo las
- * usa esta ruta, y no tiene sentido que el panel se baje dos familias que no
- * va a pintar.
+ * usa esta parte del sitio, y no tiene sentido que el panel se baje dos
+ * familias que no va a pintar.
  */
 const bebas = Bebas_Neue({
   subsets: ["latin"],
@@ -29,50 +43,16 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+export const FUENTES_MARCA = `${bebas.variable} ${montserrat.variable}`;
+
 const SECCIONES = [
   { href: "#servicios", texto: "Servicios" },
   { href: "#como", texto: "Cómo trabajamos" },
   { href: "#contacto", texto: "Contacto" },
 ];
 
-/** El teléfono va una sola vez y de acá salen todos los enlaces. */
-const WHATSAPP = "5493513000000";
-const INSTAGRAM = "https://instagram.com/halley.audiovisual";
-const MAIL = "hola@halleyaudiovisual.com";
-
-const linkWhatsApp = (mensaje: string) =>
-  `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
-
-const SERVICIOS = [
-  {
-    id: "egresados",
-    nombre: "Egresados",
-    linea: "El último año, de la previa al último tema.",
-    detalle:
-      "Cobertura del evento con dron, fotos y video editado. El curso contrata una vez y cada familia paga su cuota desde su propio panel.",
-  },
-  {
-    id: "bodas",
-    nombre: "Bodas",
-    linea: "Desde los preparativos hasta que se apaga la música.",
-    detalle:
-      "Dos miradas en simultáneo, tomas aéreas y el video que se mira entero, no de a fragmentos.",
-  },
-  {
-    id: "quince",
-    nombre: "Quince años",
-    linea: "La sesión previa, la entrada, el vals.",
-    detalle:
-      "Producción de la sesión con la quinceañera y cobertura completa de la fiesta, con el material listo para compartir.",
-  },
-  {
-    id: "marcas",
-    nombre: "Marcas",
-    linea: "Publicidad, institucional, recitales y contenido para redes.",
-    detalle:
-      "Piezas pensadas para dónde se van a ver: un spot no se corta igual para una pantalla que para un teléfono.",
-  },
-];
+const VIDEO_PORTADA = "/portada/portada.mp4";
+const POSTER_PORTADA = "/portada/portada.jpg";
 
 const NO_NEGOCIABLES = [
   {
@@ -99,7 +79,7 @@ const NO_NEGOCIABLES = [
 
 export default function Landing() {
   return (
-    <div className={`landing ${bebas.variable} ${montserrat.variable}`}>
+    <div className={`landing ${FUENTES_MARCA}`}>
       <NavPublica secciones={SECCIONES} />
 
       <Hero />
@@ -115,59 +95,105 @@ export default function Landing() {
 /* --------------------------------------------------------------------- hero */
 
 function Hero() {
+  const hayVideo = existeEnPublico(VIDEO_PORTADA);
+
   return (
-    <section className="relative overflow-hidden border-b border-gray-20">
-      <Estela />
+    <section className="hero aisla relative flex flex-col justify-center overflow-hidden border-b border-gray-20">
+      {hayVideo ? (
+        <>
+          <video
+            src={VIDEO_PORTADA}
+            poster={existeEnPublico(POSTER_PORTADA) ? POSTER_PORTADA : undefined}
+            muted
+            loop
+            autoPlay
+            playsInline
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Oscurece el fondo antes de la mezcla: con el video más parejo, la
+              inversa del titular sale siempre del lado claro. */}
+          <div
+            className="absolute inset-0 bg-[rgb(0_0_0/0.42)]"
+            aria-hidden="true"
+          />
+        </>
+      ) : (
+        <Estela />
+      )}
 
-      <div className="relative mx-auto max-w-[1140px] px-6 pt-20 pb-16 sm:px-10 sm:pt-28 sm:pb-24">
-        <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
-          Córdoba · Dron, fotografía y video
-        </p>
+      <div className="relative mx-auto w-full max-w-[1140px] px-6 sm:px-10">
+        <div className="negativo">
+          <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] sm:text-[12.5px]">
+            Córdoba · Dron, fotografía y video
+          </p>
 
-        {/* El titular es el eslogan del manual, tal cual. */}
-        <h1 className="mt-7 font-titulo text-[clamp(3.4rem,12vw,9.5rem)] leading-[0.86] tracking-[0.005em] uppercase">
-          Los momentos
-          <br />
-          son fugaces.
-          <br />
-          <span className="text-gray-70">Halley los hace eternos.</span>
-        </h1>
+          {/* El titular es el eslogan del manual, tal cual. */}
+          <h1 className="titular-hero mt-6">
+            Los momentos
+            <br />
+            son fugaces.
+            <br />
+            Halley los hace eternos.
+          </h1>
 
-        <p className="mt-9 max-w-[52ch] text-[15.5px] leading-relaxed text-gray-70">
-          Somos una productora audiovisual de Córdoba. Cubrimos egresados,
-          bodas, quince años y marcas. El día pasa una sola vez: nos ocupamos de
-          que puedas volver.
-        </p>
+          <p className="mt-7 max-w-[48ch] text-[15px] leading-relaxed">
+            Productora audiovisual de Córdoba. Egresados, bodas, quince años y
+            marcas. El día pasa una sola vez: nos ocupamos de que puedas volver.
+          </p>
+        </div>
 
-        <div className="mt-10 flex flex-wrap gap-3.5">
+        {/* Los botones quedan afuera de la mezcla: invertidos se leerían como
+            un error de render, no como una decisión. */}
+        <div className="mt-9 flex flex-wrap gap-3.5">
           <a
             href={linkWhatsApp("Hola Halley, quiero pedir un presupuesto.")}
             target="_blank"
             rel="noreferrer"
-            className={botonSolido}
+            className={hayVideo ? botonSobreVideo : botonSolido}
           >
+            <IconoWhatsApp />
             Pedir presupuesto
           </a>
-          <a href="#servicios" className={botonFantasma}>
+          <a
+            href="#servicios"
+            className={hayVideo ? botonSobreVideoFantasma : botonFantasma}
+          >
+            <IconoFlecha />
             Ver servicios
           </a>
         </div>
       </div>
+
+      <a
+        href="#concepto"
+        aria-label="Bajar"
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 ${
+          hayVideo ? "text-white/70 hover:text-white" : "text-gray-45 hover:text-ink"
+        }`}
+      >
+        <IconoBajar className="h-4 w-4" />
+      </a>
     </section>
   );
 }
 
+/* Sobre el video el tema no decide nada: el fondo es oscuro siempre. */
+const botonSobreVideo =
+  "inline-flex items-center justify-center gap-2 border border-white bg-white px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-black transition-colors hover:bg-transparent hover:text-white";
+const botonSobreVideoFantasma =
+  "inline-flex items-center justify-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
+
 /**
- * La estela del cometa, detrás del titular.
+ * La estela del cometa, cuando todavía no hay video de portada.
  *
- * Se dibuja una sola vez al cargar y no vuelve a correr. Es el concepto de la
- * marca hecho comportamiento: lo que pasa una vez no se repite. Un loop diría
- * exactamente lo contrario.
+ * Se dibuja una sola vez al cargar y no vuelve a correr: es el concepto de la
+ * marca hecho comportamiento. Un loop diría exactamente lo contrario.
  */
 function Estela() {
   return (
     <svg
-      className="pointer-events-none absolute -top-24 -right-24 h-[520px] w-[900px] max-w-none opacity-[0.5] sm:opacity-100"
+      className="pointer-events-none absolute -top-20 -right-24 h-[520px] w-[900px] max-w-none opacity-60 sm:opacity-100"
       viewBox="0 0 900 520"
       fill="none"
       aria-hidden="true"
@@ -192,9 +218,9 @@ function Estela() {
 
 function Concepto() {
   return (
-    <section className="border-b border-gray-20">
-      <div className="mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-28 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
-        <h2 className="font-titulo text-[clamp(2.2rem,5.5vw,4.2rem)] leading-[0.94] uppercase">
+    <section id="concepto" className="border-b border-gray-20">
+      <div className="mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+        <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
           Hay quien lo ve una vez en la vida.
           <br />
           <span className="text-gray-70">Con suerte, dos.</span>
@@ -227,47 +253,54 @@ function Concepto() {
 /**
  * Las bandas.
  *
- * El manual presenta los servicios como franjas horizontales apiladas, no como
- * tarjetas: se usa ese mismo gesto. Cada banda se invierte al pasarle por
- * encima —el crema de la marca pasa a ser el fondo—, que es todo el
- * movimiento que hace falta.
+ * El manual presenta los servicios como franjas horizontales apiladas y no
+ * como tarjetas: se usa ese mismo gesto. Cada banda lleva su propio material y
+ * lleva a su página.
  */
 function Servicios() {
   return (
     <section id="servicios" className="border-b border-gray-20">
-      <div className="mx-auto max-w-[1140px] px-6 pt-20 sm:px-10 sm:pt-28">
+      <div className="mx-auto max-w-[1140px] px-6 pt-20 sm:px-10 sm:pt-24">
         <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
           Qué hacemos
         </p>
-        <h2 className="mt-4 max-w-[18ch] font-titulo text-[clamp(2.4rem,7vw,5.5rem)] leading-[0.9] uppercase">
+        <h2 className="mt-4 max-w-[18ch] font-titulo text-[clamp(2rem,5.5vw,4rem)] leading-[0.92] uppercase">
           Cuatro tipos de día
         </h2>
       </div>
 
-      <div className="mt-14 border-t border-gray-20">
+      <div className="mt-12 border-t border-gray-20">
         {SERVICIOS.map((s) => (
-          <a
-            key={s.id}
-            href="#contacto"
+          <Link
+            key={s.slug}
+            href={`/servicios/${s.slug}`}
             className="group block border-b border-gray-20 transition-colors duration-300 hover:bg-paper-dimmer focus-visible:bg-paper-dimmer"
           >
-            <div className="mx-auto flex max-w-[1140px] flex-col gap-4 px-6 py-9 sm:px-10 sm:py-11 lg:flex-row lg:items-baseline lg:gap-12">
-              <h3 className="font-titulo text-[clamp(2.4rem,6.5vw,4.6rem)] leading-[0.86] uppercase lg:w-[38%] lg:shrink-0">
+            <div className="mx-auto flex max-w-[1140px] flex-col gap-6 px-6 py-8 sm:px-10 sm:py-10 lg:flex-row lg:items-center lg:gap-10">
+              <h3 className="font-titulo text-[clamp(2rem,5vw,3.6rem)] leading-[0.88] uppercase lg:w-[24%] lg:shrink-0">
                 {s.nombre}
               </h3>
 
+              <Medio
+                src={`/servicios/${s.slug}-portada.jpg`}
+                alt={s.nombre}
+                proporcion="aspect-[16/10]"
+                className="lg:w-[26%] lg:shrink-0"
+              />
+
               <div className="lg:flex-1">
-                <p className="text-[16px] leading-snug">{s.linea}</p>
-                <p className="mt-2.5 max-w-[56ch] text-[14px] leading-relaxed text-gray-70">
+                <p className="text-[15.5px] leading-snug">{s.linea}</p>
+                <p className="mt-2.5 max-w-[52ch] text-[14px] leading-relaxed text-gray-70">
                   {s.detalle}
                 </p>
               </div>
 
-              <span className="font-rotulo text-[12.5px] uppercase tracking-[0.12em] text-gray-45 transition-colors group-hover:text-ink">
-                Consultar →
+              <span className="inline-flex shrink-0 items-center gap-2 font-rotulo text-[12.5px] uppercase tracking-[0.12em] text-gray-45 transition-colors group-hover:text-ink">
+                Ver {s.nombre.toLowerCase()}
+                <IconoFlecha />
               </span>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </section>
@@ -279,20 +312,20 @@ function Servicios() {
 function Como() {
   return (
     <section id="como" className="border-b border-gray-20">
-      <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-28">
+      <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
         <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
           Cómo trabajamos
         </p>
-        <h2 className="mt-4 max-w-[20ch] font-titulo text-[clamp(2.2rem,6vw,4.6rem)] leading-[0.9] uppercase">
+        <h2 className="mt-4 max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.6rem)] leading-[0.92] uppercase">
           Lo que no negociamos
         </h2>
 
         {/* Cuatro cosas que sostenemos a la vez, no cuatro pasos: por eso no
             van numeradas. */}
-        <div className="mt-12 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2">
+        <div className="mt-11 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2">
           {NO_NEGOCIABLES.map((n) => (
             <div key={n.titulo} className="bg-paper p-7 sm:p-9">
-              <h3 className="font-titulo text-[clamp(1.5rem,3vw,2.1rem)] leading-tight uppercase">
+              <h3 className="font-titulo text-[clamp(1.4rem,2.6vw,1.9rem)] leading-tight uppercase">
                 {n.titulo}
               </h3>
               <p className="mt-3 max-w-[46ch] text-[14.5px] leading-relaxed text-gray-70">
@@ -311,9 +344,9 @@ function Como() {
 function Contacto() {
   return (
     <section id="contacto" className="border-b border-gray-20">
-      <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-28 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <h2 className="max-w-[16ch] font-titulo text-[clamp(2.6rem,8vw,6rem)] leading-[0.88] uppercase">
+          <h2 className="max-w-[16ch] font-titulo text-[clamp(2.2rem,6vw,4.4rem)] leading-[0.9] uppercase">
             Contanos qué día es
           </h2>
           <p className="mt-6 max-w-[48ch] text-[15.5px] leading-relaxed text-gray-70">
@@ -328,6 +361,7 @@ function Contacto() {
               rel="noreferrer"
               className={botonSolido}
             >
+              <IconoWhatsApp />
               Escribir por WhatsApp
             </a>
             <a
@@ -336,11 +370,14 @@ function Contacto() {
               rel="noreferrer"
               className={botonFantasma}
             >
+              <IconoInstagram />
               Ver el Instagram
             </a>
+            <a href={`mailto:${MAIL}`} className={botonFantasma}>
+              <IconoSobre />
+              Escribir un mail
+            </a>
           </div>
-
-          <p className="mt-7 font-mono text-[12px] text-gray-45">{MAIL}</p>
         </div>
 
         {/* El puente con el producto: quien ya contrató entra por acá. */}
@@ -354,9 +391,10 @@ function Contacto() {
           </p>
           <Link
             href="/entrar"
-            className="mt-5 inline-block font-rotulo text-[13px] uppercase tracking-[0.08em] underline underline-offset-4 hover:text-gray-70"
+            className="mt-5 inline-flex items-center gap-2 font-rotulo text-[13px] uppercase tracking-[0.08em] underline underline-offset-4 hover:text-gray-70"
           >
             Entrar a mi panel
+            <IconoFlecha />
           </Link>
         </div>
       </div>

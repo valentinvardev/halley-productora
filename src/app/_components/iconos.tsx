@@ -80,6 +80,66 @@ export function IconoMas(props: Props) {
   );
 }
 
+/* ------------------------------------------------------------------ contacto */
+
+/** WhatsApp: el globo con el tubo. */
+export function IconoWhatsApp(props: Props) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M2 14 L3.1 10.6 A6 6 0 1 1 5.4 12.9 Z"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.1 6 C6.1 8.4 7.6 9.9 10 9.9 L10.5 8.9 L9.2 8.3 L8.6 9 C8 8.7 7.3 8 7 7.4 L7.7 6.8 L7.1 5.5 Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </Svg>
+  );
+}
+
+/** Instagram. */
+export function IconoInstagram(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="2" y="2" width="12" height="12" rx="3.2" />
+      <circle cx="8" cy="8" r="3" />
+      <path d="M11.4 4.6 L11.5 4.6" />
+    </Svg>
+  );
+}
+
+/** Seguir leyendo / ir a. */
+export function IconoFlecha(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 8 L13.5 8" />
+      <path d="M9.5 3.5 L14 8 L9.5 12.5" />
+    </Svg>
+  );
+}
+
+/** Bajar: el indicador del hero. */
+export function IconoBajar(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M8 2.5 L8 13.5" />
+      <path d="M3.5 9 L8 13.5 L12.5 9" />
+    </Svg>
+  );
+}
+
+/** Reproducir: rotula los huecos de multimedia. */
+export function IconoReproducir(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M4.5 2.5 L13 8 L4.5 13.5 Z" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 /* --------------------------------------------------- rótulos de las métricas */
 
 /** Recaudado: el billete. */

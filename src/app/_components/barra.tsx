@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Cajon, itemCajon } from "./cajon";
 import { IconoHamburguesa, IconoPerfil } from "./iconos";
 import { Logotipo } from "./logotipo";
+import { Popover } from "./popover";
 import { BotonTema } from "./tema";
 
 /**
@@ -64,14 +65,33 @@ export function Barra({
 
             <BotonTema />
 
-            <button
-              type="button"
-              onClick={() => setPerfil(true)}
-              aria-label="Mi cuenta"
-              className="grid cursor-pointer place-items-center text-gray-45 hover:text-ink"
-            >
-              <IconoPerfil className="h-[15px] w-[15px]" />
-            </button>
+            {/* La cuenta baja acá mismo: son dos datos y una acción, no hace
+                falta tomar la pantalla entera para eso. */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setPerfil((v) => !v)}
+                aria-label="Mi cuenta"
+                aria-expanded={perfil}
+                className={`grid cursor-pointer place-items-center hover:text-ink ${
+                  perfil ? "text-ink" : "text-gray-45"
+                }`}
+              >
+                <IconoPerfil className="h-[15px] w-[15px]" />
+              </button>
+
+              <Popover abierto={perfil} alCerrar={() => setPerfil(false)}>
+                <div className="border-b border-gray-20 pb-3">
+                  <div className="text-[13.5px]">{identidad.titulo}</div>
+                  {identidad.detalle && (
+                    <div className="mt-1 font-mono text-[11px] break-all text-gray-45">
+                      {identidad.detalle}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-1">{salir}</div>
+              </Popover>
+            </div>
 
             {enlaces.length > 0 && (
               <button
@@ -100,21 +120,6 @@ export function Barra({
         ))}
       </Cajon>
 
-      <Cajon
-        abierto={perfil}
-        alCerrar={() => setPerfil(false)}
-        titulo="Mi cuenta"
-      >
-        <div className="border-b border-gray-20 pb-4">
-          <div className="text-[14px]">{identidad.titulo}</div>
-          {identidad.detalle && (
-            <div className="mt-1 font-mono text-[11px] break-all text-gray-45">
-              {identidad.detalle}
-            </div>
-          )}
-        </div>
-        <div className="mt-1">{salir}</div>
-      </Cajon>
     </>
   );
 }

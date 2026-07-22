@@ -1,0 +1,14 @@
+﻿Acá van los archivos del sitio público. Mientras falten, cada hueco se dibuja
+con su proporción final y el nombre del archivo que espera, así la página se
+puede ver y discutir igual. En cuanto el archivo aparece, el hueco lo muestra
+solo: no hay que tocar código.
+
+portada/
+  portada.mp4    el video en loop del inicio (sin audio, 8-15s, ~1920px de ancho)
+  portada.jpg    el primer cuadro, para que no haya negro mientras carga
+
+servicios/
+  <categoria>-portada.jpg   la que encabeza la banda y la página
+  <categoria>-01.jpg .. -06.jpg   la galería de la página
+
+Las categorías son: egresados, bodas, quince, marcas.

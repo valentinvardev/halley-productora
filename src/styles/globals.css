@@ -387,6 +387,69 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   El hero.
+
+   Entra en una pantalla y punto: el alto es `svh` —el chico, el que descuenta
+   la barra del navegador en el teléfono— y el cuerpo del titular está atado a
+   ese mismo alto, no sólo al ancho. Con `vw` solo, una pantalla ancha y baja
+   deja el titular fuera de cuadro.
+--------------------------------------------------------------------------- */
+.hero {
+  min-height: 34rem;
+  height: calc(100svh - 4rem);
+}
+
+.titular-hero {
+  font-family: var(--font-titulo);
+  font-size: clamp(2.1rem, min(6.6vw, 8.4svh), 5.4rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+/**
+ * Filtro negativo.
+ *
+ * El titular va en blanco con `difference`: cada píxel se pinta como la
+ * inversa de lo que tiene detrás. Sobre un video que cambia todo el tiempo, no
+ * hay color de texto que sirva siempre — así el contraste no se elige, se
+ * calcula cuadro a cuadro.
+ *
+ * De yapa resuelve el tema: sin video, sobre papel claro se ve negro y sobre
+ * papel oscuro se ve claro, sin una sola condición.
+ */
+.negativo {
+  color: #ffffff;
+  mix-blend-mode: difference;
+}
+
+/* La mezcla no puede escaparse del hero y teñir lo que está más abajo. */
+.aisla {
+  isolation: isolate;
+}
+
+/* El panel de la cuenta baja desde su botón, no aparece de golpe. */
+@keyframes asomar {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.popover {
+  animation: asomar 0.16s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    animation: none;
+  }
+}
+
 /* La estela del cometa: se dibuja una sola vez, al cargar, y no vuelve.
    Es el punto del concepto — lo que pasa una vez no se repite. */
 @keyframes estela {
