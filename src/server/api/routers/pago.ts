@@ -92,7 +92,13 @@ export const pagoRouter = createTRPCRouter({
 
   /** Desde el dashboard del padre, para uno de sus hijos. */
   simularDesdeCuenta: cuentaProcedure
-    .input(z.object({ alumnoId: z.string() }))
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        /** Para pagar varias cuotas juntas desde la pantalla de cobro. */
+        monto: z.number().positive().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Sólo se puede pagar por un alumno del que se es responsable.
       const vinculo = await ctx.db.tutor.findUnique({
@@ -105,9 +111,7 @@ export const pagoRouter = createTRPCRouter({
       });
       if (!vinculo) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const alumno = { id: input.alumnoId };
-
-      return simularTransferencia(alumno.id);
+      return simularTransferencia(input.alumnoId, input.monto);
     }),
 
   recientes: adminProcedure

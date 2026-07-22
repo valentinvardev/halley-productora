@@ -11,7 +11,8 @@ export type CuotaVista = {
   estado: "PENDIENTE" | "PAGADA" | "VENCIDA";
 };
 
-const MARCA = {
+/** Una marca de lápiz graso por estado. Compartida con el modal de cuotas. */
+export const MARCA_ESTADO = {
   PAGADA: { tipo: "confirmado", color: "var(--color-ink)" },
   PENDIENTE: { tipo: "punteado", color: "var(--color-gray-45)" },
   VENCIDA: { tipo: "tachado", color: "var(--color-ink)" },
@@ -33,7 +34,7 @@ export function PlanCuotas({
   return (
     <div className="border border-ink">
       {cuotas.map((cuota) => {
-        const marca = MARCA[cuota.estado];
+        const marca = MARCA_ESTADO[cuota.estado];
         const esProxima = destacar === cuota.id;
 
         return (

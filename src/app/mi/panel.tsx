@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { salir } from "~/app/_acciones/sesion";
@@ -7,9 +8,10 @@ import { Copiar } from "~/app/_components/copiar";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { BotonTema } from "~/app/_components/tema";
-import { BotonTexto, Dato, Vacio } from "~/app/_components/ui";
+import { Boton, Dato, Vacio, botonSolido } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { GestionarCuotas } from "./gestionar-cuotas";
 
 /**
  * Dashboard de la familia: el estado del pago de principio a fin y el acceso a
@@ -22,20 +24,12 @@ export function Panel({
   email: string;
   inicial: RouterOutputs["cuenta"]["panel"];
 }) {
-  const utils = api.useUtils();
-  const [esperando, setEsperando] = useState(false);
+  /** Qué hijo tiene el modal de cuotas abierto. */
+  const [gestionando, setGestionando] = useState<string | null>(null);
 
   const { data: hijos } = api.cuenta.panel.useQuery(undefined, {
     initialData: inicial,
-    refetchInterval: esperando ? 700 : 15000,
-  });
-
-  const simular = api.pago.simularDesdeCuenta.useMutation({
-    onSuccess: async () => {
-      setEsperando(true);
-      await utils.cuenta.panel.invalidate();
-      setTimeout(() => setEsperando(false), 12000);
-    },
+    refetchInterval: 15000,
   });
 
   return (
@@ -118,48 +112,34 @@ export function Panel({
                     )}
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between border border-ink px-3 py-2.5">
-                    <span className="font-mono text-[12px] break-all">
-                      {hijo.alias}
-                    </span>
-                    <Copiar valor={hijo.alias} etiqueta="Alias" />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between px-1">
-                    <span className="font-mono text-[10px] text-gray-45">
-                      CVU {hijo.cvu}
-                    </span>
-                    <Copiar valor={hijo.cvu} etiqueta="CVU" />
+                  {/* El QR, el alias y el "ya transferí" viven en la pantalla
+                      de cobro: acá alcanza con decir cuánto y llevar hasta
+                      ella. */}
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/mi/pagar/${hijo.id}?hasta=${hijo.plan.proxima.id}`}
+                      className={botonSolido}
+                    >
+                      Pagar esta cuota
+                    </Link>
+                    <Boton
+                      variante="fantasma"
+                      onClick={() => setGestionando(hijo.id)}
+                    >
+                      Gestionar cuotas
+                    </Boton>
                   </div>
 
                   <p className="mt-4 font-mono text-[10.5px] leading-relaxed text-gray-45">
-                    Transferí desde tu banco o billetera. Cuando se acredite lo
-                    vas a ver acá y te llega el comprobante por mail.
+                    Transferí con el QR o el alias desde tu banco o billetera.
+                    Cuando se acredite lo vas a ver acá y te llega el
+                    comprobante por mail.
                   </p>
-
-                  {hijo.modoDemo && (
-                    <div className="mt-5 border-t border-gray-20 pt-4 text-center">
-                      <div className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-gray-45">
-                        Demo — Talo simulado
-                      </div>
-                      {esperando ? (
-                        <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-gray-70">
-                          Esperando la acreditación…
-                        </span>
-                      ) : (
-                        <BotonTexto
-                          onClick={() => simular.mutate({ alumnoId: hijo.id })}
-                          disabled={simular.isPending}
-                        >
-                          Simular transferencia desde el banco
-                        </BotonTexto>
-                      )}
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div className="mt-6 flex items-center gap-4 border border-ink p-6">
+                <div className="mt-6 flex flex-wrap items-center gap-4 border border-ink p-6">
                   <Marca tipo="confirmado" className="h-12 w-12" grosor={3} />
-                  <div>
+                  <div className="flex-1">
                     <div className="font-mono text-[11px] uppercase tracking-[0.08em]">
                       Plan saldado
                     </div>
@@ -167,8 +147,23 @@ export function Panel({
                       No queda nada por pagar. Gracias.
                     </p>
                   </div>
+                  <Boton
+                    variante="fantasma"
+                    onClick={() => setGestionando(hijo.id)}
+                  >
+                    Gestionar cuotas
+                  </Boton>
                 </div>
               )}
+
+              <GestionarCuotas
+                abierto={gestionando === hijo.id}
+                alCerrar={() => setGestionando(null)}
+                alumnoId={hijo.id}
+                nombre={hijo.nombre}
+                cuotas={hijo.plan.cuotas}
+                deuda={hijo.plan.deuda}
+              />
 
               {/* Quiénes más gestionan esta cuota */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">

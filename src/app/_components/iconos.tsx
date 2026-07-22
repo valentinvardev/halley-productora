@@ -80,6 +80,26 @@ export function IconoMas(props: Props) {
   );
 }
 
+/** Cerrar. */
+export function IconoCruz(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 3.5 L12.5 12.5" />
+      <path d="M12.5 3.5 L3.5 12.5" />
+    </Svg>
+  );
+}
+
+/** Volver: la flecha hacia atrás. */
+export function IconoVolver(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M13.5 8 L2.5 8" />
+      <path d="M6.5 3.5 L2 8 L6.5 12.5" />
+    </Svg>
+  );
+}
+
 /** Carga en bloque: una lista pegada. */
 export function IconoLista(props: Props) {
   return (

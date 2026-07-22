@@ -90,6 +90,98 @@ export const cuentaRouter = createTRPCRouter({
       return { ok: true };
     }),
 
+  /* --------------------------------------------------------------- cobro */
+
+  /**
+   * La pantalla de pago: cuánto hay que transferir y a dónde.
+   *
+   * `hastaCuotaId` no significa "pagar sólo esa cuota". El dinero se imputa
+   * siempre de la cuota más vieja a la más nueva —es la regla que hace que el
+   * estado se derive de los pagos y no se pueda desincronizar—, así que elegir
+   * la cuota 3 es ponerse al día hasta la 3. El monto lo dice explícito para
+   * que nadie se sorprenda.
+   */
+  cobro: cuentaProcedure
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        hastaCuotaId: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // El `some` sobre tutores es la autorización: si no es responsable de
+      // este alumno, no hay fila y no hay pantalla.
+      const alumno = await ctx.db.alumno.findFirst({
+        where: {
+          id: input.alumnoId,
+          tutores: { some: { cuentaId: ctx.cuenta.id } },
+        },
+        include: {
+          grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } },
+          pagos: true,
+        },
+      });
+      if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+
+      const hasta = input.hastaCuotaId
+        ? plan.cuotas.find((c) => c.id === input.hastaCuotaId)
+        : null;
+      if (input.hastaCuotaId && !hasta) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const alcanzadas = hasta
+        ? plan.cuotas.filter((c) => c.numero <= hasta.numero)
+        : plan.cuotas;
+      const aSaldar = alcanzadas.filter((c) => c.saldo > 0);
+
+      const monto = aSaldar.reduce((t, c) => t + c.saldo, 0);
+      const primera = aSaldar[0];
+
+      return {
+        alumnoId: alumno.id,
+        nombre: alumno.nombre,
+        alias: alumno.alias,
+        cvu: alumno.cvu,
+        modoDemo: taloEsMock,
+        reportoTransferenciaEl: alumno.reportoTransferenciaEl,
+        grupo: {
+          nombre: alumno.grupo.nombre,
+          colegio: alumno.grupo.colegio,
+        },
+        monto,
+        /** Con tolerancia de un centavo, igual que la imputación. */
+        listo: monto <= 0.01,
+        /** Qué cuotas cubre esta transferencia. */
+        numeros: aSaldar.map((c) => c.numero),
+        totalCuotas: plan.cuotas.length,
+        venceEl: primera?.venceEl ?? null,
+        vencida: aSaldar.some((c) => c.estado === "VENCIDA"),
+        plan: {
+          total: plan.total,
+          pagado: plan.pagado,
+          deuda: plan.deuda,
+          cuotas: plan.cuotas,
+        },
+      };
+    }),
+
+  /** "Ya transferí": aviso de la familia, no confirma nada por sí solo. */
+  reportarTransferencia: cuentaProcedure
+    .input(z.object({ alumnoId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { count } = await ctx.db.alumno.updateMany({
+        where: {
+          id: input.alumnoId,
+          tutores: { some: { cuentaId: ctx.cuenta.id } },
+        },
+        data: { reportoTransferenciaEl: new Date() },
+      });
+      if (count === 0) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return { ok: true };
+    }),
+
   /** Todo lo que el padre necesita ver: sus hijos, sus cuotas y su galería. */
   panel: cuentaProcedure.query(async ({ ctx }) => {
     const alumnos = await ctx.db.alumno.findMany({
