@@ -45,6 +45,15 @@
    * texto corrido está `.nota`, no ésta.
    */
   --font-rotulo: var(--font-barlow), var(--font-inter), sans-serif;
+  /**
+   * Títulos de la marca. Bebas Neue es la tipografía oficial del manual, y a
+   * los cuerpos grandes de una landing es donde rinde: condensada, en caja
+   * alta, sin minúsculas que le falten. Para los rótulos chicos del panel
+   * sigue estando `--font-rotulo`, que es donde Bebas se ahogaba.
+   *
+   * Sólo existe dentro de `.landing`: la fuente se carga en esa ruta.
+   */
+  --font-titulo: var(--font-bebas), "Arial Narrow", sans-serif;
 
   --radius-none: 0px;
 }
@@ -101,6 +110,29 @@
 
      Se muestra el destino, no el estado — en claro se ve la luna.
   ------------------------------------------------------------------------- */
+  /* El logo tiene dos dibujos; se apaga el que no contrasta con el fondo. Las
+     mismas reglas que el sol y la luna, por la misma razón: que el correcto ya
+     esté puesto en el primer frame. */
+  .logo-oscuro {
+    opacity: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) .logo-claro {
+      opacity: 0;
+    }
+    :root:not([data-tema="claro"]) .logo-oscuro {
+      opacity: 1;
+    }
+  }
+
+  :root[data-tema="oscuro"] .logo-claro {
+    opacity: 0;
+  }
+  :root[data-tema="oscuro"] .logo-oscuro {
+    opacity: 1;
+  }
+
   .icono-tema {
     display: block;
     transition:
@@ -289,6 +321,93 @@
   .capa-modal,
   .capa-cajon {
     transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   La landing.
+
+   El panel es un instrumento de trabajo y usa la paleta "hoja de contacto".
+   Esto es la cara de la marca, y ahí manda el manual: negro #000, gris oscuro
+   #1C1C1C, crema #E3DAC9 y blanco. Nada más — no hay color de acento, la
+   marca es justamente ese par.
+
+   En vez de escribir clases nuevas, se pisan los mismos tokens adentro de
+   `.landing`: así `bg-paper`, `text-ink` y hasta los botones ya escritos
+   pasan a hablar en los colores de la marca sin tocar un componente.
+
+   El crema cambia de papel según el tema, que es la decisión de diseño de
+   acá: en claro es una superficie (el fondo de las bandas), en oscuro es la
+   tinta de acento. Crema sobre blanco no se lee; crema sobre negro es la
+   marca.
+--------------------------------------------------------------------------- */
+@layer base {
+  .landing {
+    --color-paper: #ffffff;
+    --color-paper-dim: #f4f1ea;
+    --color-paper-dimmer: #e3dac9;
+    --color-lienzo: #ffffff;
+    --color-ink: #1c1c1c;
+    --color-gray-70: #4a4740;
+    --color-gray-45: #6f6a60;
+    --color-gray-20: rgb(28 28 28 / 0.16);
+
+    --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+    /* Acá el rótulo también es Montserrat: el manual tiene dos familias y la
+       landing no necesita una tercera. Barlow se queda en el panel. */
+    --font-rotulo: var(--font-montserrat), ui-sans-serif, sans-serif;
+
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) .landing {
+      --color-paper: #1c1c1c;
+      --color-paper-dim: #131313;
+      --color-paper-dimmer: #000000;
+      --color-lienzo: #131313;
+      --color-ink: #ffffff;
+      --color-gray-70: #c9c3b6;
+      --color-gray-45: #948d80;
+      --color-gray-20: rgb(227 218 201 / 0.18);
+    }
+  }
+
+  :root[data-tema="oscuro"] .landing {
+    --color-paper: #1c1c1c;
+    --color-paper-dim: #131313;
+    --color-paper-dimmer: #000000;
+    --color-lienzo: #131313;
+    --color-ink: #ffffff;
+    --color-gray-70: #c9c3b6;
+    --color-gray-45: #948d80;
+    --color-gray-20: rgb(227 218 201 / 0.18);
+  }
+}
+
+/* La estela del cometa: se dibuja una sola vez, al cargar, y no vuelve.
+   Es el punto del concepto — lo que pasa una vez no se repite. */
+@keyframes estela {
+  from {
+    stroke-dashoffset: 1400;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.estela {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: estela 2.6s cubic-bezier(0.22, 0.7, 0.3, 1) 0.25s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estela {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

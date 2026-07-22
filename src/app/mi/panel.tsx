@@ -43,7 +43,6 @@ export function Panel({
   return (
     <div className="min-h-screen">
       <Barra
-        marca="Halley"
         href="/mi"
         ancho="max-w-[760px]"
         identidad={{ titulo: "Mi cuenta", detalle: email }}

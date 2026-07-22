@@ -47,3 +47,9 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# Material de marca sin procesar: el manual, los presupuestos y los PNG
+# originales del logo. Son ~60 MB y no los usa la app — lo que se sirve son los
+# logos ya recortados de public/marca/, que sí van al repo.
+/*.pdf
+/HALLEY-*.png

@@ -20,7 +20,6 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen">
       <Barra
-        marca="Halley"
         href="/admin"
         enlaces={[
           { href: "/admin", texto: "Grupos" },

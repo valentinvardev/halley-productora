@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Logotipo } from "./logotipo";
 import { Muestra } from "./muestra";
 import { BotonTema } from "./tema";
 
@@ -28,8 +29,8 @@ export function MarcoAcceso({
     <div className="flex min-h-screen">
       <div className="flex w-full flex-col lg:w-[46%] xl:w-[42%]">
         <header className="flex items-center justify-between px-8 py-6">
-          <Link href="/" className="font-display text-[15px] font-semibold">
-            Halley Producciones
+          <Link href="/" aria-label="Halley Audiovisual">
+            <Logotipo variante="isologo" className="h-11" prioridad />
           </Link>
           <BotonTema />
         </header>

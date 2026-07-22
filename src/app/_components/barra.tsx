@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { Cajon, itemCajon } from "./cajon";
 import { IconoHamburguesa, IconoPerfil } from "./iconos";
+import { Logotipo } from "./logotipo";
 import { BotonTema } from "./tema";
 
 /**
@@ -19,15 +20,12 @@ import { BotonTema } from "./tema";
  * encontrar "salir".
  */
 export function Barra({
-  marca,
   href = "/",
   enlaces = [],
   identidad,
   salir,
   ancho = "max-w-[1080px]",
 }: {
-  /** El nombre, a la izquierda. */
-  marca: string;
   href?: string;
   enlaces?: { href: string; texto: string }[];
   /** Quién está adentro: encabeza el cajón del perfil. */
@@ -45,8 +43,8 @@ export function Barra({
         <div
           className={`mx-auto flex h-14 ${ancho} items-center justify-between gap-4 px-6 sm:px-8`}
         >
-          <Link href={href} className="font-display text-[15px] font-semibold">
-            {marca}
+          <Link href={href} aria-label="Halley Audiovisual">
+            <Logotipo variante="palabra" className="h-[18px]" prioridad />
           </Link>
 
           <div className="flex items-center gap-5">
