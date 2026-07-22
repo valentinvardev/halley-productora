@@ -10,8 +10,12 @@ import {
   IconoSobre,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
-import { Boton, BotonTexto, Campo } from "~/app/_components/ui";
-import { pesos } from "~/lib/format";
+import {
+  PlanCuotas,
+  type CuotaVista,
+} from "~/app/_components/plan-cuotas";
+import { Boton, BotonTexto, Campo, Dato } from "~/app/_components/ui";
+import { fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
 /**
@@ -31,7 +35,20 @@ export type AlumnoAcciones = {
   linkRegistro: string;
   linkPago: string;
   responsables: { id: string; email: string }[];
-  plan: { deuda: number };
+  plan: {
+    total: number;
+    pagado: number;
+    deuda: number;
+    aFavor: number;
+    cuotas: CuotaVista[];
+    proxima: { id: string } | null;
+  };
+  pagos: {
+    id: string;
+    monto: number;
+    recibidoEn: Date;
+    taloTransactionId: string;
+  }[];
 };
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -166,6 +183,65 @@ export function AccionesAlumno({
             {mensaje}
           </p>
         )}
+
+        {/* Primero el estado, después las acciones: recordar o simular se
+            deciden mirando esto, no al revés. */}
+        <Seccion titulo="Estado del plan">
+          <div className="flex flex-wrap border border-ink">
+            <Dato rotulo="Pagado" valor={pesos(alumno.plan.pagado)} />
+            <Dato
+              rotulo="Falta"
+              valor={pesos(alumno.plan.deuda)}
+              detalle={
+                alumno.plan.deuda === 0
+                  ? "Plan completo"
+                  : `de ${pesos(alumno.plan.total)}`
+              }
+            />
+            {alumno.plan.aFavor > 0 && (
+              <Dato rotulo="A favor" valor={pesos(alumno.plan.aFavor)} />
+            )}
+          </div>
+
+          <div className="mt-3">
+            <PlanCuotas
+              cuotas={alumno.plan.cuotas}
+              destacar={alumno.plan.proxima?.id}
+            />
+          </div>
+        </Seccion>
+
+        <Seccion titulo="Transferencias recibidas">
+          {alumno.pagos.length === 0 ? (
+            <p className="nota border border-dashed border-gray-20 px-3.5 py-3 text-gray-45">
+              Todavía no entró ninguna transferencia de esta familia.
+            </p>
+          ) : (
+            <div className="border border-gray-20">
+              {alumno.pagos.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
+                >
+                  <span className="font-mono text-[12.5px]">
+                    {pesos(p.monto)}
+                  </span>
+                  <span className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] text-gray-45">
+                    {fechaHora(p.recibidoEn)}
+                  </span>
+                  {/* Es el identificador con el que se cruza contra Talo si
+                      alguna vez hay que discutir un pago. */}
+                  <span
+                    className="w-full font-mono text-[10.5px] text-gray-45 break-all"
+                    title={p.taloTransactionId}
+                  >
+                    {p.taloTransactionId}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Seccion>
 
         <Seccion titulo="Enlaces">
           <div className="grid gap-2">
