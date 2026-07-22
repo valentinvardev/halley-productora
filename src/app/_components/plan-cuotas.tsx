@@ -6,6 +6,7 @@ export type CuotaVista = {
   numero: number;
   monto: number;
   venceEl: Date;
+  recargo: number;
   aplicado: number;
   saldo: number;
   estado: "PENDIENTE" | "PAGADA" | "VENCIDA";
@@ -16,6 +17,18 @@ export const MARCA_ESTADO = {
   PAGADA: { tipo: "confirmado", color: "var(--color-ink)" },
   PENDIENTE: { tipo: "punteado", color: "var(--color-gray-45)" },
   VENCIDA: { tipo: "tachado", color: "var(--color-ink)" },
+} as const;
+
+/**
+ * La clase de fondo por estado. Verde saldado, rojo vencido, y la pendiente sin
+ * tocar —queda en el neutro del papel—: si todo tuviera color, el color dejaría
+ * de señalar nada. Las clases viven en `globals.css` para dar vuelta con el
+ * tema.
+ */
+export const FONDO_ESTADO = {
+  PAGADA: "fila-pagada",
+  VENCIDA: "fila-vencida",
+  PENDIENTE: "",
 } as const;
 
 /**
@@ -41,7 +54,7 @@ export function PlanCuotas({
           <div
             key={cuota.id}
             className={`flex items-center gap-4 border-b border-gray-20 px-4 py-3 last:border-b-0 ${
-              esProxima ? "bg-paper-dim" : ""
+              FONDO_ESTADO[cuota.estado] || (esProxima ? "bg-paper-dim" : "")
             }`}
           >
             <span className="h-6 w-6 shrink-0">
@@ -59,6 +72,11 @@ export function PlanCuotas({
 
             <span className="flex-1 font-mono text-[13px]">
               {pesos(cuota.monto)}
+              {cuota.recargo > 0 && (
+                <span className="ml-2 text-[10.5px] text-marca">
+                  + {pesos(cuota.recargo)} de recargo
+                </span>
+              )}
               {cuota.estado !== "PAGADA" && cuota.aplicado > 0 && (
                 <span className="ml-2 text-[10.5px] text-gray-45">
                   pagado {pesos(cuota.aplicado)} · falta {pesos(cuota.saldo)}

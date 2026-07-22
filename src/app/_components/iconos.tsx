@@ -233,6 +233,17 @@ export function IconoProbeta(props: Props) {
   );
 }
 
+/** Galería bloqueada hasta saldar. */
+export function IconoCandado(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="7" width="10" height="7" rx="1" />
+      <path d="M5 7 V5 A3 3 0 0 1 11 5 V7" />
+      <path d="M8 9.5 L8 11.5" />
+    </Svg>
+  );
+}
+
 /** Navegación en pantallas chicas. */
 export function IconoHamburguesa(props: Props) {
   return (

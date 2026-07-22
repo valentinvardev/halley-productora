@@ -83,6 +83,9 @@ export function Registro({
       <div className="eyebrow">{grupo.colegio}</div>
       <h1 className="mt-1 text-[26px] leading-tight">{grupo.nombre}</h1>
 
+      {/* La key hace que React remonte al cambiar de solapa, y con eso la
+          animación de entrada vuelve a correr. */}
+      <div key={solapa} className={`solapa-${solapa}`}>
       {solapa === "registro" ? (
         <>
           <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
@@ -173,6 +176,7 @@ export function Registro({
           </form>
         </>
       )}
+      </div>
     </MarcoAcceso>
   );
 }

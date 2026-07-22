@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Marca } from "~/app/_components/marca";
 import { Modal } from "~/app/_components/modal";
 import {
+  FONDO_ESTADO,
   MARCA_ESTADO,
   PlanCuotas,
   type CuotaVista,
@@ -83,7 +84,7 @@ export function GestionarCuotas({
                 <div
                   key={fila.id}
                   className={`flex items-center gap-3 border-b border-gray-20 px-4 py-3 last:border-b-0 ${
-                    esProxima ? "bg-paper-dim" : ""
+                    FONDO_ESTADO[fila.estado] || (esProxima ? "bg-paper-dim" : "")
                   }`}
                 >
                   <span className="h-5 w-5 shrink-0">
@@ -101,6 +102,11 @@ export function GestionarCuotas({
 
                   <span className="flex-1 font-mono text-[12.5px]">
                     {pesos(fila.monto)}
+                    {fila.recargo > 0 && (
+                      <span className="ml-2 text-[10.5px] text-marca">
+                        + {pesos(fila.recargo)} recargo
+                      </span>
+                    )}
                     <span className="mt-0.5 block font-rotulo text-[11px] uppercase tracking-[0.05em] text-gray-45">
                       {pagada
                         ? "Pagada"

@@ -7,6 +7,7 @@ import { salir } from "~/app/_acciones/sesion";
 import { Barra } from "~/app/_components/barra";
 import { itemCajon } from "~/app/_components/cajon";
 import { Copiar } from "~/app/_components/copiar";
+import { IconoCandado } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import {
@@ -227,7 +228,22 @@ export function Panel({
 
               {/* Galería */}
               <h2 className="mt-10 mb-3 text-[17px]">Galería</h2>
-              {hijo.galerias.length === 0 ? (
+              {hijo.plan.deuda > 0 ? (
+                /* Se libera con el plan saldado: la galería es lo que se
+                   entrega una vez que la cuota está paga, no antes. */
+                <div className="flex flex-wrap items-center gap-4 border border-dashed border-gray-20 bg-paper-dim px-5 py-5">
+                  <IconoCandado className="h-6 w-6 shrink-0 text-gray-45" />
+                  <div className="flex-1">
+                    <div className="font-rotulo text-[12px] uppercase tracking-[0.08em]">
+                      Se libera al saldar el plan
+                    </div>
+                    <p className="nota mt-1">
+                      Cuando termines de pagar, la galería aparece acá. Te faltan{" "}
+                      {pesos(hijo.plan.deuda)}.
+                    </p>
+                  </div>
+                </div>
+              ) : hijo.galerias.length === 0 ? (
                 <Vacio>Todavía no hay galería publicada para este grupo</Vacio>
               ) : (
                 <div className="grid gap-3">

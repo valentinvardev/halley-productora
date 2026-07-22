@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
+  DIA_VENCIMIENTO,
   imputarPagos,
   linkAlumno,
   linkGrupo,
@@ -171,7 +172,10 @@ export const grupoRouter = createTRPCRouter({
           slug,
           cuotas: {
             create: Array.from({ length: input.cantidadCuotas }, (_, i) => {
+              // Toda cuota vence el 20: es la fecha desde la que corre la mora.
+              // El mes lo pone el admin; el día lo fija la regla.
               const vence = new Date(input.primerVencimiento);
+              vence.setDate(DIA_VENCIMIENTO);
               vence.setMonth(vence.getMonth() + i);
               return { numero: i + 1, monto: input.montoCuota, venceEl: vence };
             }),
