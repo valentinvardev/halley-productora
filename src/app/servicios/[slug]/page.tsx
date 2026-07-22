@@ -222,7 +222,7 @@ export default async function ServicioPage({
       <footer className="mx-auto max-w-[1140px] px-6 py-12 sm:px-10">
         <div className="flex flex-wrap items-end justify-between gap-8">
           <Link href="/" aria-label="Halley Audiovisual">
-            <Logotipo variante="isologo" className="h-20" />
+            <Logotipo variante="isologo" className="h-28" />
           </Link>
           <div className="text-right">
             <p className="font-rotulo text-[12px] uppercase tracking-[0.14em] text-gray-45">

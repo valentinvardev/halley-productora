@@ -97,7 +97,6 @@ export function BotonTema({ className = "" }: { className?: string }) {
     <button
       onClick={alternar}
       aria-label="Cambiar entre modo claro y oscuro"
-      title="Positivo / negativo"
       className={`grid cursor-pointer place-items-center text-gray-45 hover:text-ink ${className}`}
     >
       {/* Los dos apilados en la misma celda: uno entra mientras el otro sale. */}

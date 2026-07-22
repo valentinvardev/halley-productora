@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
+import { Ayuda } from "./ayuda";
 import { Cajon, itemCajon } from "./cajon";
 import { IconoHamburguesa, IconoPerfil } from "./iconos";
 import { Logotipo } from "./logotipo";
@@ -45,7 +46,7 @@ export function Barra({
           className={`mx-auto flex h-14 ${ancho} items-center justify-between gap-4 px-6 sm:px-8`}
         >
           <Link href={href} aria-label="Halley Audiovisual">
-            <Logotipo variante="palabra" className="h-[18px]" prioridad />
+            <Logotipo variante="palabra" className="h-6" prioridad />
           </Link>
 
           <div className="flex items-center gap-5">
@@ -63,22 +64,26 @@ export function Barra({
               </nav>
             )}
 
-            <BotonTema />
+            <Ayuda texto="Claro / oscuro">
+              <BotonTema />
+            </Ayuda>
 
             {/* La cuenta baja acá mismo: son dos datos y una acción, no hace
                 falta tomar la pantalla entera para eso. */}
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setPerfil((v) => !v)}
-                aria-label="Mi cuenta"
-                aria-expanded={perfil}
-                className={`grid cursor-pointer place-items-center hover:text-ink ${
-                  perfil ? "text-ink" : "text-gray-45"
-                }`}
-              >
-                <IconoPerfil className="h-[15px] w-[15px]" />
-              </button>
+              <Ayuda texto="Mi cuenta">
+                <button
+                  type="button"
+                  onClick={() => setPerfil((v) => !v)}
+                  aria-label="Mi cuenta"
+                  aria-expanded={perfil}
+                  className={`grid cursor-pointer place-items-center hover:text-ink ${
+                    perfil ? "text-ink" : "text-gray-45"
+                  }`}
+                >
+                  <IconoPerfil className="h-4 w-4" />
+                </button>
+              </Ayuda>
 
               <Popover abierto={perfil} alCerrar={() => setPerfil(false)}>
                 <div className="border-b border-gray-20 pb-3">
@@ -94,14 +99,16 @@ export function Barra({
             </div>
 
             {enlaces.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setMenu(true)}
-                aria-label="Abrir el menú"
-                className="grid cursor-pointer place-items-center text-gray-45 hover:text-ink sm:hidden"
-              >
-                <IconoHamburguesa className="h-[15px] w-[15px]" />
-              </button>
+              <Ayuda texto="Menú" className="sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMenu(true)}
+                  aria-label="Abrir el menú"
+                  className="grid cursor-pointer place-items-center text-gray-45 hover:text-ink"
+                >
+                  <IconoHamburguesa className="h-4 w-4" />
+                </button>
+              </Ayuda>
             )}
           </div>
         </div>

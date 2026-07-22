@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { Ayuda } from "./ayuda";
 import { Cajon, itemCajon } from "./cajon";
 import { IconoHamburguesa } from "./iconos";
 import { Logotipo } from "./logotipo";
@@ -25,9 +26,11 @@ export function NavPublica({
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-gray-20 bg-paper/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between gap-4 px-6 sm:px-10">
+        {/* La barra es más alta que la de los paneles porque el isologo es
+            vertical: el barrilete necesita aire arriba y abajo. */}
+        <div className="mx-auto flex h-20 max-w-[1140px] items-center justify-between gap-4 px-6 sm:px-10">
           <Link href="/" aria-label="Halley Audiovisual">
-            <Logotipo variante="palabra" className="h-[17px]" prioridad />
+            <Logotipo variante="isologo" className="h-14" prioridad />
           </Link>
 
           <div className="flex items-center gap-6">
@@ -43,16 +46,20 @@ export function NavPublica({
               ))}
             </nav>
 
-            <BotonTema />
+            <Ayuda texto="Claro / oscuro">
+              <BotonTema />
+            </Ayuda>
 
-            <button
-              type="button"
-              onClick={() => setMenu(true)}
-              aria-label="Abrir el menú"
-              className="grid cursor-pointer place-items-center text-gray-45 hover:text-ink md:hidden"
-            >
-              <IconoHamburguesa className="h-[15px] w-[15px]" />
-            </button>
+            <Ayuda texto="Menú" className="md:hidden">
+              <button
+                type="button"
+                onClick={() => setMenu(true)}
+                aria-label="Abrir el menú"
+                className="grid cursor-pointer place-items-center text-gray-45 hover:text-ink"
+              >
+                <IconoHamburguesa className="h-4 w-4" />
+              </button>
+            </Ayuda>
           </div>
         </div>
       </header>

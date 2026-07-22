@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Ayuda } from "~/app/_components/ayuda";
 import { Encabezado, Tag, Vacio } from "~/app/_components/ui";
 import { fechaHora } from "~/lib/format";
 import { api } from "~/trpc/react";
@@ -54,12 +55,11 @@ export function Bandeja() {
                 </Tag>
                 <span className="flex-1 text-[13.5px]">{n.asunto}</span>
                 {n.errorEnvio ? (
-                  <span
-                    className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca"
-                    title={n.errorEnvio}
-                  >
-                    Falló el envío
-                  </span>
+                  <Ayuda texto={n.errorEnvio} lado="arriba" largo>
+                    <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
+                      Falló el envío
+                    </span>
+                  </Ayuda>
                 ) : n.enviadoEl ? (
                   <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
                     Enviado

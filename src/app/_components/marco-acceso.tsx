@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Ayuda } from "./ayuda";
 import { Logotipo } from "./logotipo";
 import { Muestra } from "./muestra";
 import { BotonTema } from "./tema";
@@ -30,9 +31,11 @@ export function MarcoAcceso({
       <div className="flex w-full flex-col lg:w-[46%] xl:w-[42%]">
         <header className="flex items-center justify-between px-8 py-6">
           <Link href="/" aria-label="Halley Audiovisual">
-            <Logotipo variante="isologo" className="h-11" prioridad />
+            <Logotipo variante="palabra" className="h-9" prioridad />
           </Link>
-          <BotonTema />
+          <Ayuda texto="Claro / oscuro">
+            <BotonTema />
+          </Ayuda>
         </header>
 
         <main className="flex flex-1 items-center justify-center px-8 pb-12">

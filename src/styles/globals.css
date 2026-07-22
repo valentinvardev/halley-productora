@@ -102,6 +102,55 @@
   }
 
   /* -------------------------------------------------------------------------
+     Barras de scroll.
+
+     Delgadas, sin relieve y sin esquinas redondeadas, como el resto del
+     sistema. Los colores salen de los mismos tokens, así que dan vuelta con el
+     tema sin una regla aparte.
+
+     Se usan las propiedades estándar y no `::-webkit-scrollbar`: cuando
+     `scrollbar-color` está soportado, el navegador ignora los pseudoelementos
+     de WebKit, así que declarar los dos a la vez sólo trae confusión. El bloque
+     de WebKit queda de respaldo, detrás de un `@supports not`.
+  ------------------------------------------------------------------------- */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gray-20) transparent;
+  }
+
+  html:hover {
+    scrollbar-color: var(--color-gray-45) transparent;
+  }
+
+  @supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      /* El borde del color del papel es lo que le da aire al pulgar sin
+         redondearlo. */
+      background: var(--color-gray-20);
+      border: 3px solid var(--color-paper);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-gray-45);
+    }
+  }
+
+  /* Que los controles nativos —barras incluidas— sepan en qué tema están. */
+  :root[data-tema="claro"] {
+    color-scheme: light;
+  }
+  :root[data-tema="oscuro"] {
+    color-scheme: dark;
+  }
+
+  /* -------------------------------------------------------------------------
      Sol y luna del botón de tema.
 
      Cuál se ve lo deciden estas reglas y no el JS, con exactamente los mismos
@@ -503,6 +552,88 @@
     position: relative;
     height: auto;
     min-height: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Carteles de ayuda.
+
+   Reemplazan al `title` del navegador, que se dibuja con la fuente del sistema
+   y no se puede tocar. Van en negativo —tinta de fondo, papel de letra— para
+   que se lean como una capa por encima y no como una parte más de la página.
+
+   Aparecen con demora y se van al instante: es lo que hace que recorrer una
+   fila de botones no encienda cuatro carteles en cadena.
+--------------------------------------------------------------------------- */
+.ayuda-globo {
+  position: absolute;
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%) translateY(-3px);
+  white-space: nowrap;
+  pointer-events: none;
+
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 5px 9px;
+  font-family: var(--font-rotulo);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.12s ease,
+    visibility 0.12s ease,
+    transform 0.12s ease;
+}
+
+/* Un mensaje de error no es un rótulo: puede venir de cualquier largo y tiene
+   que poder cortarse en varias líneas. */
+.ayuda-largo {
+  white-space: normal;
+  width: max-content;
+  max-width: min(30ch, 70vw);
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.ayuda-abajo {
+  top: calc(100% + 9px);
+}
+
+.ayuda-arriba {
+  bottom: calc(100% + 9px);
+}
+
+.ayuda:hover > .ayuda-globo,
+.ayuda:focus-within > .ayuda-globo {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ayuda-globo {
+    transition: none;
+    transform: translateX(-50%);
+  }
+  .ayuda:hover > .ayuda-globo,
+  .ayuda:focus-within > .ayuda-globo {
+    transform: translateX(-50%);
+  }
+}
+
+/* Sin puntero —un teléfono— el cartel no tiene a quién avisarle. */
+@media (hover: none) {
+  .ayuda-globo {
+    display: none;
   }
 }
 

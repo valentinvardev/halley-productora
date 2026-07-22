@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 
+import { Ayuda } from "~/app/_components/ayuda";
 import { Copiar } from "~/app/_components/copiar";
 import {
   IconoCampana,
@@ -248,10 +249,7 @@ export function AccionesAlumno({
                   </span>
                   {/* Es el identificador con el que se cruza contra Talo si
                       alguna vez hay que discutir un pago. */}
-                  <span
-                    className="w-full font-mono text-[10.5px] text-gray-45 break-all"
-                    title={p.taloTransactionId}
-                  >
+                  <span className="w-full font-mono text-[10.5px] text-gray-45 break-all">
                     {p.taloTransactionId}
                   </span>
                 </div>
@@ -299,19 +297,24 @@ export function AccionesAlumno({
               Invitar
             </Boton>
 
-            <Boton
-              variante="fantasma"
-              onClick={() => recordar.mutate({ alumnoId: datos.id })}
-              disabled={ocupado || datos.plan.deuda === 0}
-              title={
+            <Ayuda
+              texto={
                 datos.plan.deuda === 0
                   ? "No debe nada"
                   : `Debe ${pesos(datos.plan.deuda)}`
               }
+              lado="arriba"
             >
-              <IconoCampana />
-              Recordar
-            </Boton>
+              <Boton
+                variante="fantasma"
+                className="w-full"
+                onClick={() => recordar.mutate({ alumnoId: datos.id })}
+                disabled={ocupado || datos.plan.deuda === 0}
+              >
+                <IconoCampana />
+                Recordar
+              </Boton>
+            </Ayuda>
           </div>
         </Seccion>
 
