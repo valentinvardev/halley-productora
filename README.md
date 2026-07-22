@@ -62,7 +62,37 @@ Entrar a `http://localhost:3000/admin` con la clave de `ADMIN_PASSWORD`
 > **Supabase por IPv4.** La conexión directa (`db.<ref>.supabase.co`) sólo
 > publica registro AAAA: desde una red sin IPv6 no se alcanza. Por eso las dos
 > variables apuntan al *Session pooler*
-> (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432`).
+> (`postgres.<ref>@aws-<n>-<region>.pooler.supabase.com:5432`).
+>
+> **La región importa, y mucho.** Cada consulta paga el viaje de ida y vuelta
+> hasta la base, y una pantalla hace varias. Con el proyecto en `ca-central-1`
+> medimos 250–500 ms por consulta y 2–4 s para abrir la pantalla de cobro
+> —que resuelve sesión, imputa el plan y genera el QR— desde Córdoba. En
+> `sa-east-1` (São Paulo) ese viaje es una fracción.
+
+## Mudar la base de región
+
+Supabase no permite cambiar la región de un proyecto: hay que crear uno nuevo
+donde se lo quiere y llevar los datos.
+
+```bash
+# 1. Crear el proyecto nuevo en South America (São Paulo) desde el dashboard,
+#    y copiar de ahí el connection string del *Session pooler*.
+
+# 2. Crear las tablas en el destino
+DATABASE_URL="<destino>" npx prisma db push
+
+# 3. Poner el destino en DATABASE_URL_DESTINO y mudar los datos
+npm run db:migrar          # agregá --vaciar si el destino ya tiene algo
+
+# 4. Recién ahora, reemplazar DATABASE_URL y DIRECT_URL en .env y en Vercel
+```
+
+[`scripts\migrar-base.mjs`](scripts\migrar-base.mjs) lee de una base y escribe
+en la otra en el mismo proceso, sin pasar por JSON: así los `Decimal` de los
+montos y las fechas viajan como son. Inserta en orden de claves foráneas, se
+niega a escribir sobre un destino que ya tiene datos y al terminar compara los
+conteos de las dos puntas.
 
 ## Deploy en Vercel
 
