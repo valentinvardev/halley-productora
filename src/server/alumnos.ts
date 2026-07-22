@@ -68,8 +68,25 @@ export function destinatarios(alumno: {
   return alumno.emailContacto ? [alumno.emailContacto] : [];
 }
 
-/** Invitación a registrarse, al contacto o a los responsables que ya haya. */
-export async function invitarFamilia(alumnoId: string) {
+/**
+ * Invitación a registrarse, al contacto o a los responsables que ya haya.
+ *
+ * Con `email` se manda a esa dirección puntual y además queda guardada como
+ * contacto del alumno: si el admin tuvo que tipearla es porque faltaba, y no
+ * tiene por qué volver a tipearla la próxima vez.
+ */
+export async function invitarFamilia(
+  alumnoId: string,
+  opciones?: { email?: string },
+) {
+  const email = opciones?.email?.trim().toLowerCase();
+  if (email) {
+    await db.alumno.update({
+      where: { id: alumnoId },
+      data: { emailContacto: email },
+    });
+  }
+
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
     include: {
@@ -79,7 +96,7 @@ export async function invitarFamilia(alumnoId: string) {
     },
   });
 
-  const emails = destinatarios(alumno);
+  const emails = email ? [email] : destinatarios(alumno);
   if (emails.length === 0) return { enviado: false as const };
 
   const plan = imputarPagos(

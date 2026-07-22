@@ -63,8 +63,16 @@ export const alumnoRouter = createTRPCRouter({
     }),
 
   invitar: adminProcedure
-    .input(z.object({ alumnoId: z.string() }))
-    .mutation(async ({ input }) => invitarFamilia(input.alumnoId)),
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        /** Si viene, se manda ahí y queda como contacto del alumno. */
+        email: z.string().email().optional().or(z.literal("")),
+      }),
+    )
+    .mutation(async ({ input }) =>
+      invitarFamilia(input.alumnoId, { email: input.email || undefined }),
+    ),
 
   invitarTodos: adminProcedure
     .input(z.object({ grupoId: z.string() }))

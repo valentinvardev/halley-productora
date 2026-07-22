@@ -80,6 +80,88 @@ export function IconoMas(props: Props) {
   );
 }
 
+/** Recordatorio a una familia puntual. */
+export function IconoCampana(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 12 L3.5 7 A4.5 4.5 0 0 1 12.5 7 L12.5 12 L14 12 L14 13 L2 13 L2 12 Z" />
+      <path d="M6.5 13 A1.6 1.6 0 0 0 9.5 13" />
+    </Svg>
+  );
+}
+
+/** Eliminar. */
+export function IconoPapelera(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 4 L13.5 4" />
+      <path d="M6 4 L6 2.5 L10 2.5 L10 4" />
+      <path d="M4 4 L4.7 13.5 L11.3 13.5 L12 4" />
+      <path d="M6.6 6.5 L6.9 11" />
+      <path d="M9.4 6.5 L9.1 11" />
+    </Svg>
+  );
+}
+
+/** Simulación: la probeta del modo demo. */
+export function IconoProbeta(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M6.5 2 L6.5 6.5 L3 13 L13 13 L9.5 6.5 L9.5 2" />
+      <path d="M5.5 2 L10.5 2" />
+      <path d="M4.8 10 L11.2 10" />
+    </Svg>
+  );
+}
+
+/** Menú de acciones: la elipsis. */
+export function IconoPuntos(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 8 L3.6 8" />
+      <path d="M8 8 L8.1 8" />
+      <path d="M12.5 8 L12.6 8" />
+    </Svg>
+  );
+}
+
+/**
+ * Sol y luna del botón de tema.
+ *
+ * Trazo un punto más fino que el resto: son formas cerradas y con 1.5 se
+ * empastan a 16px.
+ */
+export function IconoSol(props: Props) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="8" r="3.1" strokeWidth={1.3} />
+      <g strokeWidth={1.3}>
+        <path d="M8 0.8 L8 2.6" />
+        <path d="M8 13.4 L8 15.2" />
+        <path d="M0.8 8 L2.6 8" />
+        <path d="M13.4 8 L15.2 8" />
+        <path d="M2.9 2.9 L4.2 4.2" />
+        <path d="M11.8 11.8 L13.1 13.1" />
+        <path d="M13.1 2.9 L11.8 4.2" />
+        <path d="M4.2 11.8 L2.9 13.1" />
+      </g>
+    </Svg>
+  );
+}
+
+export function IconoLuna(props: Props) {
+  return (
+    <Svg {...props}>
+      {/* Un solo trazo: el creciente sale del recorte de dos círculos. */}
+      <path
+        d="M13.2 9.9 A6 6 0 1 1 6.1 2.8 A4.7 4.7 0 0 0 13.2 9.9 Z"
+        strokeWidth={1.3}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Cerrar. */
 export function IconoCruz(props: Props) {
   return (

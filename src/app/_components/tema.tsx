@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { IconoLuna, IconoSol } from "./iconos";
 
 /**
  * Positivo / negativo — el modo oscuro del sistema.
@@ -30,13 +30,15 @@ function temaActual(): "claro" | "oscuro" {
     : "claro";
 }
 
+/**
+ * El botón muestra el destino, no el estado: en claro se ve la luna.
+ *
+ * Cuál de los dos íconos se ve lo decide el CSS con las mismas reglas que los
+ * colores (`globals.css`), no este componente. Por eso no hace falta estado ni
+ * efecto: el ícono correcto ya está pintado antes de que corra el JS, y no hay
+ * parpadeo durante la hidratación.
+ */
 export function BotonTema({ className = "" }: { className?: string }) {
-  const [tema, setTema] = useState<"claro" | "oscuro" | null>(null);
-
-  // Recién en el cliente sabemos cuál está activo: el servidor no conoce ni el
-  // localStorage ni la preferencia del sistema.
-  useEffect(() => setTema(temaActual()), []);
-
   function alternar() {
     const nuevo = temaActual() === "oscuro" ? "claro" : "oscuro";
     document.documentElement.dataset.tema = nuevo;
@@ -45,21 +47,22 @@ export function BotonTema({ className = "" }: { className?: string }) {
     } catch {
       // Modo privado sin storage: el cambio vale para esta sesión igual.
     }
-    setTema(nuevo);
   }
 
   return (
     <button
       onClick={alternar}
-      aria-label={
-        tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
-      }
+      aria-label="Cambiar entre modo claro y oscuro"
       title="Positivo / negativo"
-      className={`cursor-pointer font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-45 hover:text-ink ${className}`}
+      className={`grid cursor-pointer place-items-center text-gray-45 hover:text-ink ${className}`}
     >
-      {/* Hasta que el efecto corra mostramos un guion, para no parpadear con
-          el valor equivocado durante la hidratación. */}
-      {tema === null ? "—" : tema === "oscuro" ? "Positivo" : "Negativo"}
+      {/* Los dos apilados en la misma celda: uno entra mientras el otro sale. */}
+      <span className="icono-tema icono-sol col-start-1 row-start-1">
+        <IconoSol className="h-[15px] w-[15px]" />
+      </span>
+      <span className="icono-tema icono-luna col-start-1 row-start-1">
+        <IconoLuna className="h-[15px] w-[15px]" />
+      </span>
     </button>
   );
 }

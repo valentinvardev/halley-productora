@@ -1,0 +1,286 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+
+import { Copiar } from "~/app/_components/copiar";
+import {
+  IconoCampana,
+  IconoPapelera,
+  IconoProbeta,
+  IconoSobre,
+} from "~/app/_components/iconos";
+import { Modal } from "~/app/_components/modal";
+import { Boton, BotonTexto, Campo } from "~/app/_components/ui";
+import { pesos } from "~/lib/format";
+import { api } from "~/trpc/react";
+
+/**
+ * Todo lo que se puede hacer con un alumno, en un solo lugar.
+ *
+ * Antes vivía como una fila de seis o siete botones de texto dentro de la
+ * tabla: se comía el ancho, obligaba a leer para encontrar el que hacía falta
+ * y el destructivo estaba a un pixel del inocente. Acá cada acción va en su
+ * bloque, y las que no tienen vuelta atrás quedan abajo de todo y piden
+ * confirmación en el mismo botón.
+ */
+
+export type AlumnoAcciones = {
+  id: string;
+  nombre: string;
+  emailContacto: string | null;
+  linkRegistro: string;
+  linkPago: string;
+  responsables: { id: string; email: string }[];
+  plan: { deuda: number };
+};
+
+function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <section className="border-t border-gray-20 pt-4 first:border-t-0 first:pt-0">
+      <div className="eyebrow mb-2.5">{titulo}</div>
+      {children}
+    </section>
+  );
+}
+
+/** Una fila de enlace: qué es, la URL entera y el botón de copiar. */
+function Enlace({
+  titulo,
+  nota,
+  valor,
+}: {
+  titulo: string;
+  nota: string;
+  valor: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border border-gray-20 px-3.5 py-3">
+      <div className="min-w-0">
+        <div className="text-[13px]">{titulo}</div>
+        <div className="nota text-[11.5px] text-gray-45">{nota}</div>
+        <div className="mt-1.5 font-mono text-[10.5px] text-gray-45 break-all">
+          {valor}
+        </div>
+      </div>
+      <Copiar valor={valor} etiqueta="Copiar" className="shrink-0" />
+    </div>
+  );
+}
+
+export function AccionesAlumno({
+  alumno,
+  modoDemo,
+  alCerrar,
+  alRefrescar,
+}: {
+  /** `null` cierra el modal: es el alumno que se está gestionando. */
+  alumno: AlumnoAcciones | null;
+  modoDemo: boolean;
+  alCerrar: () => void;
+  alRefrescar: (mensaje?: string) => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  /** Qué acción irreversible está esperando el segundo clic. */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+
+  const avisar = async (texto: string) => {
+    setMensaje(texto);
+    await alRefrescar();
+  };
+
+  const invitar = api.alumno.invitar.useMutation({
+    onSuccess: async (r) => {
+      setEmail("");
+      await avisar(
+        r.enviado
+          ? "Invitación enviada"
+          : "No hay a quién escribirle — cargá un email",
+      );
+    },
+    onError: (e) => setMensaje(e.message),
+  });
+
+  const recordar = api.alumno.recordar.useMutation({
+    onSuccess: (r) =>
+      avisar(r.enviado ? "Recordatorio enviado" : "No hay nada que recordar"),
+  });
+
+  const simular = api.pago.simular.useMutation({
+    onSuccess: async () => {
+      await avisar("Transferencia simulada — esperando el webhook…");
+      // El webhook se procesa después de responderle 200 a Talo, así que al
+      // volver de la mutación el pago todavía no está.
+      setTimeout(() => void alRefrescar(), 700);
+      setTimeout(() => void alRefrescar(), 1800);
+    },
+  });
+
+  const desvincular = api.alumno.desvincular.useMutation({
+    onSuccess: () => avisar("Responsable desvinculado"),
+  });
+
+  const eliminar = api.alumno.eliminar.useMutation({
+    onSuccess: async () => {
+      cerrar();
+      await alRefrescar("Alumno eliminado");
+    },
+  });
+
+  const ocupado =
+    invitar.isPending ||
+    recordar.isPending ||
+    simular.isPending ||
+    desvincular.isPending ||
+    eliminar.isPending;
+
+  function cerrar() {
+    setMensaje(null);
+    setConfirmando(null);
+    setEmail("");
+    alCerrar();
+  }
+
+  if (!alumno) return null;
+
+  /** Botón que pide un segundo clic antes de hacer algo sin vuelta atrás. */
+  const confirmar = (clave: string, accion: () => void) => () => {
+    if (confirmando === clave) {
+      setConfirmando(null);
+      accion();
+    } else {
+      setConfirmando(clave);
+    }
+  };
+
+  return (
+    <Modal
+      abierto
+      alCerrar={cerrar}
+      eyebrow="Acciones"
+      titulo={alumno.nombre}
+    >
+      <div className="grid gap-5">
+        {mensaje && (
+          <p className="nota border border-ink bg-paper-dim px-3.5 py-2.5 text-ink">
+            {mensaje}
+          </p>
+        )}
+
+        <Seccion titulo="Enlaces">
+          <div className="grid gap-2">
+            <Enlace
+              titulo="Acceso al panel"
+              nota="Es el que se le manda a la familia: entra a su panel."
+              valor={alumno.linkRegistro}
+            />
+            <Enlace
+              titulo="Pago directo"
+              nota="Abre la cuota sin cuenta ni registro."
+              valor={alumno.linkPago}
+            />
+          </div>
+        </Seccion>
+
+        <Seccion titulo="Avisos por email">
+          <Campo
+            label="Email de la familia"
+            type="email"
+            placeholder={alumno.emailContacto ?? "mama@mail.com"}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            hint={
+              alumno.emailContacto
+                ? `Guardado: ${alumno.emailContacto} — escribí otro para reemplazarlo`
+                : "Este alumno todavía no tiene contacto cargado"
+            }
+          />
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <Boton
+              variante="fantasma"
+              onClick={() => invitar.mutate({ alumnoId: alumno.id, email })}
+              disabled={ocupado || (!email && !alumno.emailContacto)}
+            >
+              <IconoSobre />
+              Invitar
+            </Boton>
+
+            <Boton
+              variante="fantasma"
+              onClick={() => recordar.mutate({ alumnoId: alumno.id })}
+              disabled={ocupado || alumno.plan.deuda === 0}
+              title={
+                alumno.plan.deuda === 0
+                  ? "No debe nada"
+                  : `Debe ${pesos(alumno.plan.deuda)}`
+              }
+            >
+              <IconoCampana />
+              Recordar
+            </Boton>
+          </div>
+        </Seccion>
+
+        {modoDemo && alumno.plan.deuda > 0 && (
+          <Seccion titulo="Demo">
+            <Boton
+              variante="fantasma"
+              className="w-full"
+              onClick={() => simular.mutate({ alumnoId: alumno.id })}
+              disabled={ocupado}
+            >
+              <IconoProbeta />
+              Simular transferencia (test)
+            </Boton>
+            <p className="nota mt-2 text-[11.5px] text-gray-45">
+              Entra por el mismo webhook que va a usar Talo en producción.
+            </p>
+          </Seccion>
+        )}
+
+        {alumno.responsables.length > 0 && (
+          <Seccion titulo="Responsables">
+            <div className="border border-gray-20">
+              {alumno.responsables.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-3 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
+                >
+                  <span className="font-mono text-[11.5px] break-all">
+                    {r.email}
+                  </span>
+                  <BotonTexto
+                    onClick={confirmar(`tutor:${r.id}`, () =>
+                      desvincular.mutate({ tutorId: r.id }),
+                    )}
+                    disabled={ocupado}
+                    className="shrink-0 text-gray-45"
+                  >
+                    {confirmando === `tutor:${r.id}` ? "¿Seguro?" : "Sacar"}
+                  </BotonTexto>
+                </div>
+              ))}
+            </div>
+          </Seccion>
+        )}
+
+        <Seccion titulo="Sin vuelta atrás">
+          <Boton
+            variante="fantasma"
+            className="w-full border-marca text-marca hover:bg-marca hover:text-paper"
+            onClick={confirmar("eliminar", () =>
+              eliminar.mutate({ alumnoId: alumno.id }),
+            )}
+            disabled={ocupado}
+          >
+            <IconoPapelera />
+            {confirmando === "eliminar"
+              ? `Confirmar — se borra a ${alumno.nombre} y sus pagos`
+              : `Eliminar a ${alumno.nombre}`}
+          </Boton>
+        </Seccion>
+      </div>
+    </Modal>
+  );
+}

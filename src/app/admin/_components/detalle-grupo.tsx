@@ -7,6 +7,7 @@ import { Copiar } from "~/app/_components/copiar";
 import {
   IconoLista,
   IconoMas,
+  IconoPuntos,
   IconoSobre,
   IconoSobreReenvio,
 } from "~/app/_components/iconos";
@@ -23,6 +24,7 @@ import {
 } from "~/app/_components/ui";
 import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
+import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
 
 export function DetalleGrupo({ id }: { id: string }) {
   const utils = api.useUtils();
@@ -33,6 +35,8 @@ export function DetalleGrupo({ id }: { id: string }) {
   );
 
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Qué alumno tiene abierto el modal de acciones. */
+  const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   const refrescar = async (mensaje?: string) => {
     await utils.grupo.detalle.invalidate({ id });
     await utils.grupo.listar.invalidate();
@@ -51,38 +55,14 @@ export function DetalleGrupo({ id }: { id: string }) {
   const recordarPendientes = api.alumno.recordarPendientes.useMutation({
     onSuccess: (r) => refrescar(`Recordatorios enviados: ${r.enviados}`),
   });
-  const invitar = api.alumno.invitar.useMutation({
-    onSuccess: (r) =>
-      refrescar(r.enviado ? "Invitación enviada" : "Ese alumno no tiene email"),
-  });
-  const recordar = api.alumno.recordar.useMutation({
-    onSuccess: (r) =>
-      refrescar(r.enviado ? "Recordatorio enviado" : "Nada que recordar"),
-  });
-  const desvincular = api.alumno.desvincular.useMutation({
-    onSuccess: () => refrescar("Responsable desvinculado"),
-  });
-  const eliminar = api.alumno.eliminar.useMutation({
-    onSuccess: () => refrescar("Alumno eliminado"),
-  });
-  const simular = api.pago.simular.useMutation({
-    onSuccess: async () => {
-      await refrescar("Transferencia simulada — esperando el webhook…");
-      // El webhook se procesa después de responderle 200 a Talo, así que al
-      // volver de la mutación el pago todavía no está.
-      setTimeout(() => void refrescar(), 700);
-      setTimeout(() => void refrescar(), 1800);
-    },
-  });
-
   if (isLoading) return <Vacio>Cargando…</Vacio>;
   if (!grupo) return <Vacio>No encontramos el grupo</Vacio>;
 
-  const ocupado =
-    invitar.isPending ||
-    recordar.isPending ||
-    simular.isPending ||
-    eliminar.isPending;
+  // Se resuelve contra la lista en cada render y no se guarda una copia: la
+  // consulta refresca sola cada 2,5s, y el modal tiene que ver el pago entrar
+  // igual que la tabla. Si el alumno se elimina, esto da null y se cierra.
+  const gestionando: AlumnoAcciones | null =
+    grupo.alumnos.find((a) => a.id === gestionandoId) ?? null;
 
   return (
     <>
@@ -283,60 +263,16 @@ export function DetalleGrupo({ id }: { id: string }) {
                     )}
                   </td>
 
-                  <td className="px-3.5 py-3">
-                    <div className="flex flex-wrap justify-end gap-x-3 gap-y-1.5">
-                      {/* El link que se manda es el de registro: la familia
-                          entra a su panel, no a una pantalla de pago suelta. */}
-                      <Copiar valor={a.linkRegistro} etiqueta="Link" />
-                      <Copiar valor={a.linkPago} etiqueta="Pago directo" />
-                      <BotonTexto
-                        onClick={() => invitar.mutate({ alumnoId: a.id })}
-                        disabled={ocupado}
-                      >
-                        Invitar
-                      </BotonTexto>
-                      {a.plan.deuda > 0 && (
-                        <BotonTexto
-                          onClick={() => recordar.mutate({ alumnoId: a.id })}
-                          disabled={ocupado}
-                        >
-                          Recordar
-                        </BotonTexto>
-                      )}
-                      {grupo.modoDemo && a.plan.deuda > 0 && (
-                        <BotonTexto
-                          onClick={() => simular.mutate({ alumnoId: a.id })}
-                          disabled={ocupado}
-                        >
-                          Simular pago
-                        </BotonTexto>
-                      )}
-                      {a.responsables.map((r) => (
-                        <BotonTexto
-                          key={r.id}
-                          onClick={() => {
-                            if (confirm(`¿Desvincular a ${r.email}?`)) {
-                              desvincular.mutate({ tutorId: r.id });
-                            }
-                          }}
-                          disabled={ocupado}
-                          className="text-gray-45"
-                        >
-                          Sacar {r.email.split("@")[0]}
-                        </BotonTexto>
-                      ))}
-                      <BotonTexto
-                        onClick={() => {
-                          if (confirm(`¿Eliminar a ${a.nombre}?`)) {
-                            eliminar.mutate({ alumnoId: a.id });
-                          }
-                        }}
-                        disabled={ocupado}
-                        className="text-gray-45"
-                      >
-                        Eliminar
-                      </BotonTexto>
-                    </div>
+                  {/* Una sola puerta: todo lo que se puede hacer con este
+                      alumno vive en el modal, no desparramado en la fila. */}
+                  <td className="px-3.5 py-3 text-right">
+                    <button
+                      onClick={() => setGestionandoId(a.id)}
+                      className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper"
+                    >
+                      <IconoPuntos />
+                      Acciones
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -344,6 +280,16 @@ export function DetalleGrupo({ id }: { id: string }) {
           </table>
         </div>
       )}
+
+      {/* Se remonta al cambiar de alumno para que no arrastre el email a medio
+          escribir ni una confirmación pendiente de otra fila. */}
+      <AccionesAlumno
+        key={gestionando?.id}
+        alumno={gestionando}
+        modoDemo={grupo.modoDemo}
+        alCerrar={() => setGestionandoId(null)}
+        alRefrescar={refrescar}
+      />
     </>
   );
 }
