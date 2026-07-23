@@ -117,6 +117,41 @@ export function EsqueletoDetalle() {
   );
 }
 
+/** El resumen de Contenidos: cuatro tarjetas de categoría con su tira de preview. */
+export function EsqueletoContenidos() {
+  return (
+    <>
+      <EsqueletoEncabezado />
+      <div className="grid gap-5">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="border border-ink">
+            <div className="flex items-center justify-between border-b border-gray-20 px-5 py-4">
+              <Linea className="h-6 w-40" />
+              <Bloque className="h-8 w-20" />
+            </div>
+            <div className="grid grid-cols-3 gap-3 p-5 sm:grid-cols-5">
+              {Array.from({ length: 5 }, (_, j) => (
+                <Bloque key={j} className="aspect-square w-full" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** La grilla de una galería. */
+export function EsqueletoGaleria() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 15 }, (_, i) => (
+        <Bloque key={i} className="aspect-square w-full" />
+      ))}
+    </div>
+  );
+}
+
 export function EsqueletoBandeja({
   soloLista = false,
 }: {

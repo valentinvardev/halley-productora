@@ -711,6 +711,26 @@
   }
 }
 
+/* El visor a pantalla completa entra con un fundido, no de golpe. */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.lightbox-fondo {
+  animation: aparecer 0.16s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-fondo {
+    animation: none;
+  }
+}
+
 /* El panel de la cuenta baja desde su botón, no aparece de golpe. */
 @keyframes asomar {
   from {

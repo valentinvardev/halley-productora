@@ -126,4 +126,20 @@ export const contenidoRouter = createTRPCRouter({
       await ctx.db.contenido.delete({ where: { id: input.id } });
       return { ok: true };
     }),
+
+  /** Borra varias de una: es lo que pide la selección múltiple de la galería. */
+  eliminarVarios: adminProcedure
+    .input(z.object({ ids: z.array(z.string()).min(1).max(200) }))
+    .mutation(async ({ ctx, input }) => {
+      const filas = await ctx.db.contenido.findMany({
+        where: { id: { in: input.ids } },
+      });
+      if (filas.length === 0) return { borrados: 0 };
+
+      await borrarObjetos(filas.map((f) => f.s3Key));
+      const { count } = await ctx.db.contenido.deleteMany({
+        where: { id: { in: filas.map((f) => f.id) } },
+      });
+      return { borrados: count };
+    }),
 });
