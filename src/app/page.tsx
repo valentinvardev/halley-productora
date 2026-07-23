@@ -14,13 +14,10 @@ import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
 import { contenidoDe } from "~/server/contenido";
+import { MAX_PORTADAS, PortadasRotativas } from "./_components/portadas-rotativas";
 import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
-import {
-  INSTAGRAM,
-  MAIL,
-  SERVICIOS,
-  linkWhatsApp,
-} from "./_datos/servicios";
+import { SERVICIOS } from "./_datos/servicios";
+import { contacto, linkWhatsApp } from "~/server/ajustes";
 
 export const metadata: Metadata = {
   title: "Halley Audiovisual — Productora en Córdoba",
@@ -64,16 +61,19 @@ const NO_NEGOCIABLES = [
   },
 ];
 
-export default function Landing() {
+export default async function Landing() {
+  // Los datos de contacto salen del panel, no del codigo.
+  const datos = await contacto();
+
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
       <NavPublica secciones={SECCIONES} />
 
-      <Hero />
+      <Hero whatsapp={datos.whatsapp} />
       <Concepto />
       <Servicios />
       <Como />
-      <Contacto />
+      <Contacto datos={datos} />
       <Pie />
     </div>
   );
@@ -81,7 +81,7 @@ export default function Landing() {
 
 /* --------------------------------------------------------------------- hero */
 
-function Hero() {
+function Hero({ whatsapp }: { whatsapp: string }) {
   const hayVideo = existeEnPublico(VIDEO_PORTADA);
   const hayPoster = existeEnPublico(POSTER_PORTADA);
   // Con cualquiera de los dos el fondo pasa a ser oscuro, y eso es lo que
@@ -151,7 +151,7 @@ function Hero() {
             un error de render, no como una decisión. */}
         <div className="mt-9 flex flex-wrap gap-3.5">
           <a
-            href={linkWhatsApp("Hola Halley, quiero pedir un presupuesto.")}
+            href={linkWhatsApp(whatsapp, "Hola Halley, quiero pedir un presupuesto.")}
             target="_blank"
             rel="noreferrer"
             className={botonWhatsApp}
@@ -264,7 +264,9 @@ async function Servicios() {
   // El fondo de cada panel es la primera pieza que el admin subió a esa
   // categoría; si no hay ninguna, el relleno. Se resuelve en el servidor.
   const fondos = await Promise.all(
-    SERVICIOS.map((s) => contenidoDe(s.slug).then((c) => c[0] ?? null)),
+    SERVICIOS.map((s) =>
+      contenidoDe(s.slug).then((c) => c.slice(0, MAX_PORTADAS)),
+    ),
   );
 
   return (
@@ -280,31 +282,16 @@ async function Servicios() {
 
       <div className="relative">
         {SERVICIOS.map((s, i) => {
-          const fondo = fondos[i];
+          const portadas = fondos[i] ?? [];
           return (
           <div key={s.slug} className="tramo-servicio">
             <article className="panel-servicio aisla relative flex items-end">
-              {fondo ? (
-                // Dos capas: una copia difuminada llena el panel y se mueve con
-                // el parallax; la foto nítida entra entera encima, sin recortar.
-                // Así una horizontal se ve completa lo mismo en desktop que en
-                // un teléfono vertical, en vez de quedar cropeada.
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={fondo.url}
-                    alt=""
-                    aria-hidden="true"
-                    className="fondo-servicio absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={fondo.url}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 h-full w-full object-contain"
-                  />
-                </>
+              {portadas.length > 0 ? (
+                // Hasta cuatro portadas que se van alternando. Cada una va en
+                // dos capas: una copia difuminada llena el panel y la foto
+                // entera entra encima, sin recortar, así una horizontal se ve
+                // completa lo mismo en desktop que en un teléfono vertical.
+                <PortadasRotativas piezas={portadas} />
               ) : (
                 <Image
                   src={`/servicios/${s.slug}-portada.jpg`}
@@ -393,7 +380,7 @@ function Como() {
 
 /* ----------------------------------------------------------------- contacto */
 
-function Contacto() {
+function Contacto({ datos }: { datos: { whatsapp: string; instagram: string; mail: string } }) {
   return (
     <section id="contacto" className="border-b border-gray-20">
       <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -408,7 +395,7 @@ function Contacto() {
 
           <div className="mt-9 flex flex-wrap gap-3.5">
             <a
-              href={linkWhatsApp("Hola Halley, quiero consultar por un evento.")}
+              href={linkWhatsApp(datos.whatsapp, "Hola Halley, quiero consultar por un evento.")}
               target="_blank"
               rel="noreferrer"
               className={botonWhatsApp}
@@ -417,7 +404,7 @@ function Contacto() {
               Escribir por WhatsApp
             </a>
             <a
-              href={INSTAGRAM}
+              href={datos.instagram}
               target="_blank"
               rel="noreferrer"
               className={botonFantasma}
@@ -425,7 +412,7 @@ function Contacto() {
               <IconoInstagram />
               Ver el Instagram
             </a>
-            <a href={`mailto:${MAIL}`} className={botonFantasma}>
+            <a href={`mailto:${datos.mail}`} className={botonFantasma}>
               <IconoSobre />
               Escribir un mail
             </a>

@@ -10,6 +10,7 @@ import {
   IconoVolver,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
+import { MAX_PORTADAS } from "~/app/_components/portadas-rotativas";
 import { Boton, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
 import { EsqueletoGaleria } from "./esqueletos";
@@ -186,8 +187,8 @@ export function GaleriaCategoria({
           </h1>
           <p className="nota mt-2">
             {piezas?.length ?? 0} {piezas?.length === 1 ? "pieza" : "piezas"} ·
-            arrastrá el mouse o usá el tilde para seleccionar · la estrella marca
-            la portada
+            arrastrá el mouse o usá el tilde para seleccionar · las primeras
+            {" "}{MAX_PORTADAS} son las portadas y se van alternando en la landing
           </p>
         </div>
 
@@ -261,12 +262,13 @@ export function GaleriaCategoria({
                   ✓
                 </button>
 
-                {/* Portada: la primera de la lista es la que sale en la landing.
-                    En esa va un sello; en las demás, un botón para elegirla. */}
-                {i === 0 ? (
+                {/* Portadas: las primeras de la lista son las que salen en la
+                    landing, alternándose. En esas va un sello con su turno; en
+                    las demás, un botón para subirlas al frente. */}
+                {i < MAX_PORTADAS ? (
                   <span className="pointer-events-none absolute top-1.5 right-1.5 flex items-center gap-1 bg-ink/85 px-1.5 py-1 font-rotulo text-[9px] uppercase tracking-[0.06em] text-paper">
                     <IconoEstrella className="h-2.5 w-2.5" />
-                    Portada
+                    Portada {i + 1}
                   </span>
                 ) : (
                   <button

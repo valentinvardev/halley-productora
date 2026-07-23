@@ -238,6 +238,15 @@ model TransaccionMockTalo {
     @@index([customerId])
 }
 
+/// Ajustes del sitio que el admin edita sin tocar código: el WhatsApp al que
+/// escriben las familias, el Instagram, la casilla de contacto. Clave/valor para
+/// que sumar uno nuevo no pida una migración.
+model Ajuste {
+    clave         String   @id
+    valor         String
+    actualizadoEn DateTime @updatedAt
+}
+
 /// Una pieza de la vitrina: la foto o el video que el admin sube por categoría
 /// y que la landing muestra. `s3Key` es la ruta del objeto dentro del bucket
 /// (sin el prefijo del cliente, que lo pone la capa de S3). `orden` fija en qué

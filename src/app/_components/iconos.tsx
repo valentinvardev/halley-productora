@@ -233,6 +233,17 @@ export function IconoProbeta(props: Props) {
   );
 }
 
+/** Ajustes: el engranaje. */
+export function IconoEngranaje(props: Props) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="8" r="2.4" />
+      <path d="M8 1.5 L8 3.2 M8 12.8 L8 14.5 M1.5 8 L3.2 8 M12.8 8 L14.5 8" />
+      <path d="M3.4 3.4 L4.6 4.6 M11.4 11.4 L12.6 12.6 M12.6 3.4 L11.4 4.6 M4.6 11.4 L3.4 12.6" />
+    </Svg>
+  );
+}
+
 /** Portada: la estrella que marca la pieza de tapa. */
 export function IconoEstrella(props: Props) {
   return (

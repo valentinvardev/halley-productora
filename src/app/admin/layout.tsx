@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Barra } from "~/app/_components/barra";
 import { itemCajon } from "~/app/_components/cajon";
 import {
+  IconoEngranaje,
   IconoGrupos,
   IconoImagen,
   IconoSobre,
@@ -16,6 +17,7 @@ const ENLACES = [
   { href: "/admin", texto: "Grupos" },
   { href: "/admin/notificaciones", texto: "Bandeja" },
   { href: "/admin/contenidos", texto: "Contenidos" },
+  { href: "/admin/ajustes", texto: "Ajustes" },
 ];
 
 /** Con ícono, para el sidebar; sin ícono, para la barra móvil. */
@@ -23,6 +25,7 @@ const ENLACES_CON_ICONO = [
   { href: "/admin", texto: "Grupos", icono: <IconoGrupos /> },
   { href: "/admin/notificaciones", texto: "Bandeja", icono: <IconoSobre /> },
   { href: "/admin/contenidos", texto: "Contenidos", icono: <IconoImagen /> },
+  { href: "/admin/ajustes", texto: "Ajustes", icono: <IconoEngranaje /> },
 ];
 
 const IDENTIDAD = {

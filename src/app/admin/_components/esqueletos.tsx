@@ -141,6 +141,22 @@ export function EsqueletoContenidos() {
   );
 }
 
+/** El formulario de ajustes. */
+export function EsqueletoAjustes() {
+  return (
+    <div className="max-w-[560px] border border-ink p-6">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="mb-5">
+          <Linea className="h-2.5 w-28" />
+          <Bloque className="mt-2 h-11 w-full" />
+          <Linea className="mt-2 h-2.5 w-56" />
+        </div>
+      ))}
+      <Bloque className="mt-2 h-11 w-32" />
+    </div>
+  );
+}
+
 /** La grilla de una galería. */
 export function EsqueletoGaleria() {
   return (

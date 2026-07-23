@@ -15,13 +15,11 @@ import { Medio } from "~/app/_components/medio";
 import { NavPublica } from "~/app/_components/nav-publica";
 import { botonFantasma, botonSolido, botonWhatsApp } from "~/app/_components/ui";
 import {
-  INSTAGRAM,
-  MAIL,
   SERVICIOS,
   consultaDe,
-  linkWhatsApp,
   servicioPorSlug,
 } from "~/app/_datos/servicios";
+import { contacto, linkWhatsApp } from "~/server/ajustes";
 import { contenidoDe } from "~/server/contenido";
 
 /** Se lee el contenido en cada visita: lo que sube el admin aparece al toque. */
@@ -60,6 +58,7 @@ export default async function ServicioPage({
   const consulta = consultaDe(servicio);
 
   // El material real que subió el admin. Si no hay, se cae a las muestras.
+  const datos = await contacto();
   const contenido = await contenidoDe(servicio.slug);
   const portada = contenido[0] ?? null;
   const galeria = contenido.slice(1);
@@ -97,7 +96,7 @@ export default async function ServicioPage({
 
           <div className="mt-9 flex flex-wrap gap-3.5">
             <a
-              href={linkWhatsApp(consulta)}
+              href={linkWhatsApp(datos.whatsapp, consulta)}
               target="_blank"
               rel="noreferrer"
               className={botonWhatsApp}
@@ -191,7 +190,7 @@ export default async function ServicioPage({
 
           <div className="mt-9 flex flex-wrap justify-center gap-3.5">
             <a
-              href={linkWhatsApp(consulta)}
+              href={linkWhatsApp(datos.whatsapp, consulta)}
               target="_blank"
               rel="noreferrer"
               className={botonWhatsApp}
@@ -199,12 +198,12 @@ export default async function ServicioPage({
               <IconoWhatsApp />
               Pedir presupuesto
             </a>
-            <a href={`mailto:${MAIL}?subject=${encodeURIComponent(consulta)}`} className={botonFantasma}>
+            <a href={`mailto:${datos.mail}?subject=${encodeURIComponent(consulta)}`} className={botonFantasma}>
               <IconoSobre />
               Escribir un mail
             </a>
             <a
-              href={INSTAGRAM}
+              href={datos.instagram}
               target="_blank"
               rel="noreferrer"
               className={botonFantasma}
