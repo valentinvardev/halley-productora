@@ -49,6 +49,11 @@ export function plantillaEmail(opts: {
   destacado?: Destacado;
   boton?: { texto: string; url: string };
   nota?: string;
+  /**
+   * Invita a responder el correo. Va en los que le hablan a una familia: si no
+   * se lo decimos, nadie contesta un mail que parece automático.
+   */
+  responder?: boolean;
 }): string {
   const logo = `${env.NEXT_PUBLIC_APP_URL}/marca/palabra-oscuro.png`;
 
@@ -144,6 +149,11 @@ export function plantillaEmail(opts: {
 
         <!-- footer -->
         <tr><td style="padding:20px 36px 26px;border-top:1px solid ${TINTA};background:${PAPEL};">
+          ${
+            opts.responder
+              ? `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #ded9cd;font-family:${SANS};font-size:12.5px;line-height:1.55;color:${TINTA};"><strong>¿Tenés una duda?</strong> Respondé este correo y te contestamos.</div>`
+              : ""
+          }
           <div style="font-family:${SANS};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${GRIS};">Halley Audiovisual · Córdoba, Argentina</div>
           <div style="margin-top:6px;font-family:${SANS};font-size:11.5px;line-height:1.5;color:${GRIS};">Dron, fotografía y video. Los momentos son fugaces: Halley los hace eternos.</div>
         </td></tr>

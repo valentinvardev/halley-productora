@@ -107,6 +107,7 @@ export async function notificarInvitacion(
         : undefined,
       boton: { texto: "Crear mi cuenta", url: registro },
       nota: `No hace falta contraseña: entrás con tu email. Si preferís no registrarte, este link te lleva directo al pago: ${linkAlumno(alumno.token)}`,
+      responder: true,
     }),
   );
 }
@@ -190,6 +191,7 @@ export async function notificarPagoRecibido(
               : "Con esto quedás al día con todo el plan.",
         },
         boton: { texto: "Ver el estado", url: linkAlumno(alumno.token) },
+        responder: true,
       }),
     );
   }
@@ -270,6 +272,7 @@ export async function notificarRecordatorio(
       },
       boton: { texto: "Pagar la cuota", url: linkAlumno(alumno.token) },
       nota: "Si ya transferiste, ignorá este mensaje.",
+      responder: true,
     }),
   );
 }

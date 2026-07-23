@@ -113,6 +113,7 @@ entorno (Settings → Environment Variables):
 | `EMAIL_MODE` | `bandeja` para la demo, `resend` para enviar de verdad |
 | `RESEND_API_KEY` | sólo si `EMAIL_MODE=resend` |
 | `EMAIL_FROM` | remitente verificado en Resend |
+| `EMAIL_REPLY_TO` | casilla real a la que llegan las respuestas de las familias |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | credenciales del bucket S3 |
 | `AWS_REGION` | región del bucket (ej. `us-east-2`) |
 | `AWS_S3_BUCKET` | nombre del bucket |

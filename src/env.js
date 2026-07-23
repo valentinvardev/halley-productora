@@ -45,6 +45,15 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().optional(),
     /** Remitente verificado en Resend. */
     EMAIL_FROM: z.string().default("Halley Producciones <onboarding@resend.dev>"),
+    /**
+     * A dónde van las respuestas cuando una familia contesta un aviso.
+     *
+     * El remitente suele ser una dirección del dominio verificado en Resend que
+     * no tiene casilla: si alguien responde ahí, la respuesta se pierde. Esta
+     * variable manda las respuestas a un buzón que Halley sí lee. Si no se
+     * define, se usa ADMIN_EMAIL, que ya es la casilla que recibe los avisos.
+     */
+    EMAIL_REPLY_TO: z.string().email().optional(),
 
     /**
      * AWS S3 — donde vive el contenido de la vitrina.
@@ -96,6 +105,7 @@ export const env = createEnv({
     EMAIL_MODE: process.env.EMAIL_MODE,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+    EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: process.env.AWS_REGION,

@@ -50,6 +50,7 @@ export function muestraEmail(tipo: TipoMuestra): {
           },
           boton: { texto: "Crear mi cuenta", url: `${APP}/entrar` },
           nota: "No hace falta contraseña: entrás con tu email.",
+          responder: true,
         }),
       };
 
@@ -84,6 +85,7 @@ export function muestraEmail(tipo: TipoMuestra): {
             pie: "Saldo pendiente del plan: $ 225.000",
           },
           boton: { texto: "Ver el estado", url: `${APP}` },
+          responder: true,
         }),
       };
 
@@ -106,6 +108,7 @@ export function muestraEmail(tipo: TipoMuestra): {
           },
           boton: { texto: "Pagar la cuota", url: `${APP}` },
           nota: "Si ya transferiste, ignorá este mensaje.",
+          responder: true,
         }),
       };
 

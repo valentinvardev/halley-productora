@@ -22,6 +22,15 @@ function resend() {
 export const emailHabilitado =
   env.EMAIL_MODE === "resend" && !!env.RESEND_API_KEY;
 
+/**
+ * A dónde contesta la gente.
+ *
+ * El remitente es una dirección del dominio verificado, que muchas veces no
+ * tiene casilla; sin esto, responder un aviso no le llega a nadie. Por defecto
+ * cae en ADMIN_EMAIL, que ya es el buzón que Halley mira.
+ */
+export const responderA = env.EMAIL_REPLY_TO ?? env.ADMIN_EMAIL;
+
 export type ResultadoEnvio =
   | { ok: true; id: string | null }
   | { ok: false; error: string };
@@ -42,6 +51,7 @@ export async function enviarEmail(mensaje: {
     const { data, error } = await api.emails.send({
       from: env.EMAIL_FROM,
       to: mensaje.para,
+      replyTo: responderA,
       subject: mensaje.asunto,
       text: mensaje.texto,
       ...(mensaje.html ? { html: mensaje.html } : {}),
