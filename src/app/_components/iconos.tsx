@@ -233,6 +233,18 @@ export function IconoProbeta(props: Props) {
   );
 }
 
+/** Portada: la estrella que marca la pieza de tapa. */
+export function IconoEstrella(props: Props) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M8 1.8 L9.9 5.7 L14.2 6.3 L11.1 9.3 L11.8 13.5 L8 11.5 L4.2 13.5 L4.9 9.3 L1.8 6.3 L6.1 5.7 Z"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Grupos: la grilla de rollos del panel. */
 export function IconoGrupos(props: Props) {
   return (

@@ -32,6 +32,17 @@ const ACEPTA = new Set([
   "video/webm",
 ]);
 
+/**
+ * Cuántas fotos suben a la vez.
+ *
+ * En serie, cada foto espera a la anterior por sus tres pasos —firmar, subir,
+ * guardar—, y la base está lejos, así que ese "guardar" solo ya cuesta. Con un
+ * pool concurrente hay varias en vuelo todo el tiempo: apenas una termina, el
+ * worker toma la siguiente. Es lo que hace que subir cincuenta no tarde
+ * cincuenta veces una.
+ */
+const CONCURRENCIA = 6;
+
 /** PUT con progreso. fetch no expone `upload.onprogress`; XHR sí. */
 function subirConProgreso(
   url: string,
@@ -80,28 +91,41 @@ export function useCargaContenido(categoria: string, alCompletar: () => void) {
       setCola((cs) => [...cs, ...items]);
       setActivo(true);
 
-      // De a una: la cola avanza y no se satura la subida ni el ancho de banda.
-      for (let i = 0; i < validos.length; i++) {
-        const item = items[i]!;
-        const file = validos[i]!;
-        try {
-          parche(item.id, { estado: "subiendo", progreso: 0 });
-          const { url, key, tipo } = await firmar.mutateAsync({
-            categoria,
-            contentType: file.type,
-          });
-          await subirConProgreso(url, file, (p) =>
-            parche(item.id, { progreso: p }),
-          );
-          await guardar.mutateAsync({ categoria, s3Key: key, tipo });
-          parche(item.id, { estado: "listo", progreso: 100 });
-          // Cada una que entra ya se ve reflejada, sin esperar al resto.
-          alCompletar();
-        } catch {
-          parche(item.id, { estado: "error" });
-        }
-      }
+      const tareas = items.map((item, i) => ({ item, file: validos[i]! }));
+      let cursor = 0;
+      let entroAlguna = false;
 
+      // Cada worker toma la próxima tarea libre y la lleva de punta a punta.
+      // Varios corren a la vez; el cursor compartido evita que dos agarren la
+      // misma.
+      const worker = async () => {
+        while (cursor < tareas.length) {
+          const { item, file } = tareas[cursor++]!;
+          try {
+            parche(item.id, { estado: "subiendo", progreso: 0 });
+            const { url, key, tipo } = await firmar.mutateAsync({
+              categoria,
+              contentType: file.type,
+            });
+            await subirConProgreso(url, file, (p) =>
+              parche(item.id, { progreso: p }),
+            );
+            await guardar.mutateAsync({ categoria, s3Key: key, tipo });
+            parche(item.id, { estado: "listo", progreso: 100 });
+            entroAlguna = true;
+          } catch {
+            parche(item.id, { estado: "error" });
+          }
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCIA, tareas.length) }, worker),
+      );
+
+      // Una sola invalidación al final: con seis en paralelo, refrescar por cada
+      // foto sería una tormenta de refetch contra la base.
+      if (entroAlguna) alCompletar();
       setActivo(false);
     },
     [categoria, firmar, guardar, parche, alCompletar],

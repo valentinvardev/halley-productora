@@ -285,13 +285,26 @@ async function Servicios() {
           <div key={s.slug} className="tramo-servicio">
             <article className="panel-servicio aisla relative flex items-end">
               {fondo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={fondo.url}
-                  alt=""
-                  aria-hidden="true"
-                  className="fondo-servicio absolute inset-0 h-full w-full object-cover"
-                />
+                // Dos capas: una copia difuminada llena el panel y se mueve con
+                // el parallax; la foto nítida entra entera encima, sin recortar.
+                // Así una horizontal se ve completa lo mismo en desktop que en
+                // un teléfono vertical, en vez de quedar cropeada.
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={fondo.url}
+                    alt=""
+                    aria-hidden="true"
+                    className="fondo-servicio absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={fondo.url}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full object-contain"
+                  />
+                </>
               ) : (
                 <Image
                   src={`/servicios/${s.slug}-portada.jpg`}
@@ -303,9 +316,10 @@ async function Servicios() {
                   className="fondo-servicio object-cover"
                 />
               )}
-              {/* Aclara la parte de abajo, que es donde va a leerse el texto. */}
+              {/* Sombra al pie de la diapositiva: sostiene el texto por más
+                  clara que sea la foto de fondo. */}
               <div
-                className="absolute inset-0 bg-gradient-to-t from-[rgb(0_0_0/0.72)] via-[rgb(0_0_0/0.28)] to-transparent"
+                className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgb(0_0_0/0.9)] via-[rgb(0_0_0/0.5)] to-transparent"
                 aria-hidden="true"
               />
 

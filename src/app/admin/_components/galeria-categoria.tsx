@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { IconoMas, IconoPapelera, IconoVolver } from "~/app/_components/iconos";
+import {
+  IconoEstrella,
+  IconoMas,
+  IconoPapelera,
+  IconoVolver,
+} from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { Boton, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
@@ -58,6 +63,10 @@ export function GaleriaCategoria({
       setConfirmar(false);
       await utils.contenido.listar.invalidate({ categoria: slug });
     },
+  });
+
+  const marcarPortada = api.contenido.marcarPortada.useMutation({
+    onSuccess: () => utils.contenido.listar.invalidate({ categoria: slug }),
   });
 
   function alternar(id: string) {
@@ -177,7 +186,8 @@ export function GaleriaCategoria({
           </h1>
           <p className="nota mt-2">
             {piezas?.length ?? 0} {piezas?.length === 1 ? "pieza" : "piezas"} ·
-            arrastrá el mouse o usá el tilde para seleccionar varias
+            arrastrá el mouse o usá el tilde para seleccionar · la estrella marca
+            la portada
           </p>
         </div>
 
@@ -250,6 +260,29 @@ export function GaleriaCategoria({
                 >
                   ✓
                 </button>
+
+                {/* Portada: la primera de la lista es la que sale en la landing.
+                    En esa va un sello; en las demás, un botón para elegirla. */}
+                {i === 0 ? (
+                  <span className="pointer-events-none absolute top-1.5 right-1.5 flex items-center gap-1 bg-ink/85 px-1.5 py-1 font-rotulo text-[9px] uppercase tracking-[0.06em] text-paper">
+                    <IconoEstrella className="h-2.5 w-2.5" />
+                    Portada
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    data-no-marquee
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      marcarPortada.mutate({ id: p.id });
+                    }}
+                    disabled={marcarPortada.isPending}
+                    aria-label="Hacer portada"
+                    className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink opacity-0 transition-opacity hover:bg-ink hover:text-paper group-hover:opacity-100"
+                  >
+                    <IconoEstrella className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}

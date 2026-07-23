@@ -59,6 +59,14 @@ export const env = createEnv({
     AWS_REGION: z.string().default("us-east-2"),
     AWS_S3_BUCKET: z.string().optional(),
     AWS_S3_PREFIX: z.string().optional(),
+    /**
+     * Dominio de CloudFront delante del bucket. Si está, el contenido se sirve
+     * por el CDN —cacheado en el borde y con egress más barato— en vez de
+     * salir de S3 directo. Sin esto, se cae a URLs firmadas de S3.
+     */
+    CLOUDFRONT_DOMAIN: z.string().optional(),
+    /** Reservado para invalidar la caché del CDN; hoy no se usa. */
+    CLOUDFRONT_DISTRIBUTION_ID: z.string().optional(),
   },
 
   /**
@@ -93,6 +101,8 @@ export const env = createEnv({
     AWS_REGION: process.env.AWS_REGION,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_S3_PREFIX: process.env.AWS_S3_PREFIX,
+    CLOUDFRONT_DOMAIN: process.env.CLOUDFRONT_DOMAIN,
+    CLOUDFRONT_DISTRIBUTION_ID: process.env.CLOUDFRONT_DISTRIBUTION_ID,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   /**

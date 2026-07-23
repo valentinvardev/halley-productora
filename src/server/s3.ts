@@ -79,9 +79,22 @@ export async function urlDeSubida(
   return { url, key };
 }
 
-/** URL firmada de lectura, para mostrar un objeto sin hacerlo público. */
+/**
+ * A dónde apuntar para leer un objeto.
+ *
+ * Con CloudFront configurado devuelve la URL del CDN —cacheada en el borde, con
+ * egress más barato que sacar de S3 en cada visita— y sin firmar, porque la
+ * sirve el CDN. Sin CloudFront, se cae a una URL firmada de S3 directo, que es
+ * lo que había: funciona igual, sale un poco más caro.
+ */
 export async function urlDeLectura(key: string, expiraSeg = 3600) {
   if (!key || !bucket()) return null;
+
+  if (env.CLOUDFRONT_DOMAIN) {
+    const dominio = env.CLOUDFRONT_DOMAIN.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `https://${dominio}/${conPrefijo(key)}`;
+  }
+
   const cmd = new GetObjectCommand({ Bucket: bucket(), Key: conPrefijo(key) });
   return getSignedUrl(s3(), cmd, { expiresIn: expiraSeg });
 }

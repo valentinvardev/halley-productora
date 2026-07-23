@@ -127,6 +127,32 @@ export const contenidoRouter = createTRPCRouter({
       return { ok: true };
     }),
 
+  /**
+   * Hace de una pieza la portada de su categoría.
+   *
+   * La portada es la primera de la lista, y la lista ordena por `orden`. Así que
+   * alcanza con ponerle un orden por debajo de todas: no hace falta un campo
+   * aparte ni renumerar el resto.
+   */
+  marcarPortada: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const pieza = await ctx.db.contenido.findUnique({
+        where: { id: input.id },
+      });
+      if (!pieza) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const { _min } = await ctx.db.contenido.aggregate({
+        where: { categoria: pieza.categoria },
+        _min: { orden: true },
+      });
+      await ctx.db.contenido.update({
+        where: { id: input.id },
+        data: { orden: (_min.orden ?? 0) - 1 },
+      });
+      return { ok: true };
+    }),
+
   /** Borra varias de una: es lo que pide la selección múltiple de la galería. */
   eliminarVarios: adminProcedure
     .input(z.object({ ids: z.array(z.string()).min(1).max(200) }))
