@@ -1,24 +1,20 @@
 import { db } from "~/server/db";
 
+// La lista de categorías es dato puro y vive aparte para que el cliente pueda
+// leerla sin arrastrar Prisma. Se re-exporta para los consumidores de servidor
+// que ya la buscaban acá.
+export {
+  CATEGORIAS,
+  esCategoria,
+  type CategoriaSlug,
+} from "~/app/_datos/categorias";
+
 /**
  * La vitrina: el contenido que el admin sube por categoría y que muestra la
  * landing.
  *
- * Las categorías son las mismas cuatro de los servicios. Se listan acá para que
- * el panel sepa qué carpetas ofrecer aunque todavía no tengan nada subido.
+ * <lo de abajo es sólo el helper que toca la base>
  */
-export const CATEGORIAS = [
-  { slug: "egresados", nombre: "Egresados" },
-  { slug: "bodas", nombre: "Bodas" },
-  { slug: "quince", nombre: "Quince años" },
-  { slug: "marcas", nombre: "Marcas" },
-] as const;
-
-export type CategoriaSlug = (typeof CATEGORIAS)[number]["slug"];
-
-export function esCategoria(slug: string): slug is CategoriaSlug {
-  return CATEGORIAS.some((c) => c.slug === slug);
-}
 
 /**
  * Las piezas de una categoría, en orden. Cada una se sirve por su propia URL

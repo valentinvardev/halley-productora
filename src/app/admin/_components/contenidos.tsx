@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import { IconoImagen, IconoMas, IconoPapelera } from "~/app/_components/iconos";
 import { Encabezado, Vacio } from "~/app/_components/ui";
-import { CATEGORIAS } from "~/server/contenido";
+import { CATEGORIAS } from "~/app/_datos/categorias";
 import { api } from "~/trpc/react";
 
 const ACEPTA = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";

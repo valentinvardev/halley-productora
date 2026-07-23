@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { esCategoria } from "~/app/_datos/categorias";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
-import { esCategoria } from "~/server/contenido";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
 
 /** Sólo lo que sabemos servir y mostrar en la vitrina. */
