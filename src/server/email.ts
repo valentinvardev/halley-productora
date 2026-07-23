@@ -30,6 +30,8 @@ export async function enviarEmail(mensaje: {
   para: string;
   asunto: string;
   texto: string;
+  /** Cara HTML. Se manda junto con el texto, que queda de fallback. */
+  html?: string;
 }): Promise<ResultadoEnvio> {
   const api = resend();
   if (!api) {
@@ -42,6 +44,7 @@ export async function enviarEmail(mensaje: {
       to: mensaje.para,
       subject: mensaje.asunto,
       text: mensaje.texto,
+      ...(mensaje.html ? { html: mensaje.html } : {}),
     });
 
     if (error) return { ok: false, error: error.message };
