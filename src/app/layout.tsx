@@ -9,7 +9,8 @@ import { TRPCReactProvider } from "~/trpc/react";
 export const metadata: Metadata = {
   title: "Halley Producciones",
   description: "Cobros a grupos de padres — Halley Producciones",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  // Los íconos los toma Next de los archivos en app/ —favicon.ico, icon.png y
+  // apple-icon.png—; no hace falta declararlos acá.
 };
 
 const fraunces = Fraunces({
