@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
 import { COOKIE_SESION, cuentaDeSesion } from "~/server/cuentas";
 import { db } from "~/server/db";
-import { puedeVerGaleria } from "~/server/galerias";
+import { cookieDesbloqueo, puedeVerGaleria } from "~/server/galerias";
 import { urlPrivada } from "~/server/s3";
 
 export const runtime = "nodejs";
@@ -26,16 +26,22 @@ export async function GET(
   const foto = await db.fotoGaleria.findUnique({ where: { id: fotoId } });
   if (!foto) return new NextResponse("No encontrada", { status: 404 });
 
-  // Quién pide: admin, cuenta con sesión, o token del link personal.
+  // Quién pide: admin, cuenta con sesión, token del link personal, o —galería
+  // nativa— el secreto del link y la cookie de desbloqueo.
   const galleta = req.cookies;
   const esAdmin = cookieValida(galleta.get(COOKIE_ADMIN)?.value);
   const cuenta = await cuentaDeSesion(galleta.get(COOKIE_SESION)?.value);
   const token = req.nextUrl.searchParams.get("t");
+  const tokenGaleria = req.nextUrl.searchParams.get("g");
+  const desbloqueoCookie =
+    galleta.get(cookieDesbloqueo(foto.galeriaId))?.value ?? null;
 
   const permitido = await puedeVerGaleria(foto.galeriaId, {
     esAdmin,
     cuentaId: cuenta?.id ?? null,
     token,
+    tokenGaleria,
+    desbloqueoCookie,
   });
   if (!permitido) {
     return new NextResponse("Sin acceso a esta galería", { status: 403 });

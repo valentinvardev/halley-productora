@@ -3,8 +3,14 @@ import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { env } from "~/env";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { hashPassword } from "~/server/galerias";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
+
+function linkGaleria(token: string) {
+  return `${env.NEXT_PUBLIC_APP_URL}/galeria/${token}`;
+}
 
 const TIPOS: Record<string, "imagen" | "video"> = {
   "image/jpeg": "imagen",
@@ -25,6 +31,97 @@ const EXT: Record<string, string> = {
 };
 
 export const galeriaRouter = createTRPCRouter({
+  /* ------------------------------------------------ galerías nativas (admin) */
+
+  /** Las galerías sueltas que se comparten por link. */
+  listarNativas: adminProcedure.query(async ({ ctx }) => {
+    const gs = await ctx.db.galeria.findMany({
+      where: { grupoId: null },
+      orderBy: { creadoEn: "desc" },
+      include: { _count: { select: { fotos: true } } },
+    });
+    return gs.map((g) => ({
+      id: g.id,
+      titulo: g.titulo,
+      fotos: g._count.fotos,
+      venceEl: g.venceEl,
+      vigente: !g.venceEl || g.venceEl.getTime() > Date.now(),
+      tienePassword: !!g.passwordHash,
+      link: g.tokenPublico ? linkGaleria(g.tokenPublico) : null,
+    }));
+  }),
+
+  /** Crea una galería nativa: link propio, vencimiento y contraseña opcional. */
+  crearNativa: adminProcedure
+    .input(
+      z.object({
+        titulo: z.string().min(2),
+        dias: z.number().int().min(1).max(3650),
+        password: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const vence = new Date();
+      vence.setDate(vence.getDate() + input.dias);
+      const galeria = await ctx.db.galeria.create({
+        data: {
+          titulo: input.titulo,
+          tokenPublico: randomUUID(),
+          venceEl: vence,
+          passwordHash: input.password ? hashPassword(input.password) : null,
+        },
+      });
+      return { id: galeria.id };
+    }),
+
+  /**
+   * Edita una galería nativa. La contraseña tiene tres estados: no tocar (nada),
+   * poner/cambiar (`password`), o sacar (`quitarPassword`). `dias` renueva el
+   * vencimiento desde hoy.
+   */
+  actualizarNativa: adminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        titulo: z.string().min(2).optional(),
+        dias: z.number().int().min(1).max(3650).optional(),
+        password: z.string().min(1).optional(),
+        quitarPassword: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const data: {
+        titulo?: string;
+        venceEl?: Date;
+        passwordHash?: string | null;
+      } = {};
+      if (input.titulo) data.titulo = input.titulo;
+      if (input.dias) {
+        const v = new Date();
+        v.setDate(v.getDate() + input.dias);
+        data.venceEl = v;
+      }
+      if (input.quitarPassword) data.passwordHash = null;
+      else if (input.password) data.passwordHash = hashPassword(input.password);
+
+      await ctx.db.galeria.update({ where: { id: input.id }, data });
+      return { ok: true };
+    }),
+
+  /** Borra una galería nativa y sus fotos del bucket. */
+  eliminarNativa: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const fotos = await ctx.db.fotoGaleria.findMany({
+        where: { galeriaId: input.id },
+      });
+      if (fotos.length > 0) await borrarObjetos(fotos.map((f) => f.s3Key));
+      await ctx.db.galeria.delete({ where: { id: input.id } });
+      return { ok: true };
+    }),
+
+  /* ------------------------------------------------------------ fotos (ambas) */
+
   /** Las fotos de una galería, para administrarlas. */
   listar: adminProcedure
     .input(z.object({ galeriaId: z.string() }))

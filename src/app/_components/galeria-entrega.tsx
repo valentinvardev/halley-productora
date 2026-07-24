@@ -35,7 +35,7 @@ export function GaleriaEntrega({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
-        <h3 className="text-[15px]">{titulo}</h3>
+        {titulo ? <h3 className="text-[15px]">{titulo}</h3> : <span />}
         <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
           {fotos.length} {fotos.length === 1 ? "archivo" : "archivos"}
         </span>

@@ -199,17 +199,31 @@ model Pago {
 /*  Galería                                                                    */
 /* -------------------------------------------------------------------------- */
 
-/// Galería del grupo. Por ahora es el link de Drive que carga el admin; el
-/// visor propio con las fotos alojadas entra en la etapa siguiente.
+/// Una galería de fotos, en dos modos según de dónde cuelgue:
+///
+/// - Atada a un grupo (`grupoId`): el material de entrega de una familia, que se
+///   libera al saldar el plan. Se ve desde el panel o el link personal.
+/// - Nativa (`grupoId` nulo, con `tokenPublico`): una galería suelta que el
+///   admin comparte por su propio link, sin cuenta ni cobro de por medio. Puede
+///   llevar contraseña, y siempre tiene fecha de vencimiento.
+///
+/// El modelo y las fotos son los mismos; cambia cómo se entra.
 model Galeria {
-    id      String @id @default(cuid())
-    grupoId String
-    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+    id      String  @id @default(cuid())
+    grupoId String?
+    grupo   Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
     titulo    String
     linkDrive String?
-    /// La galería alojada dura un año; después queda sólo el respaldo en Drive.
+    /// Atada: dura un año y después queda el respaldo en Drive. Nativa: la fecha
+    /// desde la que el link deja de funcionar (siempre presente).
     venceEl   DateTime?
+
+    /// Sólo galerías nativas: el secreto del link para compartir (/galeria/…).
+    tokenPublico String? @unique
+    /// Sólo galerías nativas y opcional: `salt:hash` (scrypt). Sin esto, el link
+    /// alcanza para entrar.
+    passwordHash String?
 
     fotos FotoGaleria[]
 
