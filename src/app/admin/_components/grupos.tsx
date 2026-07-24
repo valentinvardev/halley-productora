@@ -4,8 +4,18 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
+import { IconoMas } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
-import { Boton, Campo, Dato, Encabezado, Vacio } from "~/app/_components/ui";
+import {
+  Boton,
+  BotonTexto,
+  Campo,
+  Dato,
+  Encabezado,
+  Etiqueta,
+  Tag,
+  Vacio,
+} from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { EsqueletoGrupos } from "./esqueletos";
@@ -154,8 +164,185 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
   );
 }
 
+/** Selector de la cuenta que cobra. Vacío = la de por defecto. */
+function SelectorCuenta({
+  valor,
+  alCambiar,
+}: {
+  valor: string;
+  alCambiar: (v: string) => void;
+}) {
+  const { data: cuentas } = api.cuentaPago.listar.useQuery();
+  return (
+    <label className="flex flex-col gap-1.5">
+      <Etiqueta>Cuenta que cobra</Etiqueta>
+      <select
+        value={valor}
+        onChange={(e) => alCambiar(e.target.value)}
+        className="border border-ink bg-lienzo px-3 py-[11px] text-[14px]"
+      >
+        <option value="">La de por defecto</option>
+        {cuentas
+          ?.filter((c) => c.activa)
+          .map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre} — {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
+              {c.pista}
+            </option>
+          ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * Alta de un cliente particular: una boda, un cumpleaños de 15. A diferencia del
+ * grupo, el plan va cuota por cuota —una seña y un saldo no son iguales ni
+ * mensuales—, y se elige de una la cuenta que cobra.
+ */
+function FormularioParticular({ alCerrar }: { alCerrar: () => void }) {
+  const utils = api.useUtils();
+  const crear = api.grupo.crearParticular.useMutation({
+    onSuccess: async () => {
+      await utils.grupo.listar.invalidate();
+      alCerrar();
+    },
+  });
+
+  const [cliente, setCliente] = useState("");
+  const [evento, setEvento] = useState("Boda");
+  const [email, setEmail] = useState("");
+  const [cuentaPagoId, setCuentaPagoId] = useState("");
+  const [cuotas, setCuotas] = useState<{ monto: string; vence: string }[]>([
+    { monto: "", vence: "" },
+  ]);
+
+  const setCuota = (i: number, patch: Partial<{ monto: string; vence: string }>) =>
+    setCuotas((cs) => cs.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+
+  const validas = cuotas
+    .map((c) => ({ monto: Number(c.monto), vence: c.vence }))
+    .filter((c) => c.monto > 0 && c.vence);
+  const total = validas.reduce((t, c) => t + c.monto, 0);
+  const listo =
+    cliente.trim().length >= 2 && evento.trim().length >= 2 && validas.length > 0;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        crear.mutate({
+          cliente,
+          evento,
+          email: email.trim() || undefined,
+          cuentaPagoId: cuentaPagoId || undefined,
+          cuotas: validas.map((c) => ({
+            monto: c.monto,
+            venceEl: new Date(`${c.vence}T12:00:00`),
+          })),
+        });
+      }}
+      className="mb-10 grid gap-5 border border-ink p-8"
+    >
+      <div className="eyebrow">Nuevo particular</div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo
+          label="Cliente"
+          value={cliente}
+          onChange={(e) => setCliente(e.target.value)}
+          placeholder="Ana y Julián"
+          required
+        />
+        <Campo
+          label="Tipo de evento"
+          value={evento}
+          onChange={(e) => setEvento(e.target.value)}
+          placeholder="Boda, 15 años…"
+          required
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo
+          label="Email de contacto"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="ana@mail.com"
+          hint="Para mandarle el acceso y los avisos."
+        />
+        <SelectorCuenta valor={cuentaPagoId} alCambiar={setCuentaPagoId} />
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <Etiqueta>Plan de cuotas</Etiqueta>
+          <span className="nota text-[11.5px] text-gray-45">
+            Total {pesos(total)}
+          </span>
+        </div>
+        <div className="grid gap-3">
+          {cuotas.map((c, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-[1fr_1fr_auto] items-end gap-3"
+            >
+              <Campo
+                label={`Cuota ${i + 1}`}
+                type="number"
+                min={1}
+                value={c.monto}
+                onChange={(e) => setCuota(i, { monto: e.target.value })}
+                placeholder={i === 0 ? "Seña" : "Saldo"}
+              />
+              <CampoFecha
+                label="Vence"
+                valor={c.vence}
+                alCambiar={(v) => setCuota(i, { vence: v })}
+              />
+              {cuotas.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCuotas((cs) => cs.filter((_, j) => j !== i))
+                  }
+                  aria-label="Quitar cuota"
+                  className="mb-[11px] px-2 py-2 font-mono text-[13px] text-gray-45 hover:text-marca"
+                >
+                  ✕
+                </button>
+              ) : (
+                <span className="w-6" />
+              )}
+            </div>
+          ))}
+        </div>
+        <BotonTexto
+          onClick={() => setCuotas((cs) => [...cs, { monto: "", vence: "" }])}
+          className="mt-3"
+        >
+          <IconoMas />
+          Agregar cuota
+        </BotonTexto>
+      </div>
+
+      {crear.error && <p className="nota text-marca">{crear.error.message}</p>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Boton type="submit" disabled={crear.isPending || !listo}>
+          {crear.isPending ? "Creando…" : "Crear cliente y plan"}
+        </Boton>
+        <Boton type="button" variante="fantasma" onClick={alCerrar}>
+          Cancelar
+        </Boton>
+      </div>
+    </form>
+  );
+}
+
 export function Grupos() {
-  const [abierto, setAbierto] = useState(false);
+  const [modo, setModo] = useState<"" | "grupo" | "particular">("");
   const utils = api.useUtils();
   const { data: grupos, isLoading } = api.grupo.listar.useQuery();
 
@@ -166,17 +353,25 @@ export function Grupos() {
   return (
     <>
       <Encabezado
-        eyebrow="Cobros — grupos"
-        titulo="Estado por grupo"
-        bajada="Cada grupo es un rollo: círculo con tilde es al día, punteado con saldo, tachado con cuotas vencidas."
+        eyebrow="Cobros"
+        titulo="Estado por cliente"
+        bajada="Cada grupo es un rollo: círculo con tilde es al día, punteado con saldo, tachado con cuotas vencidas. Los particulares —bodas, 15— son un cliente único con su propio plan."
         acciones={
-          !abierto ? (
-            <Boton onClick={() => setAbierto(true)}>Nuevo grupo</Boton>
+          modo === "" ? (
+            <>
+              <Boton onClick={() => setModo("grupo")}>Nuevo grupo</Boton>
+              <Boton variante="fantasma" onClick={() => setModo("particular")}>
+                Nuevo particular
+              </Boton>
+            </>
           ) : undefined
         }
       />
 
-      {abierto && <FormularioGrupo alCerrar={() => setAbierto(false)} />}
+      {modo === "grupo" && <FormularioGrupo alCerrar={() => setModo("")} />}
+      {modo === "particular" && (
+        <FormularioParticular alCerrar={() => setModo("")} />
+      )}
 
       {isLoading && <EsqueletoGrupos soloTarjetas />}
 
@@ -212,10 +407,14 @@ export function Grupos() {
           >
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">
               <div>
-                <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
-                <div className="mt-1 font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-70">
-                  {g.colegio} · {g.resumen.cuotas} cuotas ·{" "}
-                  {g.resumen.alumnos} alumnos
+                <div className="mb-1 flex items-center gap-2">
+                  <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
+                  {g.tipo === "PARTICULAR" && <Tag>Particular</Tag>}
+                </div>
+                <div className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-70">
+                  {g.tipo === "PARTICULAR"
+                    ? `${g.colegio} · ${g.resumen.cuotas} cuotas`
+                    : `${g.colegio} · ${g.resumen.cuotas} cuotas · ${g.resumen.alumnos} alumnos`}
                 </div>
               </div>
               <div className="max-w-[260px]">

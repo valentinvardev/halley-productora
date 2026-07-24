@@ -99,6 +99,34 @@ export async function urlDeLectura(key: string, expiraSeg = 3600) {
   return getSignedUrl(s3(), cmd, { expiresIn: expiraSeg });
 }
 
+/**
+ * URL firmada de S3, sin pasar nunca por CloudFront.
+ *
+ * Es para el material privado de las familias: a diferencia de la vitrina, esto
+ * no puede caer en un CDN abierto y cacheable, porque cualquiera con la URL lo
+ * vería. Siempre se firma, vence rápido, y quien pide ya pasó por el chequeo de
+ * permiso.
+ *
+ * Con `descargar` se fuerza la descarga con el nombre original en vez de abrir
+ * en el navegador.
+ */
+export async function urlPrivada(
+  key: string,
+  opciones?: { descargar?: string; expiraSeg?: number },
+) {
+  if (!key || !bucket()) return null;
+  const cmd = new GetObjectCommand({
+    Bucket: bucket(),
+    Key: conPrefijo(key),
+    ...(opciones?.descargar
+      ? {
+          ResponseContentDisposition: `attachment; filename="${opciones.descargar.replace(/"/g, "")}"`,
+        }
+      : {}),
+  });
+  return getSignedUrl(s3(), cmd, { expiresIn: opciones?.expiraSeg ?? 900 });
+}
+
 /** Borra objetos. Ignora entradas vacías. */
 export async function borrarObjetos(keys: string[]) {
   const objetivos = keys.filter(Boolean);

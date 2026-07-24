@@ -7,6 +7,7 @@ import { salir } from "~/app/_acciones/sesion";
 import { Barra } from "~/app/_components/barra";
 import { itemCajon } from "~/app/_components/cajon";
 import { Copiar } from "~/app/_components/copiar";
+import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { IconoCandado } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
@@ -246,37 +247,43 @@ export function Panel({
               ) : hijo.galerias.length === 0 ? (
                 <Vacio>Todavía no hay galería publicada para este grupo</Vacio>
               ) : (
-                <div className="grid gap-3">
+                <div className="grid gap-8">
                   {hijo.galerias.map((galeria) => (
-                    <div
-                      key={galeria.id}
-                      className="flex flex-wrap items-center justify-between gap-3 border border-ink px-5 py-4"
-                    >
-                      <div>
-                        <div className="text-[14px]">{galeria.titulo}</div>
-                        <div className="mt-1 font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
+                    <div key={galeria.id}>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-20 pb-2">
+                        <div className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
                           {galeria.venceEl
                             ? galeria.vigente
                               ? `Disponible hasta ${fecha(galeria.venceEl)}`
                               : `Venció el ${fecha(galeria.venceEl)} — queda la copia en Drive`
                             : "Sin fecha de vencimiento"}
                         </div>
+                        {galeria.linkDrive && (
+                          <a
+                            href={galeria.linkDrive}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
+                          >
+                            Abrir en Drive
+                          </a>
+                        )}
                       </div>
 
-                      {galeria.linkDrive ? (
-                        <a
-                          href={galeria.linkDrive}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
-                        >
-                          Abrir en Drive
-                        </a>
-                      ) : (
-                        <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
-                          Sin link todavía
-                        </span>
-                      )}
+                      <div className="mt-4">
+                        {galeria.fotos.length > 0 ? (
+                          <GaleriaEntrega titulo={galeria.titulo} fotos={galeria.fotos} />
+                        ) : (
+                          <div>
+                            <div className="text-[14px]">{galeria.titulo}</div>
+                            <p className="nota mt-1">
+                              {galeria.linkDrive
+                                ? "El material está en Drive por ahora."
+                                : "Todavía no se subieron fotos a esta galería."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

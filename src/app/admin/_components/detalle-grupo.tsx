@@ -25,6 +25,7 @@ import {
   CampoTexto,
   Dato,
   Encabezado,
+  Etiqueta,
   Tag,
   TiraDatos,
   Vacio,
@@ -33,6 +34,7 @@ import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
 import { EsqueletoDetalle } from "./esqueletos";
+import { FotosGaleria } from "./fotos-galeria";
 
 export function DetalleGrupo({ id }: { id: string }) {
   const utils = api.useUtils();
@@ -139,6 +141,12 @@ export function DetalleGrupo({ id }: { id: string }) {
 
       <PlanDelGrupo cuotas={grupo.cuotas} />
 
+      <CuentaDePago
+        grupoId={id}
+        actual={grupo.cuentaPago}
+        alCambiar={refrescar}
+      />
+
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
           <div>
@@ -158,7 +166,9 @@ export function DetalleGrupo({ id }: { id: string }) {
 
       <Galerias grupoId={id} galerias={grupo.galerias} alGuardar={refrescar} />
 
-      <AltaAlumnos grupoId={id} alTerminar={refrescar} />
+      {grupo.tipo !== "PARTICULAR" && (
+        <AltaAlumnos grupoId={id} alTerminar={refrescar} />
+      )}
 
       {grupo.alumnos.length === 0 ? (
         <Vacio>Todavía no hay alumnos cargados en este grupo</Vacio>
@@ -371,6 +381,61 @@ function PlanDelGrupo({
 
 /* --------------------------------------------------------------- galerías */
 
+/**
+ * A qué cuenta van los cobros de este grupo. Es lo que enruta una boda a la
+ * cuenta del socio que la trabaja, o deja al grupo con la de por defecto. Cerrar
+ * esto era lo último que faltaba para que el ruteo de pagos se use sin tocar la
+ * base a mano.
+ */
+function CuentaDePago({
+  grupoId,
+  actual,
+  alCambiar,
+}: {
+  grupoId: string;
+  actual: { id: string; nombre: string; proveedor: "TALO" | "MERCADOPAGO" } | null;
+  alCambiar: (mensaje?: string) => Promise<void>;
+}) {
+  const { data: cuentas } = api.cuentaPago.listar.useQuery();
+  const asignar = api.grupo.asignarCuenta.useMutation({
+    onSuccess: () => alCambiar("Cuenta de cobro actualizada"),
+  });
+
+  return (
+    <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
+      <div>
+        <Etiqueta>Cuenta que cobra</Etiqueta>
+        <div className="nota mt-0.5 text-[11.5px] text-gray-45">
+          {actual
+            ? `${actual.nombre} · ${actual.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}`
+            : "La de por defecto"}
+        </div>
+      </div>
+      <select
+        value={actual?.id ?? ""}
+        onChange={(e) =>
+          asignar.mutate({
+            id: grupoId,
+            cuentaPagoId: e.target.value || null,
+          })
+        }
+        disabled={asignar.isPending}
+        className="border border-ink bg-lienzo px-3 py-[9px] text-[13px]"
+      >
+        <option value="">La de por defecto</option>
+        {cuentas
+          ?.filter((c) => c.activa)
+          .map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre} —{" "}
+              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"} {c.pista}
+            </option>
+          ))}
+      </select>
+    </div>
+  );
+}
+
 function Galerias({
   grupoId,
   galerias,
@@ -418,23 +483,23 @@ function Galerias({
       )}
 
       {galerias.map((g) => (
-        <div
-          key={g.id}
-          className="mb-2 flex flex-wrap items-center justify-between gap-3 border border-gray-20 px-4 py-3"
-        >
-          <div>
-            <div className="text-[13.5px]">{g.titulo}</div>
-            <div className="font-mono text-[11px] text-gray-45 break-all">
-              {g.linkDrive ?? "sin link de Drive"}
-              {g.venceEl && ` · vence ${fecha(g.venceEl)}`}
+        <div key={g.id} className="mb-2 border border-gray-20 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[13.5px]">{g.titulo}</div>
+              <div className="font-mono text-[11px] text-gray-45 break-all">
+                {g.linkDrive ?? "sin link de Drive"}
+                {g.venceEl && ` · vence ${fecha(g.venceEl)}`}
+              </div>
             </div>
+            <BotonTexto
+              onClick={() => eliminar.mutate({ id: g.id })}
+              className="text-gray-45"
+            >
+              Eliminar
+            </BotonTexto>
           </div>
-          <BotonTexto
-            onClick={() => eliminar.mutate({ id: g.id })}
-            className="text-gray-45"
-          >
-            Eliminar
-          </BotonTexto>
+          <FotosGaleria galeriaId={g.id} />
         </div>
       ))}
 

@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
+import { mpEsMock } from "~/server/mercadopago";
+import { proveedorDeGrupo } from "~/server/pagos";
 import { taloEsMock } from "~/server/talo";
 
 /**
@@ -22,7 +24,10 @@ export const publicoRouter = createTRPCRouter({
           grupo: {
             include: {
               cuotas: { orderBy: { numero: "asc" } },
-              galerias: { orderBy: { creadoEn: "desc" } },
+              galerias: {
+                orderBy: { creadoEn: "desc" },
+                include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+              },
             },
           },
           pagos: { orderBy: { recibidoEn: "desc" } },
@@ -33,13 +38,16 @@ export const publicoRouter = createTRPCRouter({
 
       const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
 
+      const { proveedor } = await proveedorDeGrupo(alumno.grupoId);
+
       return {
         nombre: alumno.nombre,
         alias: alumno.alias,
         cvu: alumno.cvu,
+        proveedor,
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         tieneCuenta: alumno._count.tutores > 0,
-        modoDemo: taloEsMock,
+        modoDemo: proveedor === "MERCADOPAGO" ? mpEsMock : taloEsMock,
         grupo: {
           nombre: alumno.grupo.nombre,
           colegio: alumno.grupo.colegio,
@@ -58,12 +66,24 @@ export const publicoRouter = createTRPCRouter({
           monto: Number(p.monto),
           recibidoEn: p.recibidoEn,
         })),
+        // Las fotos llevan el token en la URL: es la llave con la que la ruta
+        // las sirve a quien entra sin cuenta. Sólo si está al día.
         galerias: alumno.grupo.galerias.map((g) => ({
           id: g.id,
           titulo: g.titulo,
           linkDrive: g.linkDrive,
           venceEl: g.venceEl,
           vigente: !g.venceEl || g.venceEl.getTime() > Date.now(),
+          fotos:
+            plan.deuda <= 0
+              ? g.fotos.map((f) => ({
+                  id: f.id,
+                  nombre: f.nombre,
+                  tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
+                  url: `/api/galeria/${f.id}?t=${input.token}`,
+                  descarga: `/api/galeria/${f.id}?descargar=1&t=${input.token}`,
+                }))
+              : [],
         })),
       };
     }),

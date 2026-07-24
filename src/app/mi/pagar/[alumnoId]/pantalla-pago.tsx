@@ -89,6 +89,14 @@ export function PantallaPago({
     },
   });
 
+  // Checkout Pro: se crea la preferencia y se manda a la familia a Mercado Pago.
+  const preferencia = api.pago.crearPreferencia.useMutation({
+    onSuccess: (r) => {
+      window.location.href = r.urlPago;
+    },
+  });
+  const yendoAMp = preferencia.isPending || preferencia.isSuccess;
+
   const varias = data.numeros.length > 1;
 
   /**
@@ -179,10 +187,42 @@ export function PantallaPago({
 
               {varias && (
                 <p className="nota mt-2">
-                  Una sola transferencia por las {data.numeros.length} cuotas.
+                  {data.proveedor === "MERCADOPAGO"
+                    ? `Un solo pago por las ${data.numeros.length} cuotas.`
+                    : `Una sola transferencia por las ${data.numeros.length} cuotas.`}
                 </p>
               )}
 
+              {data.proveedor === "MERCADOPAGO" ? (
+                /* --------------------------------------- Checkout Pro */
+                <div className="mt-7">
+                  <Boton
+                    className="w-full"
+                    onClick={() =>
+                      preferencia.mutate({ alumnoId, hastaCuotaId })
+                    }
+                    disabled={yendoAMp}
+                  >
+                    {yendoAMp ? "Redirigiendo…" : "Pagar con Mercado Pago"}
+                  </Boton>
+                  <p className="nota mt-3 text-center">
+                    Te lleva a Mercado Pago para pagar con tarjeta, dinero en
+                    cuenta o efectivo. Cuando termines, volvés solo a tu panel.
+                  </p>
+                  {preferencia.isError && (
+                    <p className="mt-3 text-center text-[12px] text-marca">
+                      No se pudo abrir el pago. Probá de nuevo en un momento.
+                    </p>
+                  )}
+                  {data.modoDemo && (
+                    <p className="mt-4 text-center font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
+                      Demo — Mercado Pago simulado
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* -------------------------------------------- Talo / CVU */
+                <>
               {/* El QR queda siempre en positivo, incluso en modo oscuro: los
                   lectores esperan módulos oscuros sobre fondo claro. */}
               <div
@@ -253,6 +293,8 @@ export function PantallaPago({
                     </BotonTexto>
                   )}
                 </div>
+              )}
+                </>
               )}
             </>
           )}

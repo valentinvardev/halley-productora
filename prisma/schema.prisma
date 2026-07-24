@@ -21,9 +21,18 @@ datasource db {
 
 model Grupo {
     id      String @id @default(cuid())
-    nombre  String // "Egresados 2027 – Colegio San Martín"
+    nombre  String // "Egresados 2027 – Colegio San Martín" o "Ana y Julián"
     slug    String @unique // link público de registro: /g/[slug]
+
+    /// Para egresados, el colegio. Para un particular, el tipo de evento
+    /// ("Boda", "15 años"): funciona igual como subtítulo, alias y en los
+    /// avisos, así que se mantiene siempre cargado y nada aguas abajo cambia.
     colegio String
+
+    /// Egresados —muchos alumnos que comparten un plan— o particular —un cliente
+    /// único, una boda o un cumpleaños de 15, con su propio plan—. El modelo es
+    /// el mismo; cambia cómo se gestiona y se muestra.
+    tipo TipoCliente @default(EGRESADOS)
 
     /// Permite que los padres se registren solos desde el link del grupo.
     autoRegistro Boolean @default(true)
@@ -173,8 +182,12 @@ model Pago {
     cuotaId String?
     cuota   Cuota?  @relation(fields: [cuotaId], references: [id], onDelete: SetNull)
 
-    monto             Decimal @db.Decimal(12, 2)
-    taloTransactionId String  @unique
+    monto Decimal @db.Decimal(12, 2)
+    /// Id único del pago en el proveedor: la transacción de Talo o el payment de
+    /// Mercado Pago. Es la llave de idempotencia —el mismo pago no entra dos
+    /// veces— y por eso da igual de qué proveedor venga. La columna sigue
+    /// llamándose `taloTransactionId` para no migrar datos ya cargados.
+    refPago String @unique @map("taloTransactionId")
 
     recibidoEn DateTime @default(now())
 
@@ -198,9 +211,32 @@ model Galeria {
     /// La galería alojada dura un año; después queda sólo el respaldo en Drive.
     venceEl   DateTime?
 
+    fotos FotoGaleria[]
+
     creadoEn DateTime @default(now())
 
     @@index([grupoId])
+}
+
+/// Una pieza entregable de la galería de un grupo.
+///
+/// Es material privado de la familia, no la vitrina pública: se guarda en el
+/// mismo bucket pero se sirve siempre firmado y con permiso chequeado, nunca
+/// por el CDN abierto.
+model FotoGaleria {
+    id        String  @id @default(cuid())
+    galeriaId String
+    galeria   Galeria @relation(fields: [galeriaId], references: [id], onDelete: Cascade)
+
+    s3Key String @unique
+    /// El nombre original, que es con el que se descarga.
+    nombre String
+    tipo   String @default("imagen")
+    orden  Int    @default(0)
+
+    creadoEn DateTime @default(now())
+
+    @@index([galeriaId, orden])
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,6 +276,23 @@ model TransaccionMockTalo {
     creadoEn   DateTime @default(now())
 
     @@index([customerId])
+}
+
+/// Espejo de un pago de Mercado Pago en modo demo. Guarda lo que en producción
+/// vive en la cuenta del socio, para que el flujo de Checkout Pro —crear la
+/// preferencia, redirigir, volver, confirmar por webhook— se pueda recorrer
+/// entero sin credenciales reales ni plata de verdad.
+model TransaccionMockMercadoPago {
+    id                String   @id
+    cuentaPagoId      String
+    /// El id del alumno, tal como viaja en external_reference.
+    referenciaExterna String
+    monto             Decimal  @db.Decimal(12, 2)
+    /// Se marca cuando la pantalla demo confirma el pago.
+    aprobadoEn        DateTime?
+    creadoEn          DateTime @default(now())
+
+    @@index([cuentaPagoId])
 }
 
 /// Una cuenta que recibe cobros. Cada socio puede tener la suya —en Talo o en
@@ -292,6 +345,11 @@ model Contenido {
 enum ProveedorPago {
     TALO
     MERCADOPAGO
+}
+
+enum TipoCliente {
+    EGRESADOS
+    PARTICULAR
 }
 
 enum EstadoCuota {

@@ -10,7 +10,78 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
+import { aprobarPagoMockMp, mercadoPago, mpEsMock } from "~/server/mercadopago";
+import { proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada, taloEsMock } from "~/server/talo";
+
+/**
+ * Arranca un pago por Checkout Pro: crea la preferencia con el monto exacto y
+ * devuelve la URL de Mercado Pago a la que hay que mandar a la familia. El cobro
+ * va a la cuenta del socio que tenga asignada el grupo.
+ */
+async function crearPreferenciaPago(
+  alumnoId: string,
+  opciones: {
+    hastaCuotaId?: string;
+    /** Cobra sólo la próxima cuota, no el plan entero. Es lo que muestra el
+     *  link sin login, donde no hay selector de cuotas. */
+    soloProxima?: boolean;
+    emailPagador?: string;
+  },
+) {
+  const alumno = await db.alumno.findUniqueOrThrow({
+    where: { id: alumnoId },
+    include: { grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } }, pagos: true },
+  });
+
+  const { proveedor, cuenta } = await proveedorDeGrupo(alumno.grupoId);
+  if (proveedor !== "MERCADOPAGO" || !cuenta) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Este grupo no cobra por Mercado Pago.",
+    });
+  }
+
+  const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  // `soloProxima` recorta hasta la primera impaga: es el monto que ve la familia
+  // en el link. Si no, respeta el `hastaCuotaId` del panel (o el plan entero).
+  const hastaId = opciones.soloProxima
+    ? plan.proxima?.id
+    : opciones.hastaCuotaId;
+  const hasta = hastaId ? plan.cuotas.find((c) => c.id === hastaId) : null;
+  const alcanzadas = hasta
+    ? plan.cuotas.filter((c) => c.numero <= hasta.numero)
+    : plan.cuotas;
+  const aSaldar = alcanzadas.filter((c) => c.saldo > 0);
+  const monto = aSaldar.reduce((t, c) => t + c.saldo, 0);
+
+  if (monto <= 0.01) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "No hay saldo pendiente para cobrar.",
+    });
+  }
+
+  const numeros = aSaldar.map((c) => c.numero);
+  const descripcion = `${alumno.grupo.nombre} — ${
+    numeros.length > 1 ? `cuotas ${numeros.join(", ")}` : `cuota ${numeros[0]}`
+  } · ${alumno.nombre}`;
+
+  // La cuenta que cobra viaja en la urlWebhook: es lo que después le dice al
+  // webhook con qué token confirmar el pago.
+  const urlWebhook = `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago?cuenta=${cuenta.id}`;
+
+  const pref = await mercadoPago.crearPreferencia(cuenta.credencial, {
+    monto,
+    descripcion,
+    referenciaExterna: alumno.id,
+    urlRetorno: `${env.NEXT_PUBLIC_APP_URL}/mi/pagar/${alumno.id}`,
+    urlWebhook,
+    emailPagador: opciones.emailPagador,
+  });
+
+  return { urlPago: pref.urlPago, monto };
+}
 
 /**
  * Simulador de transferencias — sólo con TALO_MODE=mock.
@@ -112,6 +183,82 @@ export const pagoRouter = createTRPCRouter({
       if (!vinculo) throw new TRPCError({ code: "NOT_FOUND" });
 
       return simularTransferencia(input.alumnoId, input.monto);
+    }),
+
+  /** Desde el panel del padre: arranca el pago por Checkout Pro de un hijo. */
+  crearPreferencia: cuentaProcedure
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        hastaCuotaId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const vinculo = await ctx.db.tutor.findUnique({
+        where: {
+          cuentaId_alumnoId: {
+            cuentaId: ctx.cuenta.id,
+            alumnoId: input.alumnoId,
+          },
+        },
+      });
+      if (!vinculo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return crearPreferenciaPago(input.alumnoId, {
+        hastaCuotaId: input.hastaCuotaId,
+        emailPagador: ctx.cuenta.email,
+      });
+    }),
+
+  /** Desde el link sin login, con el token del alumno. */
+  crearPreferenciaDesdeToken: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const alumno = await ctx.db.alumno.findUnique({
+        where: { token: input.token },
+        select: { id: true, emailContacto: true },
+      });
+      if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return crearPreferenciaPago(alumno.id, {
+        soloProxima: true,
+        emailPagador: alumno.emailContacto ?? undefined,
+      });
+    }),
+
+  /**
+   * Sólo en modo mock: la pantalla demo de Checkout Pro confirma el pago.
+   * Aprueba la transacción simulada y la procesa por el mismo camino que el
+   * webhook real, para que el resto del sistema no note la diferencia.
+   */
+  confirmarPagoDemoMp: publicProcedure
+    .input(z.object({ pagoId: z.string() }))
+    .mutation(async ({ input }) => {
+      if (!mpEsMock) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "La confirmación demo sólo existe con MP_MODE=mock.",
+        });
+      }
+      const { cuentaPagoId } = await aprobarPagoMockMp(input.pagoId);
+
+      // Le pega al webhook real con el mismo payload que manda MP: el pago entra
+      // por el camino de producción, no por un atajo.
+      const res = await fetch(
+        `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago?cuenta=${cuentaPagoId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "payment", data: { id: input.pagoId } }),
+        },
+      );
+      if (!res.ok) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `El webhook respondió ${res.status}`,
+        });
+      }
+      return { ok: true };
     }),
 
   recientes: adminProcedure

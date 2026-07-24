@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { crearAlumno } from "~/server/alumnos";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
   DIA_VENCIMIENTO,
@@ -59,6 +60,7 @@ export const grupoRouter = createTRPCRouter({
       nombre: g.nombre,
       slug: g.slug,
       colegio: g.colegio,
+      tipo: g.tipo,
       autoRegistro: g.autoRegistro,
       creadoEn: g.creadoEn,
       resumen: resumir(g.cuotas, g.alumnos),
@@ -89,6 +91,7 @@ export const grupoRouter = createTRPCRouter({
         nombre: grupo.nombre,
         slug: grupo.slug,
         colegio: grupo.colegio,
+        tipo: grupo.tipo,
         autoRegistro: grupo.autoRegistro,
         linkRegistro: linkGrupo(grupo.slug),
         modoDemo: taloEsMock,
@@ -137,7 +140,7 @@ export const grupoRouter = createTRPCRouter({
               id: p.id,
               monto: Number(p.monto),
               recibidoEn: p.recibidoEn,
-              taloTransactionId: p.taloTransactionId,
+              refPago: p.refPago,
             })),
           };
         }),
@@ -190,6 +193,69 @@ export const grupoRouter = createTRPCRouter({
       });
 
       return { id: grupo.id, slug: grupo.slug };
+    }),
+
+  /**
+   * Crea un cliente particular: una boda, un cumpleaños de 15. Es un grupo de
+   * uno —mismo modelo que los egresados— con su propio plan de cuotas, que acá
+   * van explícitas (una seña y un saldo no son iguales ni mensuales) en vez de
+   * generadas. El único pagador es el cliente, con toda la maquinaria de alumno.
+   */
+  crearParticular: adminProcedure
+    .input(
+      z.object({
+        cliente: z.string().min(2),
+        evento: z.string().min(2),
+        email: z.string().email().optional(),
+        cuentaPagoId: z.string().optional(),
+        cuotas: z
+          .array(z.object({ monto: z.number().positive(), venceEl: z.date() }))
+          .min(1)
+          .max(36),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const base = slugify(input.cliente) || "cliente";
+      let slug = base;
+      let intento = 1;
+      while (await ctx.db.grupo.findUnique({ where: { slug } })) {
+        intento += 1;
+        slug = `${base}-${intento}`;
+      }
+
+      // Se numeran de la más temprana a la más tardía: la imputación oldest-first
+      // cuenta con que el número siga el orden de las fechas.
+      const ordenadas = [...input.cuotas].sort(
+        (a, b) => a.venceEl.getTime() - b.venceEl.getTime(),
+      );
+
+      const grupo = await ctx.db.grupo.create({
+        data: {
+          nombre: input.cliente,
+          colegio: input.evento,
+          tipo: "PARTICULAR",
+          // Un particular no tiene link público de auto-registro: lo invita el
+          // admin, uno solo.
+          autoRegistro: false,
+          cuentaPagoId: input.cuentaPagoId ?? null,
+          slug,
+          cuotas: {
+            create: ordenadas.map((c, i) => ({
+              numero: i + 1,
+              monto: c.monto,
+              venceEl: c.venceEl,
+            })),
+          },
+        },
+      });
+
+      const { alumno } = await crearAlumno({
+        grupoId: grupo.id,
+        nombre: input.cliente,
+        emailContacto: input.email ?? null,
+      });
+
+      return { id: grupo.id, slug: grupo.slug, alumnoId: alumno.id };
     }),
 
   actualizarCuota: adminProcedure

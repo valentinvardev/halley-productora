@@ -48,7 +48,7 @@ export type AlumnoAcciones = {
     id: string;
     monto: number;
     recibidoEn: Date;
-    taloTransactionId: string;
+    refPago: string;
   }[];
 };
 
@@ -247,10 +247,11 @@ export function AccionesAlumno({
                   <span className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] text-gray-45">
                     {fechaHora(p.recibidoEn)}
                   </span>
-                  {/* Es el identificador con el que se cruza contra Talo si
-                      alguna vez hay que discutir un pago. */}
+                  {/* Es el identificador con el que se cruza contra el
+                      proveedor (Talo o Mercado Pago) si alguna vez hay que
+                      discutir un pago. */}
                   <span className="w-full font-mono text-[10.5px] text-gray-45 break-all">
-                    {p.taloTransactionId}
+                    {p.refPago}
                   </span>
                 </div>
               ))}

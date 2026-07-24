@@ -15,6 +15,8 @@ import {
   sumarPagos,
 } from "~/server/dominio";
 
+import { mpEsMock } from "~/server/mercadopago";
+import { proveedorDeGrupo } from "~/server/pagos";
 import { taloEsMock } from "~/server/talo";
 
 export const cuentaRouter = createTRPCRouter({
@@ -138,12 +140,17 @@ export const cuentaRouter = createTRPCRouter({
       const monto = aSaldar.reduce((t, c) => t + c.saldo, 0);
       const primera = aSaldar[0];
 
+      // Qué proveedor cobra por este grupo decide toda la pantalla: Mercado Pago
+      // redirige a Checkout Pro, Talo muestra el CVU para transferir.
+      const { proveedor } = await proveedorDeGrupo(alumno.grupoId);
+
       return {
         alumnoId: alumno.id,
         nombre: alumno.nombre,
         alias: alumno.alias,
         cvu: alumno.cvu,
-        modoDemo: taloEsMock,
+        proveedor,
+        modoDemo: proveedor === "MERCADOPAGO" ? mpEsMock : taloEsMock,
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         grupo: {
           nombre: alumno.grupo.nombre,
@@ -191,7 +198,10 @@ export const cuentaRouter = createTRPCRouter({
         grupo: {
           include: {
             cuotas: { orderBy: { numero: "asc" } },
-            galerias: { orderBy: { creadoEn: "desc" } },
+            galerias: {
+              orderBy: { creadoEn: "desc" },
+              include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+            },
           },
         },
         tutores: {
@@ -240,12 +250,25 @@ export const cuentaRouter = createTRPCRouter({
           monto: Number(p.monto),
           recibidoEn: p.recibidoEn,
         })),
+        // Las fotos sólo viajan si la familia está al día: es lo mismo que
+        // chequea la ruta que las sirve, pero acá evita anunciar lo que no se
+        // va a poder abrir.
         galerias: a.grupo.galerias.map((g) => ({
           id: g.id,
           titulo: g.titulo,
           linkDrive: g.linkDrive,
           venceEl: g.venceEl,
           vigente: !g.venceEl || g.venceEl.getTime() > Date.now(),
+          fotos:
+            plan.deuda <= 0
+              ? g.fotos.map((f) => ({
+                  id: f.id,
+                  nombre: f.nombre,
+                  tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
+                  url: `/api/galeria/${f.id}`,
+                  descarga: `/api/galeria/${f.id}?descargar=1`,
+                }))
+              : [],
         })),
       };
     });

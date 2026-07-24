@@ -27,6 +27,14 @@ export const env = createEnv({
     TALO_API_KEY: z.string().optional(),
 
     /**
+     * "mock" simula el ida y vuelta de Checkout Pro con una pantalla demo, sin
+     * plata real. "real" crea preferencias contra la API de Mercado Pago con el
+     * token de cada socio (guardado en su CuentaPago). El token NO va acá: es
+     * por cuenta, no global.
+     */
+    MP_MODE: z.enum(["mock", "real"]).default("mock"),
+
+    /**
      * "bandeja" registra los emails sin enviarlos (modo demo).
      * "resend" además los manda de verdad — requiere RESEND_API_KEY.
      * En los dos casos quedan guardados y visibles en el panel.
@@ -101,6 +109,7 @@ export const env = createEnv({
     TALO_MODE: process.env.TALO_MODE,
     TALO_API_URL: process.env.TALO_API_URL,
     TALO_API_KEY: process.env.TALO_API_KEY,
+    MP_MODE: process.env.MP_MODE,
     AUTH_PADRES: process.env.AUTH_PADRES,
     EMAIL_MODE: process.env.EMAIL_MODE,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
