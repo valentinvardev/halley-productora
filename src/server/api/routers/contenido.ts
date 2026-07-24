@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { esCategoria } from "~/app/_datos/categorias";
+import { HERO, esCategoria, esSubible } from "~/app/_datos/categorias";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
 
@@ -65,7 +65,7 @@ export const contenidoRouter = createTRPCRouter({
           message: "Falta configurar S3 (AWS_S3_BUCKET y las credenciales).",
         });
       }
-      if (!esCategoria(input.categoria)) {
+      if (!esSubible(input.categoria)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Categoría inválida." });
       }
       const tipo = TIPOS[input.contentType];
@@ -152,6 +152,64 @@ export const contenidoRouter = createTRPCRouter({
       });
       return { ok: true };
     }),
+
+  /** La portada del sitio, o null si no hay ninguna. */
+  hero: adminProcedure.query(async ({ ctx }) => {
+    const fila = await ctx.db.contenido.findFirst({
+      where: { categoria: HERO },
+      orderBy: { creadoEn: "desc" },
+    });
+    if (!fila) return null;
+    return {
+      id: fila.id,
+      tipo: fila.tipo === "video" ? ("video" as const) : ("imagen" as const),
+      url: `/api/contenido/${fila.id}`,
+    };
+  }),
+
+  /**
+   * Pone una pieza como portada del sitio y borra la que estaba.
+   *
+   * Hay una sola portada, así que reemplazar es la operación natural: si sólo
+   * creara la nueva, la anterior quedaría ocupando espacio en el bucket sin que
+   * nadie la vea nunca.
+   */
+  guardarHero: adminProcedure
+    .input(
+      z.object({
+        s3Key: z.string(),
+        tipo: z.enum(["imagen", "video"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const previas = await ctx.db.contenido.findMany({
+        where: { categoria: HERO },
+      });
+
+      const nueva = await ctx.db.contenido.create({
+        data: { categoria: HERO, s3Key: input.s3Key, tipo: input.tipo, orden: 0 },
+      });
+
+      if (previas.length > 0) {
+        await borrarObjetos(previas.map((p) => p.s3Key));
+        await ctx.db.contenido.deleteMany({
+          where: { id: { in: previas.map((p) => p.id) } },
+        });
+      }
+
+      return { id: nueva.id };
+    }),
+
+  /** Vuelve la portada al video de respaldo que vive en el repo. */
+  quitarHero: adminProcedure.mutation(async ({ ctx }) => {
+    const previas = await ctx.db.contenido.findMany({ where: { categoria: HERO } });
+    if (previas.length === 0) return { ok: true };
+    await borrarObjetos(previas.map((p) => p.s3Key));
+    await ctx.db.contenido.deleteMany({
+      where: { id: { in: previas.map((p) => p.id) } },
+    });
+    return { ok: true };
+  }),
 
   /** Borra varias de una: es lo que pide la selección múltiple de la galería. */
   eliminarVarios: adminProcedure

@@ -13,8 +13,19 @@ export const CATEGORIAS = [
   { slug: "marcas", nombre: "Marcas" },
 ] as const;
 
+/**
+ * La portada del sitio. No es una categoría de servicio —no sale como panel ni
+ * tiene galería—, pero guarda su pieza en la misma tabla y usa la misma subida.
+ */
+export const HERO = "hero";
+
 export type CategoriaSlug = (typeof CATEGORIAS)[number]["slug"];
 
 export function esCategoria(slug: string): slug is CategoriaSlug {
   return CATEGORIAS.some((c) => c.slug === slug);
+}
+
+/** Lo que se puede subir: las cuatro categorías y el hero. */
+export function esSubible(slug: string) {
+  return slug === HERO || esCategoria(slug);
 }

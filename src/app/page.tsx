@@ -13,7 +13,7 @@ import {
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
-import { contenidoDe } from "~/server/contenido";
+import { contenidoDe, contenidoHero } from "~/server/contenido";
 import { MAX_PORTADAS, PortadasRotativas } from "./_components/portadas-rotativas";
 import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import { SERVICIOS } from "./_datos/servicios";
@@ -64,12 +64,14 @@ const NO_NEGOCIABLES = [
 export default async function Landing() {
   // Los datos de contacto salen del panel, no del codigo.
   const datos = await contacto();
+  // La portada que subió el admin manda; si no hay, el archivo del repo.
+  const hero = await contenidoHero();
 
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
       <NavPublica secciones={SECCIONES} />
 
-      <Hero whatsapp={datos.whatsapp} />
+      <Hero whatsapp={datos.whatsapp} hero={hero} />
       <Concepto />
       <Servicios />
       <Como />
@@ -81,16 +83,43 @@ export default async function Landing() {
 
 /* --------------------------------------------------------------------- hero */
 
-function Hero({ whatsapp }: { whatsapp: string }) {
+function Hero({
+  whatsapp,
+  hero,
+}: {
+  whatsapp: string;
+  hero: { url: string; tipo: "imagen" | "video" } | null;
+}) {
   const hayVideo = existeEnPublico(VIDEO_PORTADA);
   const hayPoster = existeEnPublico(POSTER_PORTADA);
-  // Con cualquiera de los dos el fondo pasa a ser oscuro, y eso es lo que
+  // Con cualquiera de los tres el fondo pasa a ser oscuro, y eso es lo que
   // decide cómo se pintan los botones.
-  const hayFondo = hayVideo || hayPoster;
+  const hayFondo = !!hero || hayVideo || hayPoster;
 
   return (
     <section className="hero aisla relative flex flex-col justify-center overflow-hidden border-b border-gray-20">
-      {hayVideo ? (
+      {hero ? (
+        // Lo que el admin subió desde el panel manda sobre el respaldo.
+        hero.tipo === "video" ? (
+          <video
+            src={hero.url}
+            muted
+            loop
+            autoPlay
+            playsInline
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hero.url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )
+      ) : hayVideo ? (
         <video
           src={VIDEO_PORTADA}
           poster={hayPoster ? POSTER_PORTADA : undefined}

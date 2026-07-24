@@ -1,3 +1,4 @@
+import { HERO as HERO_SLUG } from "~/app/_datos/categorias";
 import { db } from "~/server/db";
 
 // La lista de categorías es dato puro y vive aparte para que el cliente pueda
@@ -5,7 +6,9 @@ import { db } from "~/server/db";
 // que ya la buscaban acá.
 export {
   CATEGORIAS,
+  HERO,
   esCategoria,
+  esSubible,
   type CategoriaSlug,
 } from "~/app/_datos/categorias";
 
@@ -33,4 +36,21 @@ export async function contenidoDe(categoria: string) {
     tipo: c.tipo === "video" ? ("video" as const) : ("imagen" as const),
     url: `/api/contenido/${c.id}`,
   }));
+}
+
+/**
+ * La pieza de portada del sitio, o null si todavía no se subió ninguna. Hay una
+ * sola: subir otra reemplaza a la anterior.
+ */
+export async function contenidoHero() {
+  const fila = await db.contenido.findFirst({
+    where: { categoria: HERO_SLUG },
+    orderBy: { creadoEn: "desc" },
+  });
+  if (!fila) return null;
+  return {
+    id: fila.id,
+    tipo: fila.tipo === "video" ? ("video" as const) : ("imagen" as const),
+    url: `/api/contenido/${fila.id}`,
+  };
 }
