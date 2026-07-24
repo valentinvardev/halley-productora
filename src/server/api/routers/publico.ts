@@ -3,9 +3,8 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
-import { mpEsMock } from "~/server/mercadopago";
 import { proveedorDeGrupo } from "~/server/pagos";
-import { taloEsMock } from "~/server/talo";
+import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
 
 /**
  * El link personal sin login (/p/[token]).
@@ -47,7 +46,10 @@ export const publicoRouter = createTRPCRouter({
         proveedor,
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         tieneCuenta: alumno._count.tutores > 0,
-        modoDemo: proveedor === "MERCADOPAGO" ? mpEsMock : taloEsMock,
+        modoDemo:
+          proveedor === "MERCADOPAGO"
+            ? simuladorMpActivo()
+            : simuladorTaloActivo(),
         grupo: {
           nombre: alumno.grupo.nombre,
           colegio: alumno.grupo.colegio,

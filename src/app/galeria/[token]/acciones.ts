@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -10,6 +10,12 @@ import {
   pruebaDesbloqueo,
   verificarPassword,
 } from "~/server/galerias";
+import {
+  esperaRestante,
+  origenDe,
+  registrarExito,
+  registrarFallo,
+} from "~/server/limite-intentos";
 
 export type EstadoDesbloqueo = { error?: string } | null;
 
@@ -32,9 +38,24 @@ export async function desbloquearGaleria(
   if (!galeria || !galeria.passwordHash) return { error: "Galería no encontrada." };
   if (!galeriaVigente(galeria)) return { error: "Este enlace venció." };
 
-  if (!verificarPassword(password, galeria.passwordHash)) {
-    return { error: "Contraseña incorrecta." };
+  // Las contraseñas de galería las elige el fotógrafo y suelen ser cortas: sin
+  // freno, se prueban todas.
+  const llave = `galeria:${galeria.id}:${origenDe(await headers())}`;
+  const espera = esperaRestante(llave);
+  if (espera > 0) {
+    return { error: `Demasiados intentos. Probá en ${espera} segundos.` };
   }
+
+  if (!verificarPassword(password, galeria.passwordHash)) {
+    const castigo = registrarFallo(llave);
+    return {
+      error: castigo
+        ? `Contraseña incorrecta. Esperá ${castigo} segundos.`
+        : "Contraseña incorrecta.",
+    };
+  }
+
+  registrarExito(llave);
 
   const galleta = await cookies();
   galleta.set(cookieDesbloqueo(galeria.id), pruebaDesbloqueo(galeria), {

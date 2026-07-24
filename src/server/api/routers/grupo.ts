@@ -10,7 +10,7 @@ import {
   linkRegistroAlumno,
   sumarPagos,
 } from "~/server/dominio";
-import { taloEsMock } from "~/server/talo";
+import { simuladorTaloActivo } from "~/server/demo";
 import { slugify } from "~/lib/slug";
 
 type CuotaDb = { id: string; numero: number; monto: unknown; venceEl: Date };
@@ -94,7 +94,7 @@ export const grupoRouter = createTRPCRouter({
         tipo: grupo.tipo,
         autoRegistro: grupo.autoRegistro,
         linkRegistro: linkGrupo(grupo.slug),
-        modoDemo: taloEsMock,
+        modoDemo: simuladorTaloActivo(),
         cuentaPago: grupo.cuentaPago
           ? { id: grupo.cuentaPago.id, nombre: grupo.cuentaPago.nombre, proveedor: grupo.cuentaPago.proveedor }
           : null,

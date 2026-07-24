@@ -15,9 +15,8 @@ import {
   sumarPagos,
 } from "~/server/dominio";
 
-import { mpEsMock } from "~/server/mercadopago";
 import { proveedorDeGrupo } from "~/server/pagos";
-import { taloEsMock } from "~/server/talo";
+import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
 
 export const cuentaRouter = createTRPCRouter({
   /* ------------------------------------------------------- registro / login */
@@ -150,7 +149,10 @@ export const cuentaRouter = createTRPCRouter({
         alias: alumno.alias,
         cvu: alumno.cvu,
         proveedor,
-        modoDemo: proveedor === "MERCADOPAGO" ? mpEsMock : taloEsMock,
+        modoDemo:
+          proveedor === "MERCADOPAGO"
+            ? simuladorMpActivo()
+            : simuladorTaloActivo(),
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         grupo: {
           nombre: alumno.grupo.nombre,
@@ -221,7 +223,7 @@ export const cuentaRouter = createTRPCRouter({
         alias: a.alias,
         cvu: a.cvu,
         link: linkAlumno(a.token),
-        modoDemo: taloEsMock,
+        modoDemo: simuladorTaloActivo(),
         grupo: {
           nombre: a.grupo.nombre,
           colegio: a.grupo.colegio,

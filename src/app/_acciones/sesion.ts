@@ -12,6 +12,7 @@ import {
   normalizarEmail,
   puedeSumarResponsable,
 } from "~/server/cuentas";
+import { demoAbierta } from "~/server/demo";
 import { db } from "~/server/db";
 import { MAX_RESPONSABLES } from "~/server/dominio";
 import { notificarAcceso } from "~/server/notificaciones";
@@ -39,15 +40,21 @@ async function entrarOEnviarEnlace(
   email: string,
   alumnoId?: string,
 ): Promise<EstadoAcceso> {
-  if (env.AUTH_PADRES === "enlace") {
+  // El ingreso directo entra a la cuenta con sólo saber el email: es una
+  // herramienta de demostración, no una forma de autenticar. En producción sólo
+  // vale si alguien abrió esa puerta a propósito.
+  const directo = env.AUTH_PADRES === "directo" && demoAbierta();
+
+  if (!directo) {
     const { url, minutos } = await crearEnlaceAcceso(email, { alumnoId });
     await notificarAcceso(email, url, minutos);
 
-    // El link se devuelve sólo cuando el correo no sale de verdad, para poder
-    // mostrar el recorrido sin depender de una casilla.
+    // Devolver el link en la respuesta lo pone al alcance de quien escribió el
+    // email, que es justo lo que el link tenía que probar. Sólo se muestra con
+    // la demo abierta, donde no hay casilla de la cual sacarlo.
     return {
       enlaceEnviado: email,
-      url: env.EMAIL_MODE === "bandeja" ? url : null,
+      url: demoAbierta() && env.EMAIL_MODE === "bandeja" ? url : null,
     };
   }
 

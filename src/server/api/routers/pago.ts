@@ -10,9 +10,10 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
-import { aprobarPagoMockMp, mercadoPago, mpEsMock } from "~/server/mercadopago";
+import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
+import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
 import { proveedorDeGrupo } from "~/server/pagos";
-import { registrarTransferenciaSimulada, taloEsMock } from "~/server/talo";
+import { registrarTransferenciaSimulada } from "~/server/talo";
 
 /**
  * Arranca un pago por Checkout Pro: crea la preferencia con el monto exacto y
@@ -92,10 +93,13 @@ async function crearPreferenciaPago(
  * simulado: el pago entra por el mismo camino que va a usar en producción.
  */
 async function simularTransferencia(alumnoId: string, montoManual?: number) {
-  if (!taloEsMock) {
+  // Sin esto, cualquiera con el token de una familia se da por pagado sin
+  // transferir un peso —y de paso se destraba la galería—. Por eso la puerta
+  // está cerrada en producción salvo que se abra a propósito.
+  if (!simuladorTaloActivo()) {
     throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "El simulador sólo está disponible con TALO_MODE=mock.",
+      code: "NOT_FOUND",
+      message: "No disponible.",
     });
   }
 
@@ -234,11 +238,8 @@ export const pagoRouter = createTRPCRouter({
   confirmarPagoDemoMp: publicProcedure
     .input(z.object({ pagoId: z.string() }))
     .mutation(async ({ input }) => {
-      if (!mpEsMock) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "La confirmación demo sólo existe con MP_MODE=mock.",
-        });
+      if (!simuladorMpActivo()) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No disponible." });
       }
       const { cuentaPagoId } = await aprobarPagoMockMp(input.pagoId);
 

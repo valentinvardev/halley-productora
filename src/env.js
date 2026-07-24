@@ -35,19 +35,34 @@ export const env = createEnv({
     MP_MODE: z.enum(["mock", "real"]).default("mock"),
 
     /**
+     * Habilita las herramientas de demostración: el simulador de transferencias,
+     * la confirmación de pagos falsos y el link de acceso mostrado en pantalla.
+     *
+     * SON PUERTAS ABIERTAS: con esto encendido, cualquiera puede darse por
+     * pagado sin transferir y entrar sin pasar por el email. Por eso en
+     * producción están apagadas salvo que se enciendan a propósito acá, y fuera
+     * de producción quedan disponibles para poder mostrar el recorrido.
+     */
+    DEMO_ABIERTA: z
+      .enum(["si", "no"])
+      .optional()
+      .transform((v) => v === "si"),
+
+    /**
      * "bandeja" registra los emails sin enviarlos (modo demo).
      * "resend" además los manda de verdad — requiere RESEND_API_KEY.
      * En los dos casos quedan guardados y visibles en el panel.
      */
     /**
      * Cómo entran las familias.
-     * "directo" — con el email alcanza: entra en el momento. Es lo que se usa
-     *   en la demo, donde parar a revisar un correo rompe el recorrido.
-     * "enlace" — se manda un link de un solo uso al email y se canjea. Es lo
-     *   que corresponde en producción: sin esto, saber el email de otro
-     *   alcanza para entrar a su cuenta.
+     * "enlace" — se manda un link de un solo uso al email y se canjea. Es el
+     *   default y lo único aceptable en producción.
+     * "directo" — con el email alcanza: entra en el momento. Sirve para mostrar
+     *   el recorrido sin depender de una casilla, pero es un ingreso a la cuenta
+     *   de cualquiera con sólo saber su dirección. En producción se ignora
+     *   salvo que además se abra DEMO_ABIERTA.
      */
-    AUTH_PADRES: z.enum(["directo", "enlace"]).default("directo"),
+    AUTH_PADRES: z.enum(["directo", "enlace"]).default("enlace"),
 
     EMAIL_MODE: z.enum(["bandeja", "resend"]).default("bandeja"),
     RESEND_API_KEY: z.string().optional(),
@@ -110,6 +125,7 @@ export const env = createEnv({
     TALO_API_URL: process.env.TALO_API_URL,
     TALO_API_KEY: process.env.TALO_API_KEY,
     MP_MODE: process.env.MP_MODE,
+    DEMO_ABIERTA: process.env.DEMO_ABIERTA,
     AUTH_PADRES: process.env.AUTH_PADRES,
     EMAIL_MODE: process.env.EMAIL_MODE,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
