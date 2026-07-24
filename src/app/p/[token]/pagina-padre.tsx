@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
+import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { Boton, BotonTexto } from "~/app/_components/ui";
@@ -197,26 +198,47 @@ export function PaginaPadre({
 
         {/* Galería */}
         {data.galerias.length > 0 && (
-          <div className="mt-6">
-            <div className="eyebrow mb-2">Galería</div>
-            {data.galerias.map((g) => (
-              <div
-                key={g.id}
-                className="flex flex-wrap items-center justify-between gap-2 border border-ink bg-lienzo px-4 py-3"
-              >
-                <span className="text-[13px]">{g.titulo}</span>
-                {g.linkDrive && (
-                  <a
-                    href={g.linkDrive}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2"
-                  >
-                    Abrir en Drive
-                  </a>
-                )}
+          <div className="mt-8">
+            <div className="eyebrow mb-3">Galería</div>
+            {data.plan.deuda > 0 ? (
+              // Se libera al saldar, igual que en el panel: la ruta que sirve
+              // las fotos chequea lo mismo, esto sólo evita anunciarlas.
+              <p className="nota border border-dashed border-gray-20 bg-paper-dim px-4 py-4">
+                Cuando termines de pagar, las fotos aparecen acá para descargar.
+                Te faltan {pesos(data.plan.deuda)}.
+              </p>
+            ) : (
+              <div className="grid gap-8">
+                {data.galerias.map((g) => (
+                  <div key={g.id}>
+                    {g.linkDrive && (
+                      <div className="mb-3 flex justify-end">
+                        <a
+                          href={g.linkDrive}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
+                        >
+                          Abrir en Drive
+                        </a>
+                      </div>
+                    )}
+                    {g.fotos.length > 0 ? (
+                      <GaleriaEntrega titulo={g.titulo} fotos={g.fotos} />
+                    ) : (
+                      <div>
+                        <div className="text-[13px]">{g.titulo}</div>
+                        <p className="nota mt-1">
+                          {g.linkDrive
+                            ? "El material está en Drive por ahora."
+                            : "Todavía no se subieron fotos."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 
