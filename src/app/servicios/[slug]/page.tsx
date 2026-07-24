@@ -11,6 +11,12 @@ import {
   IconoWhatsApp,
 } from "~/app/_components/iconos";
 import { Logotipo } from "~/app/_components/logotipo";
+import {
+  BarraSeleccion,
+  BotonElegirFotos,
+  GaleriaPublica,
+  ProveedorSeleccion,
+} from "~/app/_components/galeria-publica";
 import { Medio } from "~/app/_components/medio";
 import { NavPublica } from "~/app/_components/nav-publica";
 import { botonFantasma, botonSolido, botonWhatsApp } from "~/app/_components/ui";
@@ -62,8 +68,11 @@ export default async function ServicioPage({
   const contenido = await contenidoDe(servicio.slug);
   const portada = contenido[0] ?? null;
   const galeria = contenido.slice(1);
+  const fotos = galeria.filter((p) => p.tipo === "imagen");
+  const videos = galeria.filter((p) => p.tipo === "video");
 
   return (
+    <ProveedorSeleccion>
     <div className={`landing ${FUENTES_MARCA}`}>
       <NavPublica
         secciones={[
@@ -95,15 +104,7 @@ export default async function ServicioPage({
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3.5">
-            <a
-              href={linkWhatsApp(datos.whatsapp, consulta)}
-              target="_blank"
-              rel="noreferrer"
-              className={botonWhatsApp}
-            >
-              <IconoWhatsApp />
-              Pedir presupuesto
-            </a>
+            <BotonElegirFotos hayFotos={fotos.length > 0} />
             <a href="#pedir" className={botonFantasma}>
               <IconoFlecha />
               Ver qué incluye
@@ -130,18 +131,16 @@ export default async function ServicioPage({
             De {servicio.nombre.toLowerCase()} que ya cubrimos
           </h2>
 
-          <div className="mt-11 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {galeria.length > 0
-              ? galeria.map((pieza) => (
-                  <Medio
-                    key={pieza.id}
-                    src=""
-                    alt={servicio.nombre}
-                    proporcion="aspect-[4/3]"
-                    directo={pieza}
-                  />
-                ))
-              : Array.from({ length: servicio.piezas }, (_, i) => (
+          <div className="mt-11">
+            {galeria.length > 0 ? (
+              <GaleriaPublica
+                fotos={fotos}
+                videos={videos}
+                nombre={servicio.nombre}
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: servicio.piezas }, (_, i) => (
                   <Medio
                     key={i}
                     src={`/servicios/${servicio.slug}-${String(i + 1).padStart(2, "0")}.jpg`}
@@ -149,6 +148,8 @@ export default async function ServicioPage({
                     proporcion="aspect-[4/3]"
                   />
                 ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -253,6 +254,13 @@ export default async function ServicioPage({
           </div>
         </div>
       </footer>
+
+      <BarraSeleccion
+        whatsapp={datos.whatsapp}
+        categoria={servicio.nombre}
+        fotos={fotos}
+      />
     </div>
+    </ProveedorSeleccion>
   );
 }

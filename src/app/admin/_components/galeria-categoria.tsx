@@ -14,7 +14,7 @@ import { MAX_PORTADAS } from "~/app/_components/portadas-rotativas";
 import { Boton, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
 import { EsqueletoGaleria } from "./esqueletos";
-import { Lightbox } from "./lightbox";
+import { Lightbox } from "~/app/_components/lightbox";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
 

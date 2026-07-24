@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 
-import { IconoCruz, IconoFlecha } from "~/app/_components/iconos";
+import { IconoCruz, IconoFlecha } from "./iconos";
+import { Reproductor } from "./reproductor";
 
 export type PiezaLightbox = {
   id: string;
@@ -103,12 +104,7 @@ export function Lightbox({
       {/* El clic sobre el contenido no cierra: sólo el fondo. */}
       <div onClick={(e) => e.stopPropagation()} className="max-h-full max-w-full">
         {pieza.tipo === "video" ? (
-          <video
-            src={pieza.url}
-            controls
-            autoPlay
-            className="max-h-[88vh] max-w-full"
-          />
+          <Reproductor src={pieza.url} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img

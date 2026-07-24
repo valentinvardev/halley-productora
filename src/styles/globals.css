@@ -711,6 +711,61 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   El corazón del "me gusta".
+
+   Salta al aparecer —se pasa de largo y vuelve— porque un like tiene que
+   sentirse. Es el mismo corazón rojo translúcido que marca las fotos elegidas
+   en todo el sistema.
+--------------------------------------------------------------------------- */
+@keyframes latir {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+  75% {
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.corazon-late {
+  animation: latir 0.42s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* El destello que sale del corazón al marcarlo y se desvanece. */
+@keyframes onda-like {
+  from {
+    opacity: 0.5;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.onda-like {
+  animation: onda-like 0.55s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corazon-late,
+  .onda-like {
+    animation: none;
+  }
+  .onda-like {
+    opacity: 0;
+  }
+}
+
 /* El visor a pantalla completa entra con un fundido, no de golpe. */
 @keyframes aparecer {
   from {
