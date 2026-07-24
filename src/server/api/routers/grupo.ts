@@ -71,6 +71,7 @@ export const grupoRouter = createTRPCRouter({
       const grupo = await ctx.db.grupo.findUniqueOrThrow({
         where: { id: input.id },
         include: {
+          cuentaPago: true,
           cuotas: { orderBy: { numero: "asc" } },
           galerias: { orderBy: { creadoEn: "desc" } },
           alumnos: {
@@ -91,6 +92,9 @@ export const grupoRouter = createTRPCRouter({
         autoRegistro: grupo.autoRegistro,
         linkRegistro: linkGrupo(grupo.slug),
         modoDemo: taloEsMock,
+        cuentaPago: grupo.cuentaPago
+          ? { id: grupo.cuentaPago.id, nombre: grupo.cuentaPago.nombre, proveedor: grupo.cuentaPago.proveedor }
+          : null,
         resumen: resumir(grupo.cuotas, grupo.alumnos),
         cuotas: grupo.cuotas.map((c) => ({
           id: c.id,
@@ -153,6 +157,7 @@ export const grupoRouter = createTRPCRouter({
         cantidadCuotas: z.number().int().min(1).max(36),
         primerVencimiento: z.date(),
         autoRegistro: z.boolean().default(true),
+        cuentaPagoId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -169,6 +174,7 @@ export const grupoRouter = createTRPCRouter({
           nombre: input.nombre,
           colegio: input.colegio,
           autoRegistro: input.autoRegistro,
+          cuentaPagoId: input.cuentaPagoId ?? null,
           slug,
           cuotas: {
             create: Array.from({ length: input.cantidadCuotas }, (_, i) => {
@@ -197,6 +203,17 @@ export const grupoRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { cuotaId, ...datos } = input;
       await ctx.db.cuota.update({ where: { id: cuotaId }, data: datos });
+      return { ok: true };
+    }),
+
+  /** Cambia a qué cuenta cobra un grupo. */
+  asignarCuenta: adminProcedure
+    .input(z.object({ id: z.string(), cuentaPagoId: z.string().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.grupo.update({
+        where: { id: input.id },
+        data: { cuentaPagoId: input.cuentaPagoId },
+      });
       return { ok: true };
     }),
 

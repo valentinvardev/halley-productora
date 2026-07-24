@@ -34,6 +34,10 @@ model Grupo {
     notificaciones Notificacion[]
 
     creadoEn DateTime @default(now())
+    /// A qué cuenta van los cobros de este grupo. Sin esto, la de por defecto.
+    cuentaPagoId String?
+    cuentaPago   CuentaPago? @relation(fields: [cuentaPagoId], references: [id], onDelete: SetNull)
+
 }
 
 /// Una cuota del plan: "la 3 de 6, $45.000, vence el 05/09".
@@ -238,6 +242,29 @@ model TransaccionMockTalo {
     @@index([customerId])
 }
 
+/// Una cuenta que recibe cobros. Cada socio puede tener la suya —en Talo o en
+/// Mercado Pago— y cada grupo se rutea a una: así el dinero de un evento cae en
+/// la cuenta que corresponde sin tocar código.
+///
+/// Las credenciales viven acá y nunca salen del servidor: el panel sólo ve los
+/// últimos caracteres para reconocerlas.
+model CuentaPago {
+    id           String        @id @default(cuid())
+    nombre       String
+    proveedor    ProveedorPago
+    /// Token de Talo o access token de Mercado Pago.
+    credencial   String
+    /// Sólo Talo: permite apuntar a otro entorno.
+    apiUrl       String?
+    activa       Boolean       @default(true)
+    /// La que se usa cuando un grupo no eligió ninguna.
+    porDefecto   Boolean       @default(false)
+    creadoEn     DateTime      @default(now())
+    grupos       Grupo[]
+
+    @@index([activa])
+}
+
 /// Ajustes del sitio que el admin edita sin tocar código: el WhatsApp al que
 /// escriben las familias, el Instagram, la casilla de contacto. Clave/valor para
 /// que sumar uno nuevo no pida una migración.
@@ -260,6 +287,11 @@ model Contenido {
     creadoEn  DateTime @default(now())
 
     @@index([categoria, orden])
+}
+
+enum ProveedorPago {
+    TALO
+    MERCADOPAGO
 }
 
 enum EstadoCuota {

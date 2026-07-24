@@ -1,6 +1,7 @@
 import { ajusteRouter } from "~/server/api/routers/ajuste";
 import { alumnoRouter } from "~/server/api/routers/alumno";
 import { contenidoRouter } from "~/server/api/routers/contenido";
+import { cuentaPagoRouter } from "~/server/api/routers/cuenta-pago";
 import { cuentaRouter } from "~/server/api/routers/cuenta";
 import { demoRouter } from "~/server/api/routers/demo";
 import { grupoRouter } from "~/server/api/routers/grupo";
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   demo: demoRouter,
   contenido: contenidoRouter,
   ajuste: ajusteRouter,
+  cuentaPago: cuentaPagoRouter,
 });
 
 // export type definition of API

@@ -141,6 +141,26 @@ export function EsqueletoContenidos() {
   );
 }
 
+/** La lista de cuentas de pago. */
+export function EsqueletoCuentas() {
+  return (
+    <div className="border border-ink">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between gap-4 border-b border-gray-20 px-5 py-4 last:border-b-0"
+        >
+          <div>
+            <Linea className="h-4 w-48" />
+            <Linea className="mt-2 h-2.5 w-64" />
+          </div>
+          <Bloque className="h-7 w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** El formulario de ajustes. */
 export function EsqueletoAjustes() {
   return (
