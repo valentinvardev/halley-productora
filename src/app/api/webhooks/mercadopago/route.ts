@@ -1,5 +1,7 @@
 import { after, type NextRequest } from "next/server";
 
+import { simuladorMpActivo } from "~/server/demo";
+import { verificarFirma } from "~/server/mercadopago/firma";
 import { procesarPagoMercadoPago } from "~/server/pagos";
 
 /**
@@ -47,6 +49,24 @@ export async function POST(req: NextRequest) {
 
   const cuentaPagoId = req.nextUrl.searchParams.get("cuenta");
   const pagoId = idDePago(req, body);
+
+  // La firma se chequea contra el id que MP manda en la query, que es sobre el
+  // que la calcula. Si no hay secreto configurado, esto deja pasar.
+  //
+  // En modo simulado no se exige: ahí Mercado Pago no nos avisa nada y el único
+  // que llama es nuestra propia pantalla demo, que no tiene con qué firmar.
+  // Con MP real, `simuladorMpActivo()` es false y la firma vuelve a regir.
+  if (!simuladorMpActivo()) {
+    const firma = verificarFirma({
+      firma: req.headers.get("x-signature"),
+      requestId: req.headers.get("x-request-id"),
+      dataId: req.nextUrl.searchParams.get("data.id") ?? pagoId,
+    });
+    if (!firma.ok) {
+      console.error(`[mp] aviso rechazado: ${firma.motivo}`);
+      return Response.json({ error: "firma inválida" }, { status: 401 });
+    }
+  }
 
   if (!pagoId || !cuentaPagoId) {
     // Puede ser una notificación de otro topic (merchant_order, etc.): se

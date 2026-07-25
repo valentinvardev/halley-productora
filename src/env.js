@@ -46,6 +46,16 @@ export const env = createEnv({
     MP_CLIENT_SECRET: z.string().optional(),
 
     /**
+     * Clave secreta que firma las notificaciones de Mercado Pago.
+     *
+     * Se copia de la configuración de webhooks de la aplicación. Con esto puesto
+     * se exige y verifica la firma de cada aviso; sin esto, se procesan igual
+     * —el pago se confirma contra la API de MP de todos modos—, pero se pierde
+     * la primera barrera contra avisos inventados.
+     */
+    MP_WEBHOOK_SECRET: z.string().optional(),
+
+    /**
      * Habilita las herramientas de demostración: el simulador de transferencias,
      * la confirmación de pagos falsos y el link de acceso mostrado en pantalla.
      *
@@ -138,6 +148,7 @@ export const env = createEnv({
     MP_MODE: process.env.MP_MODE,
     MP_CLIENT_ID: process.env.MP_CLIENT_ID,
     MP_CLIENT_SECRET: process.env.MP_CLIENT_SECRET,
+    MP_WEBHOOK_SECRET: process.env.MP_WEBHOOK_SECRET,
     DEMO_ABIERTA: process.env.DEMO_ABIERTA,
     AUTH_PADRES: process.env.AUTH_PADRES,
     EMAIL_MODE: process.env.EMAIL_MODE,
