@@ -12,6 +12,7 @@ import { db } from "~/server/db";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
 import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
 import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
+import { tokenVigente } from "~/server/mercadopago/oauth";
 import { proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada } from "~/server/talo";
 
@@ -72,7 +73,7 @@ async function crearPreferenciaPago(
   // webhook con qué token confirmar el pago.
   const urlWebhook = `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago?cuenta=${cuenta.id}`;
 
-  const pref = await mercadoPago.crearPreferencia(cuenta.credencial, {
+  const pref = await mercadoPago.crearPreferencia(await tokenVigente(cuenta), {
     monto,
     descripcion,
     referenciaExterna: alumno.id,

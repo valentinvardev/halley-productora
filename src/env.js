@@ -35,6 +35,17 @@ export const env = createEnv({
     MP_MODE: z.enum(["mock", "real"]).default("mock"),
 
     /**
+     * Credenciales de la aplicación de Mercado Pago, para vincular la cuenta de
+     * cada socio con el botón "Conectar" en vez de que nos pase un token a mano.
+     *
+     * Son de la app de Halley, no de ningún socio: identifican quién pide el
+     * permiso. El token de cada socio llega por OAuth y se guarda en su
+     * CuentaPago. Sin estas dos, el botón no aparece y queda la carga manual.
+     */
+    MP_CLIENT_ID: z.string().optional(),
+    MP_CLIENT_SECRET: z.string().optional(),
+
+    /**
      * Habilita las herramientas de demostración: el simulador de transferencias,
      * la confirmación de pagos falsos y el link de acceso mostrado en pantalla.
      *
@@ -125,6 +136,8 @@ export const env = createEnv({
     TALO_API_URL: process.env.TALO_API_URL,
     TALO_API_KEY: process.env.TALO_API_KEY,
     MP_MODE: process.env.MP_MODE,
+    MP_CLIENT_ID: process.env.MP_CLIENT_ID,
+    MP_CLIENT_SECRET: process.env.MP_CLIENT_SECRET,
     DEMO_ABIERTA: process.env.DEMO_ABIERTA,
     AUTH_PADRES: process.env.AUTH_PADRES,
     EMAIL_MODE: process.env.EMAIL_MODE,

@@ -3,12 +3,33 @@ import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { listarCuentas, marcarPorDefecto } from "~/server/cuentas-pago";
+import { oauthConfigurado, urlDeAutorizacion } from "~/server/mercadopago/oauth";
 
 const proveedor = z.enum(["TALO", "MERCADOPAGO"]);
 
 export const cuentaPagoRouter = createTRPCRouter({
   /** Las cuentas, con la credencial enmascarada. */
   listar: adminProcedure.query(() => listarCuentas()),
+
+  /** ¿Está la app de MP configurada como para ofrecer el botón de conectar? */
+  oauthDisponible: adminProcedure.query(() => ({ ok: oauthConfigurado() })),
+
+  /**
+   * Arranca la vinculación por OAuth: devuelve la URL de Mercado Pago a la que
+   * hay que mandar al socio. El token llega solo por el callback.
+   */
+  conectarMercadoPago: adminProcedure
+    .input(z.object({ nombre: z.string().trim().min(2) }))
+    .mutation(async ({ input }) => {
+      const url = await urlDeAutorizacion(input.nombre);
+      if (!url) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Falta configurar MP_CLIENT_ID y MP_CLIENT_SECRET.",
+        });
+      }
+      return { url };
+    }),
 
   crear: adminProcedure
     .input(

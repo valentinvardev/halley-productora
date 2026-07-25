@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import {
@@ -19,6 +20,19 @@ const PROVEEDORES = [
 
 type Proveedor = (typeof PROVEEDORES)[number]["valor"];
 
+/** Lo que dejó el callback de Mercado Pago en la URL, en castellano. */
+const AVISOS: Record<string, { texto: string; mal?: boolean }> = {
+  vinculada: { texto: "Cuenta de Mercado Pago vinculada." },
+  revinculada: { texto: "Esa cuenta ya estaba vinculada: se renovó el permiso." },
+  cancelado: { texto: "Se canceló la vinculación en Mercado Pago.", mal: true },
+  "sin-sesion": { texto: "Se venció la sesión del panel. Entrá y probá de nuevo.", mal: true },
+  incompleto: { texto: "Mercado Pago volvió sin los datos necesarios.", mal: true },
+  "estado-invalido": { texto: "No pudimos validar el pedido. Probá de nuevo.", mal: true },
+  "estado-usado": { texto: "Ese enlace de vinculación ya se usó.", mal: true },
+  "estado-vencido": { texto: "El pedido venció. Probá de nuevo.", mal: true },
+  "canje-fallido": { texto: "Mercado Pago rechazó el canje. Probá de nuevo.", mal: true },
+};
+
 /**
  * Las cuentas que reciben los cobros.
  *
@@ -29,9 +43,13 @@ type Proveedor = (typeof PROVEEDORES)[number]["valor"];
 export function CuentasPago() {
   const utils = api.useUtils();
   const { data: cuentas, isLoading } = api.cuentaPago.listar.useQuery();
+  const { data: oauth } = api.cuentaPago.oauthDisponible.useQuery();
   const [creando, setCreando] = useState(false);
+  const [conectando, setConectando] = useState(false);
   const [aBorrar, setABorrar] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const aviso = AVISOS[useSearchParams().get("mp") ?? ""];
 
   const refrescar = () => utils.cuentaPago.listar.invalidate();
 
@@ -53,14 +71,36 @@ export function CuentasPago() {
         titulo="Cuentas de pago"
         bajada="Dónde cae el dinero. Cada grupo se rutea a una cuenta; la marcada por defecto cobra los que no eligieron ninguna."
         acciones={
-          !creando ? (
-            <Boton onClick={() => setCreando(true)}>
-              <IconoMas />
-              Nueva cuenta
-            </Boton>
+          !creando && !conectando ? (
+            <>
+              {oauth?.ok && (
+                <Boton onClick={() => setConectando(true)}>
+                  Conectar Mercado Pago
+                </Boton>
+              )}
+              <Boton
+                variante={oauth?.ok ? "fantasma" : "solido"}
+                onClick={() => setCreando(true)}
+              >
+                <IconoMas />
+                Cargar a mano
+              </Boton>
+            </>
           ) : undefined
         }
       />
+
+      {aviso && (
+        <p
+          className={`nota mb-6 border px-4 py-3 ${
+            aviso.mal ? "border-marca text-marca" : "border-ink"
+          }`}
+        >
+          {aviso.texto}
+        </p>
+      )}
+
+      {conectando && <ConectarMercadoPago alCerrar={() => setConectando(false)} />}
 
       {creando && (
         <FormularioCuenta
@@ -94,6 +134,7 @@ export function CuentasPago() {
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="text-[15px]">{c.nombre}</span>
                   {c.porDefecto && <Tag activo>Por defecto</Tag>}
+                  {c.vinculada && <Tag>Vinculada</Tag>}
                   {!c.activa && <Tag>Inactiva</Tag>}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -177,6 +218,61 @@ export function CuentasPago() {
         </div>
       </Modal>
     </>
+  );
+}
+
+/**
+ * El botón de vincular: se le pone un nombre a la cuenta y se manda al socio a
+ * Mercado Pago. El token vuelve solo por el callback — nadie tiene que copiar ni
+ * pegar un secreto, que es justamente lo que se quería evitar.
+ */
+function ConectarMercadoPago({ alCerrar }: { alCerrar: () => void }) {
+  const [nombre, setNombre] = useState("");
+  const conectar = api.cuentaPago.conectarMercadoPago.useMutation({
+    onSuccess: (r) => {
+      window.location.href = r.url;
+    },
+  });
+  const yendo = conectar.isPending || conectar.isSuccess;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        conectar.mutate({ nombre });
+      }}
+      className="mb-8 grid gap-5 border border-ink p-8"
+    >
+      <div className="eyebrow">Conectar una cuenta de Mercado Pago</div>
+
+      <Campo
+        label="Nombre de la cuenta"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        placeholder="Mercado Pago — Juan (socio)"
+        hint="Es sólo para reconocerla en esta lista."
+        required
+      />
+
+      <p className="nota max-w-[60ch]">
+        Te vamos a llevar a Mercado Pago para que la cuenta autorice el cobro.
+        Cuando vuelvas, queda vinculada sola: no hay que copiar ningún token, y
+        el permiso se puede revocar desde Mercado Pago cuando quieras.
+      </p>
+
+      {conectar.error && (
+        <p className="nota text-marca">{conectar.error.message}</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Boton type="submit" disabled={yendo || nombre.trim().length < 2}>
+          {yendo ? "Abriendo Mercado Pago…" : "Ir a Mercado Pago"}
+        </Boton>
+        <Boton type="button" variante="fantasma" onClick={alCerrar}>
+          Cancelar
+        </Boton>
+      </div>
+    </form>
   );
 }
 

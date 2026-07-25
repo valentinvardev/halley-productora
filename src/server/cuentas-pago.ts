@@ -44,6 +44,10 @@ export async function listarCuentas() {
     activa: c.activa,
     porDefecto: c.porDefecto,
     grupos: c._count.grupos,
+    /** Vinculada por el botón de Mercado Pago, no con un token pegado a mano. */
+    vinculada: !!c.refreshToken,
+    /** Sólo las vinculadas vencen; se renuevan solas antes de llegar acá. */
+    expiraEl: c.expiraEl,
   }));
 }
 

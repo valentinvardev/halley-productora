@@ -5,6 +5,7 @@ import { cuentaDeGrupo } from "./cuentas-pago";
 import { db } from "./db";
 import { imputarPagos, sumarPagos } from "./dominio";
 import { mercadoPago } from "./mercadopago";
+import { tokenVigente } from "./mercadopago/oauth";
 import { notificarPagoRecibido } from "./notificaciones";
 import { talo } from "./talo";
 
@@ -151,7 +152,10 @@ export async function procesarPagoMercadoPago(payload: {
     return { ok: false as const, motivo: "cuenta-desconocida" };
   }
 
-  const pago = await mercadoPago.obtenerPago(cuenta.credencial, payload.pagoId);
+  const pago = await mercadoPago.obtenerPago(
+    await tokenVigente(cuenta),
+    payload.pagoId,
+  );
   if (!pago) {
     console.error(`[mp] no se pudo confirmar el pago ${payload.pagoId}`);
     return { ok: false as const, motivo: "pago-no-encontrado" };

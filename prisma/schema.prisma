@@ -329,7 +329,32 @@ model CuentaPago {
     creadoEn     DateTime      @default(now())
     grupos       Grupo[]
 
+    /// Vinculada por OAuth: el socio apretó "Conectar con Mercado Pago" en vez
+    /// de pasarnos un token a mano. Con esto el access token vence —180 días— y
+    /// se renueva solo con el refresh token, sin volver a molestarlo.
+    refreshToken String?
+    expiraEl     DateTime?
+    /// Id del vendedor en Mercado Pago: identifica de qué cuenta es el token y
+    /// evita vincular dos veces la misma.
+    mpUserId     String?       @unique
+
     @@index([activa])
+}
+
+/// El `state` de una vinculación por OAuth en curso.
+///
+/// Es la defensa contra CSRF del flujo: se genera al mandar al socio a Mercado
+/// Pago y se exige de vuelta al volver. Sin esto, alguien podría hacernos
+/// canjear un código suyo y dejar su cuenta enganchada como si fuera nuestra.
+/// Se usa una sola vez y vence rápido.
+model EstadoOauth {
+    id       String    @id @default(cuid())
+    estado   String    @unique
+    /// Nombre que el admin le puso a la cuenta antes de salir hacia MP.
+    nombre   String
+    usadoEl  DateTime?
+    expiraEl DateTime
+    creadoEn DateTime  @default(now())
 }
 
 /// Ajustes del sitio que el admin edita sin tocar código: el WhatsApp al que
