@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "prisma generate && next build",
     "db:generate": "prisma migrate dev",
     "db:migrar": "node --env-file=.env scripts/migrar-base.mjs",
     "db:migrate": "prisma migrate deploy",
