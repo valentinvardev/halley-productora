@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { COOKIE_SESION, cuentaDeSesion } from "~/server/cuentas";
-import { qrDePago } from "~/server/qr";
 import { api } from "~/trpc/server";
 import { PantallaPago } from "./pantalla-pago";
 
@@ -34,18 +33,10 @@ export default async function PagarPage({
     .catch(() => null);
   if (!inicial) notFound();
 
-  const qrSvg = await qrDePago({
-    cvu: inicial.cvu,
-    alias: inicial.alias,
-    monto: inicial.monto,
-    titular: inicial.nombre,
-  });
-
   return (
     <PantallaPago
       alumnoId={alumnoId}
       hastaCuotaId={hastaCuotaId}
-      qrSvg={qrSvg}
       inicial={inicial}
     />
   );

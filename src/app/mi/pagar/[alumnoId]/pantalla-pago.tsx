@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Copiar } from "~/app/_components/copiar";
+import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { BarraCarga } from "~/app/_components/esqueleto";
 import { IconoVolver } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
@@ -16,7 +16,8 @@ import { api, type RouterOutputs } from "~/trpc/react";
 const MS_ANTES_DE_VOLVER = 2600;
 
 /**
- * La pantalla de cobro: el QR, el alias y el monto exacto a transferir.
+ * La pantalla de cobro: el monto exacto y cómo pagarlo — según el grupo, los
+ * datos para transferir o el botón de Mercado Pago.
  *
  * No guarda estado propio del pago — pregunta al backend hasta que la
  * transferencia se acredita y ahí vuelve sola al panel. Que la página no pueda
@@ -26,12 +27,10 @@ const MS_ANTES_DE_VOLVER = 2600;
 export function PantallaPago({
   alumnoId,
   hastaCuotaId,
-  qrSvg,
   inicial,
 }: {
   alumnoId: string;
   hastaCuotaId?: string;
-  qrSvg: string;
   inicial: RouterOutputs["cuenta"]["cobro"];
 }) {
   const router = useRouter();
@@ -223,30 +222,7 @@ export function PantallaPago({
               ) : (
                 /* -------------------------------------------- Talo / CVU */
                 <>
-              {/* El QR queda siempre en positivo, incluso en modo oscuro: los
-                  lectores esperan módulos oscuros sobre fondo claro. */}
-              <div
-                className="qr mt-6 aspect-square w-full border border-ink p-3 [&>svg]:h-full [&>svg]:w-full"
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-              />
-
-              <p className="mt-3 text-center font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
-                Escaneá desde tu banco o billetera
-              </p>
-
-              <div className="mt-4 flex items-center justify-between border border-ink px-3 py-2.5">
-                <span className="font-mono text-[12px] break-all">
-                  {data.alias}
-                </span>
-                <Copiar valor={data.alias} etiqueta="Alias" />
-              </div>
-
-              <div className="mt-2 flex items-center justify-between px-1">
-                <span className="font-mono text-[10px] text-gray-45">
-                  CVU {data.cvu}
-                </span>
-                <Copiar valor={data.cvu} etiqueta="CVU" />
-              </div>
+              <DatosTransferencia alias={data.alias} cvu={data.cvu} />
 
               {/* Una vez que la familia avisó que transfirió, la pantalla
                   queda esperando algo que no depende de ella. La barra es para

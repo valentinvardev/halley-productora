@@ -95,12 +95,6 @@
     --color-lienzo: #191916;
   }
 
-  /* El QR se lee siempre en positivo: los lectores esperan módulos oscuros
-     sobre fondo claro. */
-  .qr {
-    background: #ffffff;
-  }
-
   /* -------------------------------------------------------------------------
      Barras de scroll.
 

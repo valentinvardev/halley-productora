@@ -346,6 +346,9 @@ Requiere las herramientas de demo activas (en local ya lo están).
 - Pasar `TALO_MODE=real` con las credenciales rotadas (el KYC ya está hecho y el adaptador está verificado contra la API real).
 - Verificación de firma del webhook de Talo (la de Mercado Pago ya está).
 - Verificar el dominio de Halley en Resend y pasar `EMAIL_MODE=resend`.
+- Preguntarle a Talo si emite el QR interoperable (Transferencias 3.0) para los
+  CVU de sus customers. Si lo dan, vuelve el QR y se escanea desde cualquier
+  banco; hoy no hay forma de generarlo bien de nuestro lado.
 - Cron de recordatorios (hoy se disparan a mano desde el panel).
 - Subir a Next 16 en algún momento tranquilo: `npm audit` marca CVE de libvips vía
   sharp. **No son explotables acá** — `next/image` sólo recibe archivos de

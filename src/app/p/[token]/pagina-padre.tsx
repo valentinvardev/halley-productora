@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { Copiar } from "~/app/_components/copiar";
+import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
@@ -12,16 +12,14 @@ import { fecha, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 /**
- * El link personal sin login. Muestra la cuota que toca pagar, el QR y el
- * alias, y abajo el plan completo. Invita a registrarse pero no lo exige.
+ * El link personal sin login. Muestra la cuota que toca pagar, cómo pagarla y
+ * abajo el plan completo. Invita a registrarse pero no lo exige.
  */
 export function PaginaPadre({
   token,
-  qrSvg,
   inicial,
 }: {
   token: string;
-  qrSvg: string;
   inicial: RouterOutputs["publico"]["porToken"];
 }) {
   const utils = api.useUtils();
@@ -126,30 +124,7 @@ export function PaginaPadre({
               ) : (
                 /* -------------------------------------------- Talo / CVU */
                 <>
-              {/* El QR queda siempre en positivo, incluso en modo oscuro: los
-                  lectores esperan módulos oscuros sobre fondo claro. */}
-              <div
-                className="qr mt-6 aspect-square w-full border border-ink p-3 [&>svg]:h-full [&>svg]:w-full"
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-              />
-
-              <p className="mt-3 text-center font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
-                Escaneá desde tu banco o billetera
-              </p>
-
-              <div className="mt-4 flex items-center justify-between border border-ink px-3 py-2.5">
-                <span className="font-mono text-[12px] break-all">
-                  {data.alias}
-                </span>
-                <Copiar valor={data.alias} etiqueta="Alias" />
-              </div>
-
-              <div className="mt-2 flex items-center justify-between px-1">
-                <span className="font-mono text-[10px] text-gray-45">
-                  CVU {data.cvu}
-                </span>
-                <Copiar valor={data.cvu} etiqueta="CVU" />
-              </div>
+              <DatosTransferencia alias={data.alias} cvu={data.cvu} />
 
               {data.reportoTransferenciaEl ? (
                 <p className="nota mt-6 border border-gray-20 bg-paper px-3 py-3 text-center">
