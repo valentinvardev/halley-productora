@@ -386,7 +386,14 @@ model EventoPago {
 
     /// Id en el proveedor, cuando lo hay. Permite cruzar con el `Pago`.
     refPago String?
-    monto   Decimal? @db.Decimal(12, 2)
+    /// La contraparte que hace falta para volver a pedirlo: el customer en Talo,
+    /// la cuenta que cobra en Mercado Pago. Sin esto, reintentar sería adivinar.
+    refCliente String?
+    monto      Decimal? @db.Decimal(12, 2)
+
+    /// Cuándo dejó de ser un problema: se completa al reintentar con éxito. Los
+    /// resueltos dejan de contar en "para mirar", que si no nunca bajaría.
+    resueltoEn DateTime?
 
     alumnoId     String?
     alumnoNombre String?

@@ -27,6 +27,7 @@ export type DatosEvento = {
   /** Marca los que hay que mirar: sale destacado en la pantalla. */
   falla?: boolean;
   refPago?: string | null;
+  refCliente?: string | null;
   monto?: number | null;
   alumnoId?: string | null;
   alumnoNombre?: string | null;
@@ -45,6 +46,7 @@ export async function registrarEvento(datos: DatosEvento) {
         resultado: datos.resultado ?? null,
         falla: datos.falla ?? false,
         refPago: datos.refPago ?? null,
+        refCliente: datos.refCliente ?? null,
         monto: datos.monto ?? null,
         alumnoId: datos.alumnoId ?? null,
         alumnoNombre: datos.alumnoNombre ?? null,

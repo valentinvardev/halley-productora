@@ -195,7 +195,8 @@ function FilaTransaccion({ fila }: { fila: Fila }) {
             <span className="text-[14px]">
               {fila.alumno ?? "Sin alumno identificado"}
             </span>
-            {fila.falla && <Tag>Para mirar</Tag>}
+            {fila.falla && !fila.resuelto && <Tag>Para mirar</Tag>}
+            {fila.resuelto && <Tag>Resuelto</Tag>}
             {!esPago && !fila.falla && <Tag>Aviso</Tag>}
           </div>
           <div className="mt-0.5 font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
@@ -257,18 +258,62 @@ function FilaTransaccion({ fila }: { fila: Fila }) {
               <p className="nota mt-3 text-[12.5px]">{fila.detalle}</p>
             )}
 
-            {fila.grupoId && (
-              <a
-                href={`/admin/grupos/${fila.grupoId}`}
-                className="mt-4 inline-block font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
-              >
-                Ver el grupo
-              </a>
-            )}
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              {fila.grupoId && (
+                <a
+                  href={`/admin/grupos/${fila.grupoId}`}
+                  className="font-rotulo text-[11.5px] uppercase tracking-[0.05em] underline underline-offset-2 hover:text-gray-70"
+                >
+                  Ver el grupo
+                </a>
+              )}
+              {fila.reintentable && <BotonReintentar id={fila.id} />}
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Vuelve a pedirle el pago al proveedor.
+ *
+ * Los avisos no se repiten solos: si uno falló, la plata quedó en el proveedor y
+ * el pago nunca se acreditó. Esto rehace el mismo camino que el webhook, sin
+ * tener que entrar al servidor a mano.
+ */
+function BotonReintentar({ id }: { id: string }) {
+  const utils = api.useUtils();
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const reintentar = api.transaccion.reintentar.useMutation({
+    onSuccess: async (r) => {
+      setMensaje(
+        r.ok
+          ? (RESULTADOS[r.motivo] ?? "Listo")
+          : `No se pudo: ${RESULTADOS[r.motivo] ?? r.motivo}`,
+      );
+      await Promise.all([
+        utils.transaccion.listar.invalidate(),
+        utils.transaccion.resumen.invalidate(),
+      ]);
+    },
+    onError: (e) => setMensaje(e.message),
+  });
+
+  return (
+    <span className="inline-flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => reintentar.mutate({ id })}
+        disabled={reintentar.isPending}
+        className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3.5 py-2 font-rotulo text-[11px] uppercase tracking-[0.06em] transition-colors hover:bg-ink hover:text-paper disabled:opacity-40"
+      >
+        {reintentar.isPending ? "Reintentando…" : "Reintentar"}
+      </button>
+      {mensaje && <span className="nota text-[11.5px]">{mensaje}</span>}
+    </span>
   );
 }
 

@@ -1,6 +1,9 @@
 import { z } from "zod";
 
+import { TRPCError } from "@trpc/server";
+
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { procesarPagoMercadoPago, procesarPagoRecibido } from "~/server/pagos";
 
 /**
  * El libro de todo lo que pasó alrededor del dinero.
@@ -31,6 +34,9 @@ type Fila = {
   refPago: string | null;
   cuota: number | null;
   detalle: string | null;
+  /** Se puede volver a pedir: sólo las fallas con con qué reintentar. */
+  reintentable: boolean;
+  resuelto: boolean;
 };
 
 export const transaccionRouter = createTRPCRouter({
@@ -81,7 +87,7 @@ export const transaccionRouter = createTRPCRouter({
           ? ctx.db.eventoPago.findMany({
               where: {
                 tipo: { not: "pago-registrado" },
-                ...(filtro === "fallas" ? { falla: true } : {}),
+                ...(filtro === "fallas" ? { falla: true, resueltoEn: null } : {}),
                 ...(q
                   ? {
                       OR: [
@@ -102,7 +108,7 @@ export const transaccionRouter = createTRPCRouter({
           ? ctx.db.eventoPago.count({
               where: {
                 tipo: { not: "pago-registrado" },
-                ...(filtro === "fallas" ? { falla: true } : {}),
+                ...(filtro === "fallas" ? { falla: true, resueltoEn: null } : {}),
               },
             })
           : 0,
@@ -127,6 +133,8 @@ export const transaccionRouter = createTRPCRouter({
           refPago: p.refPago,
           cuota: p.cuota?.numero ?? null,
           detalle: null,
+          reintentable: false,
+          resuelto: false,
         })),
         ...eventos.map((e) => ({
           id: `evento-${e.id}`,
@@ -145,6 +153,12 @@ export const transaccionRouter = createTRPCRouter({
           refPago: e.refPago,
           cuota: null,
           detalle: e.detalle,
+          reintentable:
+            e.falla &&
+            !e.resueltoEn &&
+            !!e.refPago &&
+            (!!e.refCliente || (e.proveedor === "TALO" && !!e.alumnoId)),
+          resuelto: !!e.resueltoEn,
         })),
       ]
         .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
@@ -157,12 +171,72 @@ export const transaccionRouter = createTRPCRouter({
       };
     }),
 
+  /**
+   * Vuelve a pedirle el pago al proveedor.
+   *
+   * Los avisos no se repiten solos: si uno falló por algo nuestro —una consulta
+   * mal armada, credenciales que faltaban—, la plata ya está en el proveedor
+   * pero el pago nunca se acredita. Esto rehace exactamente el mismo camino que
+   * el webhook, con lo que quedó guardado del aviso original.
+   */
+  reintentar: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const id = input.id.replace(/^evento-/, "");
+      const ev = await ctx.db.eventoPago.findUnique({ where: { id } });
+      if (!ev) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // La contraparte se guarda desde que existe el campo; para los avisos
+      // anteriores se deduce del alumno, que es de donde salía igual. Así los
+      // que ya estaban fallados también se pueden reintentar.
+      const cliente =
+        ev.refCliente ??
+        (ev.proveedor === "TALO" && ev.alumnoId
+          ? ((
+              await ctx.db.alumno.findUnique({
+                where: { id: ev.alumnoId },
+                select: { taloCustomerId: true },
+              })
+            )?.taloCustomerId ?? null)
+          : null);
+
+      if (!ev.refPago || !cliente) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Este aviso no guardó con qué volver a pedirlo.",
+        });
+      }
+
+      const res =
+        ev.proveedor === "MERCADOPAGO"
+          ? await procesarPagoMercadoPago({
+              pagoId: ev.refPago,
+              cuentaPagoId: cliente,
+            })
+          : await procesarPagoRecibido({
+              transactionId: ev.refPago,
+              customerId: cliente,
+            });
+
+      // Sólo se da por resuelto si esta vez entró: si volvió a fallar, tiene que
+      // seguir figurando para mirar. "Duplicado" también cuenta como resuelto —
+      // significa que el pago ya está registrado, que es lo que se buscaba.
+      if (res.ok) {
+        await ctx.db.eventoPago.update({
+          where: { id },
+          data: { resueltoEn: new Date() },
+        });
+      }
+
+      return { ok: res.ok, motivo: res.motivo };
+    }),
+
   /** Los números de arriba: cuánto entró y qué hay para mirar. */
   resumen: adminProcedure.query(async ({ ctx }) => {
     const [agregado, cantidad, fallas] = await Promise.all([
       ctx.db.pago.aggregate({ _sum: { monto: true } }),
       ctx.db.pago.count(),
-      ctx.db.eventoPago.count({ where: { falla: true } }),
+      ctx.db.eventoPago.count({ where: { falla: true, resueltoEn: null } }),
     ]);
     return {
       recaudado: Number(agregado._sum.monto ?? 0),

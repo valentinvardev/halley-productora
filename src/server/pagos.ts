@@ -161,7 +161,7 @@ export async function procesarPagoRecibido(payload: {
       resultado: "customer-desconocido",
       falla: true,
       refPago: payload.transactionId,
-      detalle: `customer ${payload.customerId}`,
+      refCliente: payload.customerId,
     });
     return { ok: false as const, motivo: "customer-desconocido" };
   }
@@ -177,6 +177,7 @@ export async function procesarPagoRecibido(payload: {
       resultado: "sin-credenciales",
       falla: true,
       refPago: payload.transactionId,
+      refCliente: payload.customerId,
       alumnoId: alumno.id,
       alumnoNombre: alumno.nombre,
       grupoId: alumno.grupoId,
@@ -200,6 +201,7 @@ export async function procesarPagoRecibido(payload: {
       resultado: "transaccion-no-encontrada",
       falla: true,
       refPago: payload.transactionId,
+      refCliente: payload.customerId,
       alumnoId: alumno.id,
       alumnoNombre: alumno.nombre,
       grupoId: alumno.grupoId,
@@ -241,6 +243,7 @@ export async function procesarPagoMercadoPago(payload: {
       tipo: "aviso-recibido",
       resultado: "cuenta-desconocida",
       falla: true,
+      refCliente: payload.cuentaPagoId,
       refPago: payload.pagoId,
     });
     return { ok: false as const, motivo: "cuenta-desconocida" };
@@ -257,6 +260,7 @@ export async function procesarPagoMercadoPago(payload: {
       tipo: "aviso-recibido",
       resultado: "pago-no-encontrado",
       falla: true,
+      refCliente: payload.cuentaPagoId,
       refPago: payload.pagoId,
       cuentaNombre: cuenta.nombre,
     });
@@ -286,6 +290,7 @@ export async function procesarPagoMercadoPago(payload: {
       tipo: "aviso-recibido",
       resultado: "sin-referencia",
       falla: true,
+      refCliente: payload.cuentaPagoId,
       refPago: pago.pagoId,
       monto: pago.monto,
       cuentaNombre: cuenta.nombre,
@@ -304,6 +309,7 @@ export async function procesarPagoMercadoPago(payload: {
       tipo: "aviso-recibido",
       resultado: "alumno-desconocido",
       falla: true,
+      refCliente: payload.cuentaPagoId,
       refPago: pago.pagoId,
       monto: pago.monto,
       cuentaNombre: cuenta.nombre,
