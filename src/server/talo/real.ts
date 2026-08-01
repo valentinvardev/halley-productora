@@ -32,7 +32,10 @@ async function pedir<T>(
   const res = await fetch(`${cred.apiUrl}${ruta}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      // El Content-Type sólo va cuando hay cuerpo que describir. No es un
+      // prurito: Talo responde 500 a un GET que lo trae, y eso hacía que una
+      // transferencia real quedara sin confirmar.
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
       Authorization: `Bearer ${token}`,
       ...init?.headers,
     },
@@ -86,19 +89,28 @@ export const taloReal: TaloClient = {
   ): Promise<TaloTransaction | null> {
     try {
       const data = await pedir<{
+        gross_amount?: number | string;
         amount?: number | string;
+        commission_amount?: number | string;
         currency?: string;
         creation_timestamp?: string;
         created_at?: string;
       }>(cred, `/customers/${customerId}/transactions/${transactionId}`);
 
-      const monto = Number(data.amount);
-      if (!Number.isFinite(monto)) return null;
+      // Se acredita lo que transfirió la familia (`gross_amount`), no lo que
+      // nos quedó después de la comisión (`amount`). La comisión es el costo de
+      // cobrar de Halley; si se descontara del plan, la familia terminaría
+      // debiendo un peso con veinte por algo que ya pagó.
+      const bruto = Number(data.gross_amount ?? data.amount);
+      if (!Number.isFinite(bruto)) return null;
+
+      const comision = Number(data.commission_amount);
 
       return {
         transactionId,
         customerId,
-        monto,
+        monto: bruto,
+        comision: Number.isFinite(comision) ? comision : null,
         moneda: "ARS",
         creadoEn: new Date(
           data.creation_timestamp ?? data.created_at ?? Date.now(),

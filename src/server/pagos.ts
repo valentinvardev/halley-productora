@@ -45,6 +45,8 @@ async function registrarPagoConfirmado(
   proveedor: "TALO" | "MERCADOPAGO",
   tx: PagoConfirmado,
   cuentaNombre?: string,
+  /** Lo que se quedó el proveedor. Se anota para poder conciliar. */
+  comision?: number | null,
 ) {
   const yaRegistrado = await db.pago.findUnique({
     where: { refPago: tx.refPago },
@@ -110,9 +112,16 @@ async function registrarPagoConfirmado(
     grupoId: alumno.grupoId,
     grupoNombre: alumno.grupo.nombre,
     cuentaNombre,
-    detalle: cuotaDestino
-      ? `Imputado a la cuota ${cuotaDestino.numero}. Deuda restante: ${despues.deuda}.`
-      : "Sin cuota pendiente a la que imputar: queda a favor.",
+    detalle: [
+      cuotaDestino
+        ? `Imputado a la cuota ${cuotaDestino.numero}. Deuda restante: ${despues.deuda}.`
+        : "Sin cuota pendiente a la que imputar: queda a favor.",
+      comision
+        ? `El proveedor cobró ${comision} de comisión: se acreditaron ${tx.monto - comision}.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
   });
 
   return {
@@ -199,11 +208,17 @@ export async function procesarPagoRecibido(payload: {
     return { ok: false as const, motivo: "transaccion-no-encontrada" };
   }
 
-  return registrarPagoConfirmado(alumno, "TALO", {
-    refPago: tx.transactionId,
-    monto: tx.monto,
-    recibidoEn: tx.creadoEn,
-  });
+  return registrarPagoConfirmado(
+    alumno,
+    "TALO",
+    {
+      refPago: tx.transactionId,
+      monto: tx.monto,
+      recibidoEn: tx.creadoEn,
+    },
+    undefined,
+    tx.comision ?? null,
+  );
 }
 
 /**

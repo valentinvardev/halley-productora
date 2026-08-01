@@ -24,8 +24,10 @@ export interface CrearCustomerInput {
 export interface TaloTransaction {
   transactionId: string;
   customerId: string;
-  /** Monto acreditado, en pesos. */
+  /** Lo que transfirió la familia, en pesos, antes de la comisión. */
   monto: number;
+  /** Lo que se quedó Talo. Sirve para conciliar contra el extracto. */
+  comision?: number | null;
   moneda: "ARS";
   creadoEn: Date;
 }

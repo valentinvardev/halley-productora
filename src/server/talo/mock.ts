@@ -119,6 +119,7 @@ export const taloMock: TaloClient = {
       transactionId: tx.id,
       customerId: tx.customerId,
       monto: Number(tx.monto),
+      comision: null,
       moneda: "ARS",
       creadoEn: tx.creadoEn,
     };
