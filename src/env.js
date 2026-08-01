@@ -23,8 +23,14 @@ export const env = createEnv({
      * transferencias. "real" apunta a la Customers API de Talo.
      */
     TALO_MODE: z.enum(["mock", "real"]).default("mock"),
-    TALO_API_URL: z.string().url().optional(),
-    TALO_API_KEY: z.string().optional(),
+    TALO_API_URL: z.string().url().default("https://api.talo.com.ar"),
+    /**
+     * Credenciales de Talo. No hay una API key fija: se canjean estas tres por
+     * un token que dura una hora, y ese token es el que firma cada llamada.
+     */
+    TALO_CLIENT_ID: z.string().optional(),
+    TALO_CLIENT_SECRET: z.string().optional(),
+    TALO_USER_ID: z.string().optional(),
 
     /**
      * "mock" simula el ida y vuelta de Checkout Pro con una pantalla demo, sin
@@ -144,7 +150,9 @@ export const env = createEnv({
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
     TALO_MODE: process.env.TALO_MODE,
     TALO_API_URL: process.env.TALO_API_URL,
-    TALO_API_KEY: process.env.TALO_API_KEY,
+    TALO_CLIENT_ID: process.env.TALO_CLIENT_ID,
+    TALO_CLIENT_SECRET: process.env.TALO_CLIENT_SECRET,
+    TALO_USER_ID: process.env.TALO_USER_ID,
     MP_MODE: process.env.MP_MODE,
     MP_CLIENT_ID: process.env.MP_CLIENT_ID,
     MP_CLIENT_SECRET: process.env.MP_CLIENT_SECRET,

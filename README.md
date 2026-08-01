@@ -92,7 +92,7 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | **Mora** | Toda cuota vence el 20. El recargo corre desde ahí: 0 hasta los 2 meses vencida, 3% a los 2, sube parejo hasta 5% a los 5 y se queda. Sale derivado como todo lo demás (`recargoPorMora` en [`dominio.ts`](src/server/dominio.ts)). |
 | **Particulares** | Un particular es un grupo de uno: mismo modelo (`Grupo` con `tipo=PARTICULAR` y un solo `Alumno`), así reutiliza la imputación, los pagos, las galerías, el panel de la familia y los avisos sin lógica nueva. El campo `colegio` guarda el tipo de evento. |
 | **Ruteo de cobros** | Cada grupo apunta a una `CuentaPago`; sin una elegida cobra la marcada por defecto. La credencial nunca sale del servidor: el panel ve los últimos cuatro caracteres. |
-| **Talo** | Adaptador con dos implementaciones detrás de una interfaz (`src/server/talo/`). En `mock` genera CVU/alias; el webhook y el procesamiento del pago son los definitivos. |
+| **Talo** | Adaptador con dos implementaciones detrás de una interfaz (`src/server/talo/`). En `mock` genera CVU/alias; el webhook y el procesamiento del pago son los definitivos. La autenticación es un token de una hora que se renueva solo: Talo no da API key fija. |
 | **Mercado Pago** | Checkout Pro: se crea una preferencia con el monto exacto y se redirige. El token es **por socio** (en su `CuentaPago`), no global. En `mock` una pantalla propia imita el checkout para poder recorrer el flujo sin plata real. |
 | **Confirmación de un pago** | El webhook es sólo un aviso: el pago se vuelve a consultar contra la API del proveedor con su token antes de registrar nada. Un aviso inventado no puede fabricar plata. Idempotente por `Pago.refPago`. |
 | **Galería de entrega** | Se libera cuando `deuda <= 0` — el plan completo, mora incluida. La regla se aplica en el servidor, en el punto donde se sirve el archivo: esconder un botón no protege un archivo. |
@@ -204,7 +204,7 @@ Se validan **durante el build** ([`src/env.js`](src/env.js)): si falta
 | `ADMIN_EMAIL` | Casilla que recibe el aviso de cada pago |
 | `NEXT_PUBLIC_APP_URL` | **El dominio real**, no `localhost` |
 | `TALO_MODE` | `mock` o `real` |
-| `TALO_API_URL` · `TALO_API_KEY` | Sólo con `TALO_MODE=real` |
+| `TALO_API_URL` · `TALO_CLIENT_ID` · `TALO_CLIENT_SECRET` · `TALO_USER_ID` | Sólo con `TALO_MODE=real`. Se canjean por un token de 1 hora que se renueva solo |
 | `MP_MODE` | `mock` o `real` |
 | `MP_CLIENT_ID` · `MP_CLIENT_SECRET` | App de MP: habilitan el botón de vincular |
 | `MP_WEBHOOK_SECRET` | Verifica la firma de los avisos de MP |
@@ -343,7 +343,7 @@ Requiere las herramientas de demo activas (en local ya lo están).
 - **Rotar las credenciales de Mercado Pago** que se compartieron por chat.
 - Probar el ida y vuelta del OAuth y un cobro real: necesita el dominio público
   con la URL de redirección registrada. El contrato de la API ya está verificado.
-- Credenciales de Talo (KYC de la cuenta comercial) y pasar `TALO_MODE=real`.
+- Pasar `TALO_MODE=real` con las credenciales rotadas (el KYC ya está hecho y el adaptador está verificado contra la API real).
 - Verificación de firma del webhook de Talo (la de Mercado Pago ya está).
 - Verificar el dominio de Halley en Resend y pasar `EMAIL_MODE=resend`.
 - Cron de recordatorios (hoy se disparan a mano desde el panel).

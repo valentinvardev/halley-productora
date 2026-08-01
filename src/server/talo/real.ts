@@ -1,4 +1,5 @@
 import { env } from "~/env";
+import { tokenTalo } from "./auth";
 import type {
   CrearCustomerInput,
   TaloClient,
@@ -7,76 +8,99 @@ import type {
 } from "./types";
 
 /**
- * Cliente contra la Customers API de Talo.
+ * Cliente contra la API de Talo.
  *
- * ATENCIÓN: escrito según la especificación pero todavía sin probar contra la
- * API real — la cuenta comercial de Halley está pendiente de KYC. Los nombres
- * de los campos de respuesta hay que confirmarlos con la documentación de Talo
- * antes de pasar TALO_MODE a "real".
+ * Verificado contra la API real: la autenticación es un token de una hora que
+ * sale de canjear client_id + client_secret (ver `auth.ts`), y toda respuesta
+ * viene envuelta en `data`.
+ *
+ * El customer es la sub-cuenta de cada alumno: Talo le da un CVU y un alias
+ * propios, y avisa por webhook cada transferencia que entra ahí. Eso es lo que
+ * permite imputar sin ambigüedad aunque dos hermanos paguen desde el mismo
+ * banco.
  */
 
-function config() {
-  if (!env.TALO_API_URL || !env.TALO_API_KEY) {
-    throw new Error(
-      "TALO_MODE=real requiere TALO_API_URL y TALO_API_KEY configuradas.",
-    );
-  }
-  return { url: env.TALO_API_URL, key: env.TALO_API_KEY };
-}
+/** Todas las respuestas de Talo tienen esta forma. */
+type Sobre<T> = { data?: T; message?: string; error?: boolean; code?: number };
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  const { url, key } = config();
-  const res = await fetch(`${url}${ruta}`, {
+  const token = await tokenTalo();
+  const res = await fetch(`${env.TALO_API_URL}${ruta}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${token}`,
       ...init?.headers,
     },
   });
 
-  if (!res.ok) {
-    throw new Error(`Talo ${ruta} respondió ${res.status}: ${await res.text()}`);
+  const json = (await res.json().catch(() => null)) as Sobre<T> | null;
+
+  if (!res.ok || json?.error) {
+    throw new Error(
+      `Talo ${ruta} respondió ${res.status}: ${json?.message ?? "sin detalle"}`,
+    );
   }
-  return (await res.json()) as T;
+  if (!json?.data) throw new Error(`Talo ${ruta} no devolvió datos`);
+  return json.data;
 }
 
 export const taloReal: TaloClient = {
   async crearCustomer(input: CrearCustomerInput): Promise<TaloCustomer> {
-    const data = await pedir<{ cvu: string; alias: string }>("/customers/", {
+    // `user_id` es obligatorio: dice bajo qué cuenta de Talo cuelga el customer.
+    const data = await pedir<{
+      customer_id: string;
+      bank_info?: { cvu?: string; alias?: string };
+    }>("/customers/", {
       method: "POST",
       body: JSON.stringify({
+        user_id: env.TALO_USER_ID,
         customer_id: input.customerId,
         name: input.nombre,
-        contact: { email: input.email },
         alias: input.aliasSugerido,
+        contact: { email: input.email },
         webhook_url: input.webhookUrl,
       }),
     });
 
-    return {
-      customerId: input.customerId,
-      cvu: data.cvu,
-      alias: data.alias,
-    };
+    const cvu = data.bank_info?.cvu;
+    const alias = data.bank_info?.alias;
+    if (!cvu || !alias) {
+      throw new Error("Talo creó el customer pero no devolvió CVU/alias");
+    }
+
+    return { customerId: data.customer_id ?? input.customerId, cvu, alias };
   },
 
   async obtenerTransaccion(
     customerId: string,
     transactionId: string,
   ): Promise<TaloTransaction | null> {
-    const data = await pedir<{
-      amount: number;
-      currency: string;
-      created_at: string;
-    }>(`/customers/${customerId}/transactions/${transactionId}`);
+    try {
+      const data = await pedir<{
+        amount?: number | string;
+        currency?: string;
+        creation_timestamp?: string;
+        created_at?: string;
+      }>(`/customers/${customerId}/transactions/${transactionId}`);
 
-    return {
-      transactionId,
-      customerId,
-      monto: data.amount,
-      moneda: "ARS",
-      creadoEn: new Date(data.created_at),
-    };
+      const monto = Number(data.amount);
+      if (!Number.isFinite(monto)) return null;
+
+      return {
+        transactionId,
+        customerId,
+        monto,
+        moneda: "ARS",
+        creadoEn: new Date(
+          data.creation_timestamp ?? data.created_at ?? Date.now(),
+        ),
+      };
+    } catch (error) {
+      // No encontrarla es una respuesta válida —el webhook puede llegar antes
+      // de que la transacción esté consultable—, no un error a propagar.
+      console.error(`[talo] no se pudo leer ${transactionId}:`, error);
+      return null;
+    }
   },
 };

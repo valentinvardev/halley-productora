@@ -23,19 +23,37 @@ function generarCvu(semilla: string) {
   return `0000630${cuerpo}`;
 }
 
-function normalizar(texto: string) {
+function normalizar(texto: string, largo: number) {
   return texto
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "")
-    .slice(0, 12);
+    .slice(0, largo);
 }
 
-/** halley.sanmartin.fernando — el formato que muestra el sistema de diseño. */
-export function armarAlias(colegio: string, nombre: string) {
-  const primerNombre = nombre.trim().split(/\s+/)[0] ?? "padre";
-  return `halley.${normalizar(colegio)}.${normalizar(primerNombre)}`;
+/**
+ * Cuánto podemos proponer de alias.
+ *
+ * Verificado contra la API real: Talo le antepone el prefijo de la cuenta
+ * ("halley27.", 9 caracteres) a lo que le mandemos y trunca el total a 20. Lo
+ * que sobra se pierde, así que proponer algo largo no da un alias largo: da uno
+ * cortado —y dos alumnos del mismo colegio terminarían cortados igual, chocando
+ * entre sí—.
+ */
+const LARGO_ALIAS = 11;
+
+/**
+ * El alias que se le propone a Talo: el nombre de pila y unas letras al azar.
+ *
+ * El azar no es capricho: con once caracteres no alcanza para que "colegio +
+ * nombre" sea único, y el alias sí tiene que serlo. Así queda reconocible —se
+ * lee el nombre— y no choca con el del hermano ni con el de otro Fernando.
+ */
+export function armarAlias(_colegio: string, nombre: string) {
+  const primerNombre = normalizar(nombre.trim().split(/\s+/)[0] ?? "pago", 7);
+  const sufijo = randomUUID().replace(/[^a-z0-9]/g, "").slice(0, 4);
+  return `${primerNombre}${sufijo}`.slice(0, LARGO_ALIAS);
 }
 
 async function aliasDisponible(alias: string) {
@@ -46,14 +64,27 @@ async function aliasDisponible(alias: string) {
   return !existe;
 }
 
+/**
+ * Prefijo que Talo le pone a todo alias de esta cuenta. Acá está fijo sólo para
+ * que la demo muestre un alias con la misma forma que el de producción; el real
+ * lo pone Talo y sale de la configuración de la cuenta.
+ */
+const PREFIJO = "halley27.";
+const LARGO_TOTAL = 20;
+
 export const taloMock: TaloClient = {
   async crearCustomer(input: CrearCustomerInput): Promise<TaloCustomer> {
-    // Talo rechaza alias repetidos: desambiguamos con un sufijo numérico.
-    let alias = input.aliasSugerido;
+    // Se imita lo que hace Talo de verdad: antepone el prefijo de la cuenta y
+    // corta a 20. Si el mock no cortara, la demo mostraría alias que en
+    // producción no existirían.
+    const armar = (base: string) =>
+      `${PREFIJO}${base}`.slice(0, LARGO_TOTAL);
+
+    let alias = armar(input.aliasSugerido);
     let intento = 1;
     while (!(await aliasDisponible(alias))) {
       intento += 1;
-      alias = `${input.aliasSugerido}${intento}`;
+      alias = armar(`${input.aliasSugerido}${intento}`);
     }
 
     return {
