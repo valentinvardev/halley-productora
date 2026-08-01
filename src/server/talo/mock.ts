@@ -66,11 +66,18 @@ async function aliasDisponible(alias: string) {
 }
 
 /**
- * Prefijo que Talo le pone a todo alias de esta cuenta. Acá está fijo sólo para
- * que la demo muestre un alias con la misma forma que el de producción; el real
- * lo pone Talo y sale de la configuración de la cuenta.
+ * Prefijo de los alias simulados.
+ *
+ * Dice "demo" a propósito. Antes imitaba el prefijo real de la cuenta para que
+ * la demo se pareciera a producción, y el resultado fue el contrario del
+ * buscado: un alias inventado se veía idéntico a uno bueno, y no había forma de
+ * darse cuenta de que no iba a funcionar —salvo intentando transferirle plata—.
+ *
+ * Un CVU falso que parece real es una trampa. Que se note es más importante que
+ * que sea fiel: la forma —prefijo, punto, largo acotado— se mantiene igual, pero
+ * el nombre canta que es simulado.
  */
-const PREFIJO = "halley27.";
+const PREFIJO = "demo.";
 const LARGO_TOTAL = 20;
 
 export const taloMock: TaloClient = {

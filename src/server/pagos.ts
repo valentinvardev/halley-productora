@@ -4,6 +4,7 @@ import { destinatarios } from "./alumnos";
 import { cuentaDeGrupo } from "./cuentas-pago";
 import { db } from "./db";
 import { imputarPagos, sumarPagos } from "./dominio";
+import { registrarEvento } from "./eventos";
 import { mercadoPago } from "./mercadopago";
 import { tokenVigente } from "./mercadopago/oauth";
 import { notificarPagoRecibido } from "./notificaciones";
@@ -41,12 +42,28 @@ type PagoConfirmado = {
  */
 async function registrarPagoConfirmado(
   alumno: AlumnoParaPago,
+  proveedor: "TALO" | "MERCADOPAGO",
   tx: PagoConfirmado,
+  cuentaNombre?: string,
 ) {
   const yaRegistrado = await db.pago.findUnique({
     where: { refPago: tx.refPago },
   });
   if (yaRegistrado) {
+    // El proveedor reintenta los avisos: que llegue dos veces es normal, pero
+    // queda anotado para poder distinguirlo de un pago que entro dos veces.
+    await registrarEvento({
+      proveedor,
+      tipo: "aviso-recibido",
+      resultado: "duplicado",
+      refPago: tx.refPago,
+      monto: tx.monto,
+      alumnoId: alumno.id,
+      alumnoNombre: alumno.nombre,
+      grupoId: alumno.grupoId,
+      grupoNombre: alumno.grupo.nombre,
+      cuentaNombre,
+    });
     return { ok: true as const, motivo: "duplicado", pago: yaRegistrado };
   }
 
@@ -82,6 +99,22 @@ async function registrarPagoConfirmado(
     );
   }
 
+  await registrarEvento({
+    proveedor,
+    tipo: "pago-registrado",
+    resultado: saldoLaCuota ? "cuota-saldada" : "pago-parcial",
+    refPago: tx.refPago,
+    monto: tx.monto,
+    alumnoId: alumno.id,
+    alumnoNombre: alumno.nombre,
+    grupoId: alumno.grupoId,
+    grupoNombre: alumno.grupo.nombre,
+    cuentaNombre,
+    detalle: cuotaDestino
+      ? `Imputado a la cuota ${cuotaDestino.numero}. Deuda restante: ${despues.deuda}.`
+      : "Sin cuota pendiente a la que imputar: queda a favor.",
+  });
+
   return {
     ok: true as const,
     motivo: saldoLaCuota ? "cuota-saldada" : "pago-parcial",
@@ -113,6 +146,14 @@ export async function procesarPagoRecibido(payload: {
     console.error(
       `[talo] webhook para un customer desconocido: ${payload.customerId}`,
     );
+    await registrarEvento({
+      proveedor: "TALO",
+      tipo: "aviso-recibido",
+      resultado: "customer-desconocido",
+      falla: true,
+      refPago: payload.transactionId,
+      detalle: `customer ${payload.customerId}`,
+    });
     return { ok: false as const, motivo: "customer-desconocido" };
   }
 
@@ -121,6 +162,17 @@ export async function procesarPagoRecibido(payload: {
   const cred = await credencialesDeAlumno(alumno.id);
   if (!cred) {
     console.error("[talo] sin credenciales para confirmar el pago");
+    await registrarEvento({
+      proveedor: "TALO",
+      tipo: "aviso-recibido",
+      resultado: "sin-credenciales",
+      falla: true,
+      refPago: payload.transactionId,
+      alumnoId: alumno.id,
+      alumnoNombre: alumno.nombre,
+      grupoId: alumno.grupoId,
+      grupoNombre: alumno.grupo.nombre,
+    });
     return { ok: false as const, motivo: "sin-credenciales" };
   }
 
@@ -133,10 +185,21 @@ export async function procesarPagoRecibido(payload: {
     console.error(
       `[talo] no se pudo confirmar la transacción ${payload.transactionId}`,
     );
+    await registrarEvento({
+      proveedor: "TALO",
+      tipo: "aviso-recibido",
+      resultado: "transaccion-no-encontrada",
+      falla: true,
+      refPago: payload.transactionId,
+      alumnoId: alumno.id,
+      alumnoNombre: alumno.nombre,
+      grupoId: alumno.grupoId,
+      grupoNombre: alumno.grupo.nombre,
+    });
     return { ok: false as const, motivo: "transaccion-no-encontrada" };
   }
 
-  return registrarPagoConfirmado(alumno, {
+  return registrarPagoConfirmado(alumno, "TALO", {
     refPago: tx.transactionId,
     monto: tx.monto,
     recibidoEn: tx.creadoEn,
@@ -158,6 +221,13 @@ export async function procesarPagoMercadoPago(payload: {
   });
   if (!cuenta) {
     console.error(`[mp] webhook para una cuenta desconocida: ${payload.cuentaPagoId}`);
+    await registrarEvento({
+      proveedor: "MERCADOPAGO",
+      tipo: "aviso-recibido",
+      resultado: "cuenta-desconocida",
+      falla: true,
+      refPago: payload.pagoId,
+    });
     return { ok: false as const, motivo: "cuenta-desconocida" };
   }
 
@@ -167,17 +237,44 @@ export async function procesarPagoMercadoPago(payload: {
   );
   if (!pago) {
     console.error(`[mp] no se pudo confirmar el pago ${payload.pagoId}`);
+    await registrarEvento({
+      proveedor: "MERCADOPAGO",
+      tipo: "aviso-recibido",
+      resultado: "pago-no-encontrado",
+      falla: true,
+      refPago: payload.pagoId,
+      cuentaNombre: cuenta.nombre,
+    });
     return { ok: false as const, motivo: "pago-no-encontrado" };
   }
 
   if (pago.estado !== "aprobado") {
     // Pendiente o rechazado: no se registra nada. Si después se aprueba, MP
     // reintenta el webhook y esta misma función lo toma.
+    await registrarEvento({
+      proveedor: "MERCADOPAGO",
+      tipo: "aviso-recibido",
+      resultado: `estado-${pago.estado}`,
+      falla: pago.estado === "rechazado",
+      refPago: pago.pagoId,
+      monto: pago.monto,
+      cuentaNombre: cuenta.nombre,
+      detalle: `Mercado Pago informo el pago como ${pago.estado}.`,
+    });
     return { ok: true as const, motivo: `estado-${pago.estado}` };
   }
 
   if (!pago.referenciaExterna) {
     console.error(`[mp] pago ${payload.pagoId} sin referencia externa`);
+    await registrarEvento({
+      proveedor: "MERCADOPAGO",
+      tipo: "aviso-recibido",
+      resultado: "sin-referencia",
+      falla: true,
+      refPago: pago.pagoId,
+      monto: pago.monto,
+      cuentaNombre: cuenta.nombre,
+    });
     return { ok: false as const, motivo: "sin-referencia" };
   }
 
@@ -187,14 +284,29 @@ export async function procesarPagoMercadoPago(payload: {
   });
   if (!alumno) {
     console.error(`[mp] referencia externa desconocida: ${pago.referenciaExterna}`);
+    await registrarEvento({
+      proveedor: "MERCADOPAGO",
+      tipo: "aviso-recibido",
+      resultado: "alumno-desconocido",
+      falla: true,
+      refPago: pago.pagoId,
+      monto: pago.monto,
+      cuentaNombre: cuenta.nombre,
+      detalle: `referencia externa ${pago.referenciaExterna}`,
+    });
     return { ok: false as const, motivo: "alumno-desconocido" };
   }
 
-  return registrarPagoConfirmado(alumno, {
-    refPago: pago.pagoId,
-    monto: pago.monto,
-    recibidoEn: pago.creadoEn,
-  });
+  return registrarPagoConfirmado(
+    alumno,
+    "MERCADOPAGO",
+    {
+      refPago: pago.pagoId,
+      monto: pago.monto,
+      recibidoEn: pago.creadoEn,
+    },
+    cuenta.nombre,
+  );
 }
 
 /** Qué proveedor cobra por un grupo: MP si su cuenta es de MP, si no Talo. */

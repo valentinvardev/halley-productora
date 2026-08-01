@@ -17,6 +17,7 @@ import { Login } from "./_components/login";
 
 const ENLACES = [
   { href: "/admin", texto: "Grupos" },
+  { href: "/admin/transacciones", texto: "Transacciones" },
   { href: "/admin/notificaciones", texto: "Bandeja" },
   { href: "/admin/contenidos", texto: "Contenidos" },
   { href: "/admin/galerias", texto: "Galerías" },
@@ -27,6 +28,7 @@ const ENLACES = [
 /** Con ícono, para el sidebar; sin ícono, para la barra móvil. */
 const ENLACES_CON_ICONO = [
   { href: "/admin", texto: "Grupos", icono: <IconoGrupos /> },
+  { href: "/admin/transacciones", texto: "Transacciones", icono: <IconoBillete /> },
   { href: "/admin/notificaciones", texto: "Bandeja", icono: <IconoSobre /> },
   { href: "/admin/contenidos", texto: "Contenidos", icono: <IconoImagen /> },
   { href: "/admin/galerias", texto: "Galerías", icono: <IconoCandado /> },

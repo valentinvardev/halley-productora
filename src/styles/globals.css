@@ -917,3 +917,55 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   El detalle que se despliega en una transacción.
+
+   La altura se anima con `grid-template-rows` de 0fr a 1fr en vez de un
+   `max-height` inventado: así el panel se abre exactamente hasta donde llega su
+   contenido, sin dejar un salto al final cuando el contenido es corto ni
+   cortarse cuando es largo. El hijo necesita `min-height: 0` y `overflow:
+   hidden` para poder achicarse hasta cero.
+--------------------------------------------------------------------------- */
+.detalle-despliegue {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.detalle-despliegue[data-abierto="true"] {
+  grid-template-rows: 1fr;
+}
+
+.detalle-despliegue > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* El contenido entra un instante después de que se abrió el hueco: si apareciera
+   junto con la altura, se lo ve estirarse. */
+.detalle-despliegue > div > * {
+  opacity: 0;
+  transition: opacity 0.2s ease 0.06s;
+}
+
+.detalle-despliegue[data-abierto="true"] > div > * {
+  opacity: 1;
+}
+
+/* La flecha que gira al abrir. */
+.chevron-transaccion {
+  transition: transform 0.32s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.chevron-transaccion[data-abierto="true"] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detalle-despliegue,
+  .detalle-despliegue > div > *,
+  .chevron-transaccion {
+    transition: none;
+  }
+}

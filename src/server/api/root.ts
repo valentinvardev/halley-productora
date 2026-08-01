@@ -1,3 +1,4 @@
+import { transaccionRouter } from "~/server/api/routers/transaccion";
 import { ajusteRouter } from "~/server/api/routers/ajuste";
 import { alumnoRouter } from "~/server/api/routers/alumno";
 import { contenidoRouter } from "~/server/api/routers/contenido";
@@ -26,6 +27,7 @@ export const appRouter = createTRPCRouter({
   demo: demoRouter,
   contenido: contenidoRouter,
   ajuste: ajusteRouter,
+  transaccion: transaccionRouter,
   cuentaPago: cuentaPagoRouter,
   galeria: galeriaRouter,
 });

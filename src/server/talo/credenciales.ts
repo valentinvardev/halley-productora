@@ -13,6 +13,22 @@ import type { CredencialesTalo } from "./types";
  * sigue andando sin tocar nada.
  */
 
+/**
+ * En modo simulado no hay a quién autenticarse: el mock no sale a la red. Si acá
+ * se exigieran credenciales, la demo quedaría pidiendo las llaves de una puerta
+ * que no se abre —que es justo lo que pasó cuando esto se olvidó—.
+ */
+function siEsSimulado(): CredencialesTalo | null {
+  if (env.TALO_MODE === "real") return null;
+  return {
+    clientId: "demo",
+    clientSecret: "demo",
+    userId: "demo",
+    apiUrl: env.TALO_API_URL,
+    cacheId: "demo",
+  };
+}
+
 function delEntorno(): CredencialesTalo | null {
   if (!env.TALO_CLIENT_ID || !env.TALO_CLIENT_SECRET || !env.TALO_USER_ID) {
     return null;
@@ -51,6 +67,9 @@ function deCuenta(cuenta: {
 export async function credencialesDeGrupo(
   grupoId: string,
 ): Promise<CredencialesTalo | null> {
+  const simulado = siEsSimulado();
+  if (simulado) return simulado;
+
   const grupo = await db.grupo.findUnique({
     where: { id: grupoId },
     include: { cuentaPago: true },
@@ -82,6 +101,9 @@ export async function credencialesDeGrupo(
 export async function credencialesDeAlumno(
   alumnoId: string,
 ): Promise<CredencialesTalo | null> {
+  const simulado = siEsSimulado();
+  if (simulado) return simulado;
+
   const alumno = await db.alumno.findUnique({
     where: { id: alumnoId },
     select: { grupoId: true },

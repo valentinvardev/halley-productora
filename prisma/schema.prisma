@@ -361,6 +361,47 @@ model EstadoOauth {
     creadoEn DateTime  @default(now())
 }
 
+/// Bitácora de todo lo que pasa alrededor del dinero.
+///
+/// `Pago` guarda la plata que entró; esto guarda *todo lo demás*: el cobro que
+/// se inició y quedó a medias, el aviso que llegó de un proveedor, el que se
+/// rechazó por firma inválida, el que se procesó dos veces. Sin esto, lo único
+/// que quedaba de un pago fallido era una línea en la consola del servidor.
+///
+/// Los nombres van copiados y no por relación a propósito: es un registro
+/// histórico, y tiene que seguir leyéndose aunque después se borre el alumno,
+/// el grupo o la cuenta que lo originó.
+model EventoPago {
+    id       String   @id @default(cuid())
+    creadoEn DateTime @default(now())
+
+    /// TALO o MERCADOPAGO.
+    proveedor String
+    /// Qué pasó: cobro-iniciado, aviso-recibido, pago-registrado, aviso-rechazado.
+    tipo      String
+    /// Cómo terminó: el mismo motivo que devuelve el procesamiento.
+    resultado String?
+    /// Si terminó mal. Separa "no pasó nada raro" de "esto hay que mirarlo".
+    falla     Boolean  @default(false)
+
+    /// Id en el proveedor, cuando lo hay. Permite cruzar con el `Pago`.
+    refPago String?
+    monto   Decimal? @db.Decimal(12, 2)
+
+    alumnoId     String?
+    alumnoNombre String?
+    grupoId      String?
+    grupoNombre  String?
+    cuentaNombre String?
+
+    /// Texto libre para lo que no entra en los campos de arriba.
+    detalle String?
+
+    @@index([creadoEn])
+    @@index([refPago])
+    @@index([alumnoId])
+}
+
 /// Ajustes del sitio que el admin edita sin tocar código: el WhatsApp al que
 /// escriben las familias, el Instagram, la casilla de contacto. Clave/valor para
 /// que sumar uno nuevo no pida una migración.
