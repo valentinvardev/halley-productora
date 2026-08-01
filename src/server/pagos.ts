@@ -7,7 +7,7 @@ import { imputarPagos, sumarPagos } from "./dominio";
 import { mercadoPago } from "./mercadopago";
 import { tokenVigente } from "./mercadopago/oauth";
 import { notificarPagoRecibido } from "./notificaciones";
-import { talo } from "./talo";
+import { credencialesDeAlumno, talo } from "./talo";
 
 /**
  * Procesamiento de un pago confirmado, venga de donde venga.
@@ -116,7 +116,16 @@ export async function procesarPagoRecibido(payload: {
     return { ok: false as const, motivo: "customer-desconocido" };
   }
 
+  // Se le pregunta a la cuenta dueña del CVU, no a la que esté por defecto hoy:
+  // el customer vive en la cuenta que lo creó.
+  const cred = await credencialesDeAlumno(alumno.id);
+  if (!cred) {
+    console.error("[talo] sin credenciales para confirmar el pago");
+    return { ok: false as const, motivo: "sin-credenciales" };
+  }
+
   const tx = await talo.obtenerTransaccion(
+    cred,
     payload.customerId,
     payload.transactionId,
   );

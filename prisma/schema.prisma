@@ -319,10 +319,14 @@ model CuentaPago {
     id           String        @id @default(cuid())
     nombre       String
     proveedor    ProveedorPago
-    /// Token de Talo o access token de Mercado Pago.
+    /// El secreto: `client_secret` en Talo, access token en Mercado Pago.
     credencial   String
     /// Sólo Talo: permite apuntar a otro entorno.
     apiUrl       String?
+    /// Sólo Talo, que necesita tres valores y no uno: con qué cliente y bajo qué
+    /// usuario se canjea el token. El secreto va en `credencial`.
+    taloClientId String?
+    taloUserId   String?
     activa       Boolean       @default(true)
     /// La que se usa cuando un grupo no eligió ninguna.
     porDefecto   Boolean       @default(false)

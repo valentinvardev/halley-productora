@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "~/server/db";
 import type {
+  CredencialesTalo,
   CrearCustomerInput,
   TaloClient,
   TaloCustomer,
@@ -73,7 +74,10 @@ const PREFIJO = "halley27.";
 const LARGO_TOTAL = 20;
 
 export const taloMock: TaloClient = {
-  async crearCustomer(input: CrearCustomerInput): Promise<TaloCustomer> {
+  async crearCustomer(
+    _cred: CredencialesTalo,
+    input: CrearCustomerInput,
+  ): Promise<TaloCustomer> {
     // Se imita lo que hace Talo de verdad: antepone el prefijo de la cuenta y
     // corta a 20. Si el mock no cortara, la demo mostraría alias que en
     // producción no existirían.
@@ -95,6 +99,7 @@ export const taloMock: TaloClient = {
   },
 
   async obtenerTransaccion(
+    _cred: CredencialesTalo,
     customerId: string,
     transactionId: string,
   ): Promise<TaloTransaction | null> {

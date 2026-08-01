@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { env } from "~/env";
-import { armarAlias, talo } from "~/server/talo";
+import { armarAlias, credencialesDeGrupo, talo } from "~/server/talo";
 import { db } from "./db";
 import { imputarPagos } from "./dominio";
 import { notificarInvitacion } from "./notificaciones";
@@ -31,7 +31,17 @@ export async function crearAlumno(input: {
   if (existente) return { alumno: existente, yaExistia: true };
 
   const id = randomUUID();
-  const cliente = await talo.crearCustomer({
+
+  // Con qué cuenta de Talo se crea el CVU de este alumno: la del grupo. Queda
+  // atada acá, y por eso confirmar sus pagos después consulta la misma.
+  const cred = await credencialesDeGrupo(grupo.id);
+  if (!cred) {
+    throw new Error(
+      "No hay credenciales de Talo: cargá una cuenta de pago o configurá el entorno.",
+    );
+  }
+
+  const cliente = await talo.crearCustomer(cred, {
     customerId: id,
     nombre,
     email: input.emailContacto ?? env.ADMIN_EMAIL,

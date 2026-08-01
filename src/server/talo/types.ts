@@ -30,10 +30,31 @@ export interface TaloTransaction {
   creadoEn: Date;
 }
 
+/**
+ * Con qué cuenta de Talo se habla.
+ *
+ * Viaja en cada llamada en vez de salir de una variable global porque cada socio
+ * puede tener la suya, igual que en Mercado Pago. Quién es la cuenta de una
+ * operación se resuelve desde el grupo —o, para confirmar un pago, desde el
+ * alumno dueño del CVU—, nunca se adivina.
+ */
+export interface CredencialesTalo {
+  clientId: string;
+  clientSecret: string;
+  userId: string;
+  apiUrl: string;
+  /** Identifica el token guardado. Es el id de la CuentaPago, o "entorno". */
+  cacheId: string;
+}
+
 export interface TaloClient {
-  crearCustomer(input: CrearCustomerInput): Promise<TaloCustomer>;
+  crearCustomer(
+    cred: CredencialesTalo,
+    input: CrearCustomerInput,
+  ): Promise<TaloCustomer>;
   /** Confirmación de monto y fecha después de recibir el webhook. */
   obtenerTransaccion(
+    cred: CredencialesTalo,
     customerId: string,
     transactionId: string,
   ): Promise<TaloTransaction | null>;

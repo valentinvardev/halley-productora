@@ -287,6 +287,8 @@ function FormularioCuenta({
   const [proveedor, setProveedor] = useState<Proveedor>("TALO");
   const [credencial, setCredencial] = useState("");
   const [apiUrl, setApiUrl] = useState("");
+  const [taloClientId, setTaloClientId] = useState("");
+  const [taloUserId, setTaloUserId] = useState("");
 
   const crear = api.cuentaPago.crear.useMutation({ onSuccess: alCrear });
 
@@ -319,7 +321,11 @@ function FormularioCuenta({
         </label>
 
         <Campo
-          label={proveedor === "TALO" ? "API key de Talo" : "Access token de Mercado Pago"}
+          label={
+            proveedor === "TALO"
+              ? "Client secret de Talo"
+              : "Access token de Mercado Pago"
+          }
           type="password"
           placeholder="••••••••••••"
           hint="Se guarda en el servidor y no vuelve a mostrarse."
@@ -328,14 +334,29 @@ function FormularioCuenta({
         />
 
         {proveedor === "TALO" && (
-          <Campo
-            label="API URL (opcional)"
-            type="url"
-            placeholder="https://api.talo.com.ar"
-            hint="Sólo si apuntás a otro entorno."
-            value={apiUrl}
-            onChange={(e) => setApiUrl(e.target.value)}
-          />
+          <>
+            <Campo
+              label="Client ID de Talo"
+              placeholder="c176cf22-…"
+              value={taloClientId}
+              onChange={(e) => setTaloClientId(e.target.value)}
+            />
+            <Campo
+              label="User ID de Talo"
+              placeholder="d23d6edb-…"
+              hint="Los tres valores salen del panel de Talo."
+              value={taloUserId}
+              onChange={(e) => setTaloUserId(e.target.value)}
+            />
+            <Campo
+              label="API URL (opcional)"
+              type="url"
+              placeholder="https://api.talo.com.ar"
+              hint="Sólo si apuntás a otro entorno."
+              value={apiUrl}
+              onChange={(e) => setApiUrl(e.target.value)}
+            />
+          </>
         )}
       </div>
 
@@ -351,9 +372,16 @@ function FormularioCuenta({
               proveedor,
               credencial,
               apiUrl: apiUrl || undefined,
+              taloClientId: taloClientId || undefined,
+              taloUserId: taloUserId || undefined,
             })
           }
-          disabled={nombre.length < 2 || credencial.length < 8 || crear.isPending}
+          disabled={
+            nombre.length < 2 ||
+            credencial.length < 8 ||
+            (proveedor === "TALO" && (!taloClientId || !taloUserId)) ||
+            crear.isPending
+          }
         >
           {crear.isPending ? "Guardando…" : "Guardar cuenta"}
         </Boton>

@@ -38,6 +38,8 @@ export const cuentaPagoRouter = createTRPCRouter({
         proveedor,
         credencial: z.string().trim().min(8),
         apiUrl: z.string().trim().url().optional().or(z.literal("")),
+        taloClientId: z.string().trim().optional(),
+        taloUserId: z.string().trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -51,6 +53,8 @@ export const cuentaPagoRouter = createTRPCRouter({
           proveedor: input.proveedor,
           credencial: input.credencial,
           apiUrl: input.apiUrl ?? null,
+          taloClientId: input.taloClientId ?? null,
+          taloUserId: input.taloUserId ?? null,
           porDefecto: cuantas === 0,
         },
       });

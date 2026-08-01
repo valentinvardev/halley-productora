@@ -1,29 +1,26 @@
 import "server-only";
 
-import { env } from "~/env";
+import type { CredencialesTalo } from "./types";
 
 /**
- * Token de Talo.
+ * Token de Talo, por cuenta.
  *
  * Talo no da una API key fija: se canjean client_id + client_secret por un token
  * que dura una hora. Pedir uno nuevo en cada llamada sería un viaje de más por
- * operación, así que se guarda en memoria y se renueva cuando está por vencer.
+ * operación, así que se guarda y se renueva cuando está por vencer.
  *
- * El margen es generoso a propósito: un token que vence entre que lo leemos y
- * lo usamos hace fallar un cobro, y eso vale mucho más que una llamada extra.
+ * La caché va por cuenta y no una sola global: con varios socios, un token
+ * compartido haría que las operaciones de uno salieran firmadas por otro.
+ *
+ * El margen es generoso a propósito: un token que vence entre que lo leemos y lo
+ * usamos hace fallar un cobro, y eso vale mucho más que una llamada extra.
  */
 
 const MARGEN_MS = 5 * 60 * 1000;
 
-let cache: { token: string; venceEl: number } | null = null;
+const cache = new Map<string, { token: string; venceEl: number }>();
 /** Renovaciones en curso, para que diez llamadas juntas pidan un solo token. */
-let enVuelo: Promise<string> | null = null;
-
-export function taloConfigurado() {
-  return Boolean(
-    env.TALO_CLIENT_ID && env.TALO_CLIENT_SECRET && env.TALO_USER_ID,
-  );
-}
+const enVuelo = new Map<string, Promise<string>>();
 
 /** El `exp` del JWT, que es la única fuente confiable de cuándo vence. */
 function vencimientoDe(token: string) {
@@ -39,24 +36,15 @@ function vencimientoDe(token: string) {
   }
 }
 
-async function pedirToken(): Promise<string> {
-  if (!taloConfigurado()) {
-    throw new Error(
-      "TALO_MODE=real requiere TALO_CLIENT_ID, TALO_CLIENT_SECRET y TALO_USER_ID.",
-    );
-  }
-
-  const res = await fetch(
-    `${env.TALO_API_URL}/users/${env.TALO_USER_ID}/tokens`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: env.TALO_CLIENT_ID,
-        client_secret: env.TALO_CLIENT_SECRET,
-      }),
-    },
-  );
+async function pedirToken(cred: CredencialesTalo): Promise<string> {
+  const res = await fetch(`${cred.apiUrl}/users/${cred.userId}/tokens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: cred.clientId,
+      client_secret: cred.clientSecret,
+    }),
+  });
 
   if (!res.ok) {
     throw new Error(`Talo rechazó las credenciales (${res.status})`);
@@ -68,26 +56,31 @@ async function pedirToken(): Promise<string> {
 
   // Si el JWT no dice cuándo vence, se asume media hora: menos que la hora real,
   // así nunca se usa uno vencido.
-  cache = {
+  cache.set(cred.cacheId, {
     token,
     venceEl: vencimientoDe(token) ?? Date.now() + 30 * 60 * 1000,
-  };
+  });
   return token;
 }
 
-/** El token vigente, renovándolo si hace falta. */
-export async function tokenTalo(): Promise<string> {
-  if (cache && cache.venceEl - Date.now() > MARGEN_MS) return cache.token;
+/** El token vigente de esta cuenta, renovándolo si hace falta. */
+export async function tokenTalo(cred: CredencialesTalo): Promise<string> {
+  const guardado = cache.get(cred.cacheId);
+  if (guardado && guardado.venceEl - Date.now() > MARGEN_MS) {
+    return guardado.token;
+  }
 
   // Sin esto, un pico de llamadas dispara una tanda de canjes en paralelo.
-  enVuelo ??= pedirToken().finally(() => {
-    enVuelo = null;
-  });
-  return enVuelo;
+  const yaVa = enVuelo.get(cred.cacheId);
+  if (yaVa) return yaVa;
+
+  const promesa = pedirToken(cred).finally(() => enVuelo.delete(cred.cacheId));
+  enVuelo.set(cred.cacheId, promesa);
+  return promesa;
 }
 
-/** Sólo para pruebas: olvida el token guardado. */
-export function olvidarToken() {
-  cache = null;
-  enVuelo = null;
+/** Sólo para pruebas: olvida los tokens guardados. */
+export function olvidarTokens() {
+  cache.clear();
+  enVuelo.clear();
 }

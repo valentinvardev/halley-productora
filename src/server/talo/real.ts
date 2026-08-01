@@ -1,6 +1,6 @@
-import { env } from "~/env";
 import { tokenTalo } from "./auth";
 import type {
+  CredencialesTalo,
   CrearCustomerInput,
   TaloClient,
   TaloCustomer,
@@ -23,9 +23,13 @@ import type {
 /** Todas las respuestas de Talo tienen esta forma. */
 type Sobre<T> = { data?: T; message?: string; error?: boolean; code?: number };
 
-async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  const token = await tokenTalo();
-  const res = await fetch(`${env.TALO_API_URL}${ruta}`, {
+async function pedir<T>(
+  cred: CredencialesTalo,
+  ruta: string,
+  init?: RequestInit,
+): Promise<T> {
+  const token = await tokenTalo(cred);
+  const res = await fetch(`${cred.apiUrl}${ruta}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -46,15 +50,18 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
 }
 
 export const taloReal: TaloClient = {
-  async crearCustomer(input: CrearCustomerInput): Promise<TaloCustomer> {
+  async crearCustomer(
+    cred: CredencialesTalo,
+    input: CrearCustomerInput,
+  ): Promise<TaloCustomer> {
     // `user_id` es obligatorio: dice bajo qué cuenta de Talo cuelga el customer.
     const data = await pedir<{
       customer_id: string;
       bank_info?: { cvu?: string; alias?: string };
-    }>("/customers/", {
+    }>(cred, "/customers/", {
       method: "POST",
       body: JSON.stringify({
-        user_id: env.TALO_USER_ID,
+        user_id: cred.userId,
         customer_id: input.customerId,
         name: input.nombre,
         alias: input.aliasSugerido,
@@ -73,6 +80,7 @@ export const taloReal: TaloClient = {
   },
 
   async obtenerTransaccion(
+    cred: CredencialesTalo,
     customerId: string,
     transactionId: string,
   ): Promise<TaloTransaction | null> {
@@ -82,7 +90,7 @@ export const taloReal: TaloClient = {
         currency?: string;
         creation_timestamp?: string;
         created_at?: string;
-      }>(`/customers/${customerId}/transactions/${transactionId}`);
+      }>(cred, `/customers/${customerId}/transactions/${transactionId}`);
 
       const monto = Number(data.amount);
       if (!Number.isFinite(monto)) return null;
