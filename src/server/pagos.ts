@@ -4,8 +4,10 @@ import { destinatarios } from "./alumnos";
 import { cuentaDeGrupo } from "./cuentas-pago";
 import { db } from "./db";
 import { imputarPagos, sumarPagos } from "./dominio";
+import { pagoMpEsSimulado } from "./demo";
 import { registrarEvento } from "./eventos";
 import { mercadoPago } from "./mercadopago";
+import { mercadoPagoMock } from "./mercadopago/mock";
 import { tokenVigente } from "./mercadopago/oauth";
 import { notificarPagoRecibido } from "./notificaciones";
 import { credencialesDeAlumno, talo, taloMock } from "./talo";
@@ -253,7 +255,12 @@ export async function procesarPagoMercadoPago(payload: {
     return { ok: false as const, motivo: "cuenta-desconocida" };
   }
 
-  const pago = await mercadoPago.obtenerPago(
+  // Un pago simulado no existe del lado de Mercado Pago: preguntarle daría
+  // siempre "no encontrado".
+  const pasarela = (await pagoMpEsSimulado(payload.pagoId))
+    ? mercadoPagoMock
+    : mercadoPago;
+  const pago = await pasarela.obtenerPago(
     await tokenVigente(cuenta),
     payload.pagoId,
   );

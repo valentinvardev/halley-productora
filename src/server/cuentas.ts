@@ -17,7 +17,29 @@ export const COOKIE_SESION = "halley_sesion";
 
 /** El link de acceso dura poco: es el momento más expuesto del sistema. */
 const MINUTOS_ENLACE = 30;
-const DIAS_SESION = 30;
+
+/**
+ * Cuánto dura la sesión de una familia.
+ *
+ * Un año, y se renueva sola mientras se use. La idea es que el link por email
+ * sea algo que se ve una vez: verifica que el email es de quien dice, y desde
+ * ahí el dispositivo queda reconocido. Una familia que entra a mirar su cuota
+ * cada tanto no vuelve a ver un link nunca.
+ *
+ * Lo que no se hace es dejar entrar sólo con el email: eso convertiría conocer
+ * una dirección en poder ver el plan de pagos de esa familia y bajarse su
+ * galería privada.
+ */
+const DIAS_SESION = 365;
+
+/**
+ * Cuándo conviene estirar una sesión que se está usando.
+ *
+ * Se renueva recién pasada la mitad de su vida, no en cada visita: escribir en
+ * la base en cada pedido para mover una fecha que todavía tiene meses por
+ * delante es puro costo.
+ */
+const RENOVAR_DESDE_DIAS = DIAS_SESION / 2;
 
 function tokenAleatorio() {
   return randomBytes(32).toString("base64url");
@@ -144,7 +166,11 @@ export async function canjearEnlace(token: string): Promise<ResultadoCanje> {
   return { ok: true, sesion };
 }
 
-/** Devuelve la cuenta de una sesión válida, o null. */
+/**
+ * Devuelve la cuenta de una sesión válida, o null. De paso la renueva si ya
+ * pasó la mitad de su vida, para que quien sigue usando el panel no se quede
+ * afuera de golpe un día.
+ */
 export async function cuentaDeSesion(token: string | undefined) {
   if (!token) return null;
 
@@ -154,6 +180,19 @@ export async function cuentaDeSesion(token: string | undefined) {
   });
 
   if (!sesion || sesion.expiraEl.getTime() < Date.now()) return null;
+
+  const faltan = sesion.expiraEl.getTime() - Date.now();
+  if (faltan < RENOVAR_DESDE_DIAS * 24 * 60 * 60 * 1000) {
+    // No se espera el resultado: renovar es una cortesía, no puede demorar la
+    // pantalla ni tumbarla si falla.
+    void db.sesion
+      .update({
+        where: { id: sesion.id },
+        data: { expiraEl: new Date(Date.now() + DIAS_SESION * 24 * 60 * 60 * 1000) },
+      })
+      .catch(() => undefined);
+  }
+
   return sesion.cuenta;
 }
 

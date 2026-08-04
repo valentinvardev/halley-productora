@@ -26,6 +26,12 @@ export function Entrar({ aviso }: { aviso: string | null }) {
           Si <strong>{estado.enlaceEnviado}</strong> tiene una cuenta, le
           acabamos de mandar un link para entrar. Vence en 30 minutos.
         </p>
+        {/* Que se sepa que es por única vez: el link existe para confirmar que
+            el email es de quien dice, no para pedirlo en cada visita. */}
+        <p className="nota mt-3 text-[12.5px]">
+          Es sólo esta vez. Después este dispositivo queda reconocido y entrás
+          directo.
+        </p>
         {estado.url && (
           <div className="mt-6 border border-gray-20 bg-paper-dim p-4">
             <div className="font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">

@@ -392,3 +392,35 @@ export function IconoLista(props: Props) {
     </Svg>
   );
 }
+
+/**
+ * Mercado Pago, en monocromo.
+ *
+ * El isotipo oficial es un apretón de manos azul dentro de un óvalo. Acá va la
+ * silueta en `currentColor`, como el resto: hereda el color del botón, se
+ * invierte sola al pasar a negativo y funciona igual en claro que en oscuro,
+ * que es lo que un logo a todo color no hace.
+ *
+ * Va relleno y sin trazo —a diferencia de los demás íconos— porque la forma es
+ * una silueta, no un contorno: dibujada con línea se vuelve ilegible a este
+ * tamaño.
+ */
+export function IconoMercadoPago({ className = "h-4 w-4" }: Props) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      {/* El óvalo de la marca. */}
+      <path
+        d="M12 3.4c5.9 0 10.7 3.85 10.7 8.6S17.9 20.6 12 20.6 1.3 16.75 1.3 12 6.1 3.4 12 3.4Zm0 1.5c-5.1 0-9.2 3.18-9.2 7.1s4.1 7.1 9.2 7.1 9.2-3.18 9.2-7.1-4.1-7.1-9.2-7.1Z"
+      />
+      {/* El apretón de manos, simplificado a lo que se lee a 16px. */}
+      <path
+        d="M6.2 11.35c.5-.42 1.02-.83 1.55-1.22.38-.28.85-.3 1.25-.06l1.6.96c.3.18.68.17.97-.03.34-.23.8-.2 1.1.08l1.72 1.55c.2.18.22.49.05.7-.18.2-.49.22-.7.05l-1.2-1.02-.28.3c-.3.33-.8.4-1.18.16l-1.5-.93-.35.42c-.28.34-.77.42-1.14.18l-1.02-.65-.6.5a.55.55 0 0 1-.72-.83Zm11.6 1.3c-.5.42-1.02.83-1.55 1.22-.38.28-.85.3-1.25.06l-.66-.4.72-.78 1.06.68.6-.5a.55.55 0 0 1 .72.83Z"
+      />
+    </svg>
+  );
+}

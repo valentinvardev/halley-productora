@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { BarraCarga } from "~/app/_components/esqueleto";
-import { IconoVolver } from "~/app/_components/iconos";
+import { IconoMercadoPago, IconoVolver } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { Boton, BotonTexto, botonFantasma } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
@@ -276,6 +276,7 @@ export function PantallaPago({
                     }
                     disabled={yendoAMp}
                   >
+                    <IconoMercadoPago />
                     {yendoAMp ? "Redirigiendo…" : "Pagar con Mercado Pago"}
                   </Boton>
                   <p className="nota mt-3 text-center">

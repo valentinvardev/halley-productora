@@ -31,7 +31,9 @@ export async function GET(
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    // Un año, igual que la sesión: es la vez que la familia canjea el link, y
+    // la idea es que no tenga que volver a ver uno desde este dispositivo.
+    maxAge: 60 * 60 * 24 * 365,
     secure: env.NODE_ENV === "production",
   });
 

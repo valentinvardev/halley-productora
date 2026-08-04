@@ -1,6 +1,6 @@
 import { after, type NextRequest } from "next/server";
 
-import { simuladorMpActivo } from "~/server/demo";
+import { pagoMpEsSimulado } from "~/server/demo";
 import { verificarFirma } from "~/server/mercadopago/firma";
 import { procesarPagoMercadoPago } from "~/server/pagos";
 
@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
   // La firma se chequea contra el id que MP manda en la query, que es sobre el
   // que la calcula. Si no hay secreto configurado, esto deja pasar.
   //
-  // En modo simulado no se exige: ahí Mercado Pago no nos avisa nada y el único
-  // que llama es nuestra propia pantalla demo, que no tiene con qué firmar.
-  // Con MP real, `simuladorMpActivo()` es false y la firma vuelve a regir.
-  if (!simuladorMpActivo()) {
+  // A un pago simulado no se le exige firma: Mercado Pago no lo avisó —lo
+  // avisamos nosotros desde la pantalla demo— y no hay con qué firmarlo. Para
+  // todo lo demás la firma sigue rigiendo.
+  if (!(pagoId && (await pagoMpEsSimulado(pagoId)))) {
     const firma = verificarFirma({
       firma: req.headers.get("x-signature"),
       requestId: req.headers.get("x-request-id"),

@@ -65,7 +65,9 @@ async function entrarOEnviarEnlace(
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    // Lo mismo que dura la sesión del lado del servidor: si la cookie muere
+    // antes, la familia vuelve a pedir un link con la sesión todavía viva.
+    maxAge: 60 * 60 * 24 * 365,
     secure: env.NODE_ENV === "production",
   });
 

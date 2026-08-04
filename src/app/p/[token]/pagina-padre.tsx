@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AvisosGrupo } from "~/app/_components/avisos-grupo";
 import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
+import { IconoMercadoPago } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { Boton, BotonTexto } from "~/app/_components/ui";
@@ -116,6 +117,7 @@ export function PaginaPadre({
                     onClick={() => preferencia.mutate({ token })}
                     disabled={yendoAMp}
                   >
+                    <IconoMercadoPago />
                     {yendoAMp ? "Redirigiendo…" : "Pagar con Mercado Pago"}
                   </Boton>
                   <p className="nota mt-3 text-center">

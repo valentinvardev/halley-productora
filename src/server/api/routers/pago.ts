@@ -10,8 +10,9 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
-import { puedeSimularGrupo, simuladorMpActivo } from "~/server/demo";
+import { pagoMpEsSimulado, puedeSimularGrupo } from "~/server/demo";
 import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
+import { mercadoPagoMock } from "~/server/mercadopago/mock";
 import { tokenVigente } from "~/server/mercadopago/oauth";
 import { proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada } from "~/server/talo";
@@ -73,7 +74,12 @@ async function crearPreferenciaPago(
   // webhook con qué token confirmar el pago.
   const urlWebhook = `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago?cuenta=${cuenta.id}`;
 
-  const pref = await mercadoPago.crearPreferencia(await tokenVigente(cuenta), {
+  // Un grupo de prueba arma la preferencia con el simulador: si la creara de
+  // verdad, ensayar el circuito exigiría pagar de verdad, que es justo lo que el
+  // modo prueba viene a evitar.
+  const pasarela = alumno.grupo.modoPrueba ? mercadoPagoMock : mercadoPago;
+
+  const pref = await pasarela.crearPreferencia(await tokenVigente(cuenta), {
     monto,
     descripcion,
     referenciaExterna: alumno.id,
@@ -236,7 +242,9 @@ export const pagoRouter = createTRPCRouter({
   confirmarPagoDemoMp: publicProcedure
     .input(z.object({ pagoId: z.string() }))
     .mutation(async ({ input }) => {
-      if (!simuladorMpActivo()) {
+      // Se confirma lo que nosotros mismos simulamos, no cualquier pago: la
+      // existencia de la transacción espejo es el permiso.
+      if (!(await pagoMpEsSimulado(input.pagoId))) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No disponible." });
       }
       const { cuentaPagoId } = await aprobarPagoMockMp(input.pagoId);

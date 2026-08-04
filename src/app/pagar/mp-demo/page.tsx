@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { env } from "~/env";
 
 import { db } from "~/server/db";
-import { simuladorMpActivo } from "~/server/demo";
+
 import { CheckoutDemo } from "./checkout-demo";
 
 export const metadata: Metadata = {
@@ -42,8 +42,6 @@ export default async function MpDemoPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  if (!simuladorMpActivo()) notFound();
-
   const sp = await searchParams;
   const pagoId = Array.isArray(sp.pago) ? sp.pago[0] : sp.pago;
   const volverCrudo = Array.isArray(sp.volver) ? sp.volver[0] : sp.volver;

@@ -44,6 +44,17 @@ export function simuladorMpActivo() {
  * El grupo de prueba no mira `TALO_MODE` ni `MP_MODE`: justamente existe para
  * simular con los proveedores en real.
  */
+export async function pagoMpEsSimulado(pagoId: string) {
+  // La transacción espejo sólo existe si la creamos nosotros, y eso pasa sólo
+  // cuando el cobro salió del simulador. Es la marca más confiable de que ese
+  // pago es de mentira: no depende de en qué modo esté el sistema hoy.
+  const tx = await db.transaccionMockMercadoPago.findUnique({
+    where: { id: pagoId },
+    select: { id: true },
+  });
+  return !!tx;
+}
+
 export async function puedeSimularGrupo(grupoId: string) {
   if (demoAbierta()) return true;
   const grupo = await db.grupo.findUnique({
