@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { IconoMas, IconoPapelera } from "~/app/_components/iconos";
+import { IconoPapelera } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { Boton, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
+import { BotonesSubida } from "./botones-subida";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaGaleria } from "./usar-carga-galeria";
-
-const ACEPTA = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
 
 /**
  * El material de una galería de entrega, del lado del admin.
@@ -22,7 +21,6 @@ export function FotosGaleria({ galeriaId }: { galeriaId: string }) {
   const utils = api.useUtils();
   const { data: fotos, isLoading } = api.galeria.listar.useQuery({ galeriaId });
 
-  const inputRef = useRef<HTMLInputElement>(null);
   const { cola, activo, subir, limpiar } = useCargaGaleria(galeriaId, () =>
     utils.galeria.listar.invalidate({ galeriaId }),
   );
@@ -54,25 +52,7 @@ export function FotosGaleria({ galeriaId }: { galeriaId: string }) {
           {fotos?.length ?? 0} {fotos?.length === 1 ? "archivo" : "archivos"} de
           entrega
         </div>
-        <Boton
-          variante="fantasma"
-          onClick={() => inputRef.current?.click()}
-          disabled={activo}
-        >
-          <IconoMas />
-          Subir fotos
-        </Boton>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACEPTA}
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) void subir(e.target.files);
-            e.target.value = "";
-          }}
-        />
+        <BotonesSubida alElegir={(fs) => subir(fs)} ocupado={activo} />
       </div>
 
       {isLoading ? (

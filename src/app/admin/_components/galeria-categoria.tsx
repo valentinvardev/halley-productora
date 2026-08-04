@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 
 import {
   IconoEstrella,
-  IconoMas,
   IconoPapelera,
   IconoVolver,
 } from "~/app/_components/iconos";
@@ -15,10 +14,9 @@ import { Boton, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
 import { EsqueletoGaleria } from "./esqueletos";
 import { Lightbox } from "~/app/_components/lightbox";
+import { BotonesSubida } from "./botones-subida";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
-
-const ACEPTA = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
 
 type Rect = { left: number; top: number; right: number; bottom: number };
 
@@ -43,7 +41,6 @@ export function GaleriaCategoria({
     categoria: slug,
   });
 
-  const inputRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const { cola, activo, subir, limpiar } = useCargaContenido(slug, () =>
@@ -193,21 +190,7 @@ export function GaleriaCategoria({
           </p>
         </div>
 
-        <Boton onClick={() => inputRef.current?.click()} disabled={activo}>
-          <IconoMas />
-          Subir
-        </Boton>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACEPTA}
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) void subir(e.target.files);
-            e.target.value = "";
-          }}
-        />
+        <BotonesSubida alElegir={(fs) => subir(fs)} ocupado={activo} />
       </div>
 
       {isLoading ? (
