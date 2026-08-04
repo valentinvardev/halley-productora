@@ -17,6 +17,36 @@ import "./src/env.js";
  * estricta posible, pero cierra el vector de traer código de otro dominio, que
  * es el que importa acá.
  */
+/**
+ * A dónde puede hablar el navegador además de a nosotros.
+ *
+ * El archivo va del navegador a S3 sin pasar por el servidor —esa es la gracia
+ * de la URL firmada—, así que el PUT sale contra el host del bucket y la CSP
+ * tiene que dejarlo. Sin esto no se sube nada: ni una foto de la vitrina ni el
+ * material de una galería. Y tampoco funciona el guardado en iPhone, que baja
+ * la foto con `fetch` antes de abrir la hoja de compartir.
+ *
+ * Sale de las variables del entorno para que apuntar el bucket a otro lado no
+ * requiera acordarse de tocar esto también.
+ */
+const destinosDeSubida = () => {
+  const region = process.env.AWS_REGION ?? "us-east-2";
+  const bucket = process.env.AWS_S3_BUCKET;
+  const cdn = process.env.CLOUDFRONT_DOMAIN?.replace(/^https?:\/\//, "").replace(
+    /\/$/,
+    "",
+  );
+
+  return [
+    // Las dos formas en que S3 arma la URL: con el bucket como subdominio y la
+    // clásica con el bucket en la ruta.
+    bucket ? `https://${bucket}.s3.${region}.amazonaws.com` : null,
+    `https://s3.${region}.amazonaws.com`,
+    // El CDN sirve la vitrina; el guardado en iOS la vuelve a pedir por fetch.
+    cdn ? `https://${cdn}` : null,
+  ].filter(Boolean);
+};
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -34,7 +64,10 @@ const csp = [
   "font-src 'self' data:",
   // Mercado Pago se abre por redirección, no por fetch. El beacon de Cloudflare
   // reporta contra el mismo dominio, pero se lo nombra igual por si cambia.
-  "connect-src 'self' https://cloudflareinsights.com",
+  [
+    "connect-src 'self' https://cloudflareinsights.com",
+    ...destinosDeSubida(),
+  ].join(" "),
   "upgrade-insecure-requests",
 ].join("; ");
 
