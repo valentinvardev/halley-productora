@@ -475,8 +475,12 @@
 
 .titular-hero {
   font-family: var(--font-titulo);
-  font-size: clamp(2.1rem, min(6.6vw, 8.4svh), 5.4rem);
-  line-height: 0.88;
+  /* El tope baja de 5.4rem a 4.1rem: en un monitor ancho el eslogan ocupaba
+     media pantalla y tapaba el video que tiene detrás, que es la mitad de lo
+     que el hero quiere mostrar. El piso de 2.1rem no se toca — en el teléfono
+     ya estaba bien. */
+  font-size: clamp(2.1rem, min(5.2vw, 7.2svh), 4.1rem);
+  line-height: 0.9;
   text-transform: uppercase;
 }
 
@@ -960,6 +964,34 @@
   .detalle-despliegue,
   .detalle-despliegue > div > *,
   .chevron-transaccion {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Bloques que aparecen al scrollear.
+
+   El estado inicial vive en el CSS y no en el componente para que no haya un
+   parpadeo: si el bloque se pintara visible y recién después el JavaScript lo
+   escondiera, se vería asomar y desaparecer.
+--------------------------------------------------------------------------- */
+.aparecer {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 0.8, 0.3, 1),
+    transform 0.6s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.aparecer[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparecer {
+    opacity: 1;
+    transform: none;
     transition: none;
   }
 }

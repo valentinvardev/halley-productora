@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Ayuda } from "./ayuda";
 import { Cajon, itemCajon } from "./cajon";
-import { IconoHamburguesa } from "./iconos";
+import { IconoHamburguesa, IconoPerfil } from "./iconos";
 import { Logotipo } from "./logotipo";
 import { BotonTema } from "./tema";
 
@@ -45,6 +45,19 @@ export function NavPublica({
                 </a>
               ))}
             </nav>
+
+            {/* El acceso de quien ya es cliente.
+                Estaba al pie de la landing, que es donde no lo encuentra el que
+                entra a hacer una sola cosa: ver su cuota. Acá está a mano desde
+                cualquier punto de la página, y con borde para que se lea como
+                una puerta y no como una sección más del menú. */}
+            <Link
+              href="/entrar"
+              className="hidden items-center gap-2 border border-ink px-3.5 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.08em] transition-colors hover:bg-ink hover:text-paper sm:inline-flex"
+            >
+              <IconoPerfil className="h-3.5 w-3.5" />
+              Mi panel
+            </Link>
 
             <Ayuda texto="Claro / oscuro">
               <BotonTema />

@@ -10,6 +10,8 @@ import {
   IconoSobre,
   IconoWhatsApp,
 } from "./_components/iconos";
+import { Aparecer } from "./_components/aparecer";
+import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
@@ -73,6 +75,7 @@ export default async function Landing() {
 
       <Hero whatsapp={datos.whatsapp} hero={hero} />
       <Concepto />
+      <LogoAnimado />
       <Servicios />
       <Como />
       <Contacto datos={datos} />
@@ -155,8 +158,12 @@ function Hero({
         />
       )}
 
-      <div className="relative mx-auto w-full max-w-[1140px] px-6 sm:px-10">
-        <div className="negativo">
+      {/* En desktop el bloque se corre a la izquierda: la caja crece hasta
+          1560px y el contenido se ancla al principio, así el titular arranca
+          cerca del borde en vez de quedar centrado en el medio de la pantalla.
+          Hasta `lg` sigue centrado, que en pantallas angostas es lo correcto. */}
+      <div className="relative mx-auto w-full max-w-[1140px] px-6 sm:px-10 lg:mx-0 lg:max-w-[1560px] lg:pl-16 xl:pl-24">
+        <div className="negativo lg:max-w-[52ch]">
           <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] sm:text-[12.5px]">
             Córdoba · Dron, fotografía y video
           </p>
@@ -170,7 +177,7 @@ function Hero({
             Halley los hace eternos.
           </h1>
 
-          <p className="mt-7 max-w-[48ch] text-[15px] leading-relaxed">
+          <p className="mt-7 max-w-[46ch] text-[14.5px] leading-relaxed">
             Productora audiovisual de Córdoba. Egresados, bodas, quince años y
             marcas. El día pasa una sola vez: nos ocupamos de que puedas volver.
           </p>
@@ -251,13 +258,15 @@ function Concepto() {
   return (
     <section id="concepto" className="border-b border-gray-20">
       <div className="mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-        <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
-          Hay quien lo ve una vez en la vida.
-          <br />
-          <span className="text-gray-70">Con suerte, dos.</span>
-        </h2>
+        <Aparecer>
+          <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
+            Hay quien lo ve una vez en la vida.
+            <br />
+            <span className="text-gray-70">Con suerte, dos.</span>
+          </h2>
+        </Aparecer>
 
-        <div className="max-w-[54ch] space-y-5 text-[15px] leading-relaxed text-gray-70">
+        <Aparecer demora={0.12} className="max-w-[54ch] space-y-5 text-[15px] leading-relaxed text-gray-70">
           <p>
             El cometa Halley orbita el Sol y se ve desde la Tierra cada 75 años.
             Es historia viva de la astronomía, pero para dejarse ver pide algo
@@ -273,7 +282,7 @@ function Concepto() {
             La posibilidad de volver a sentir, de volver a mirar, de volver a
             abrazar.
           </p>
-        </div>
+        </Aparecer>
       </div>
     </section>
   );
