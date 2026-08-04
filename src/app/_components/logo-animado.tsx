@@ -27,6 +27,25 @@ import { useEffect, useRef, useState } from "react";
 /** Cuánto se corre la pieza respecto de la página, en píxeles. */
 const RECORRIDO_PARALLAX = 56;
 
+/**
+ * Cuánto del recorrido se usa para dibujar el logo.
+ *
+ * Con 1 la animación entera entra en el tramo que la sección tarda en cruzar la
+ * pantalla, y en un scroll rápido pasa entera en un pestañeo. Con un valor más
+ * chico se reparte el mismo dibujo en más scroll: avanza más despacio y se
+ * alcanza a ver. El resto del tramo queda con el logo ya formado.
+ */
+const TRAMO_UTIL = 0.55;
+
+/**
+ * Cuánto se acerca el video a su objetivo en cada cuadro.
+ *
+ * Sin esto, cada golpe de rueda salta varios cuadros de una y el dibujo se ve a
+ * los tirones. Persiguiendo el objetivo de a poco, el trazo avanza continuo
+ * aunque el scroll llegue a los saltos.
+ */
+const SUAVIDAD = 0.12;
+
 export function LogoAnimado({ className = "" }: { className?: string }) {
   const marco = useRef<HTMLDivElement>(null);
   const capa = useRef<HTMLDivElement>(null);
@@ -46,27 +65,43 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
 
     let pedido = 0;
     let avance = 0;
+    /** Dónde está el video ahora; persigue a `avance` sin alcanzarlo de golpe. */
+    let actual = 0;
 
     const medir = () => {
       const caja = m.getBoundingClientRect();
       const alto = window.innerHeight;
       // De 0 —la pieza asomando por abajo— a 1 —ya saliendo por arriba—.
       const bruto = (alto - caja.top) / (alto + caja.height);
-      avance = Math.min(Math.max(bruto, 0), 1);
+      const crudo = Math.min(Math.max(bruto, 0), 1);
+      // El dibujo se reparte sólo en un tramo: más scroll para lo mismo.
+      avance = Math.min(crudo / TRAMO_UTIL, 1);
     };
 
     const pintar = () => {
-      pedido = 0;
-
       const dur = v.duration;
+      const falta = avance - actual;
+
+      // Mientras quede camino se sigue pidiendo cuadro; cuando llega, se corta y
+      // el bucle queda dormido hasta el próximo scroll.
+      if (Math.abs(falta) > 0.0005) {
+        actual += falta * SUAVIDAD;
+        pedido = requestAnimationFrame(pintar);
+      } else {
+        actual = avance;
+        pedido = 0;
+      }
+
       if (Number.isFinite(dur) && dur > 0) {
         // Se deja un pelo antes del final: el último cuadro de un mp4 a veces no
         // se puede buscar y quedaría en negro justo al terminar.
-        const t = avance * (dur - 0.05);
-        if (Math.abs(v.currentTime - t) > 0.01) v.currentTime = t;
+        const t = actual * (dur - 0.05);
+        if (Math.abs(v.currentTime - t) > 0.005) v.currentTime = t;
       }
 
       if (capa.current) {
+        // El parallax sigue al scroll sin suavizado: es un desplazamiento, y
+        // arrastrarlo se sentiría como que la pieza flota despegada del papel.
         const corrimiento = (0.5 - avance) * RECORRIDO_PARALLAX;
         capa.current.style.transform = `translate3d(0, ${corrimiento}px, 0)`;
       }
@@ -78,6 +113,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     };
 
     medir();
+    actual = avance;
     if (v.readyState >= 1) pintar();
     else v.addEventListener("loadedmetadata", pintar, { once: true });
 
