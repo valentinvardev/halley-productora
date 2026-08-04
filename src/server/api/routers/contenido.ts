@@ -153,18 +153,20 @@ export const contenidoRouter = createTRPCRouter({
       return { ok: true };
     }),
 
-  /** La portada del sitio, o null si no hay ninguna. */
+  /**
+   * Los clips de portada. Son varios a propósito: la landing elige uno al azar
+   * en cada visita, así el sitio no abre siempre igual.
+   */
   hero: adminProcedure.query(async ({ ctx }) => {
-    const fila = await ctx.db.contenido.findFirst({
+    const filas = await ctx.db.contenido.findMany({
       where: { categoria: HERO },
-      orderBy: { creadoEn: "desc" },
+      orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
     });
-    if (!fila) return null;
-    return {
-      id: fila.id,
-      tipo: fila.tipo === "video" ? ("video" as const) : ("imagen" as const),
-      url: `/api/contenido/${fila.id}`,
-    };
+    return filas.map((f) => ({
+      id: f.id,
+      tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
+      url: `/api/contenido/${f.id}`,
+    }));
   }),
 
   /**
@@ -182,22 +184,35 @@ export const contenidoRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const previas = await ctx.db.contenido.findMany({
+      // Se suma al conjunto en vez de reemplazarlo: antes cada subida borraba
+      // la anterior, y con eso no se podía tener más de una portada para
+      // alternar.
+      const ultima = await ctx.db.contenido.findFirst({
         where: { categoria: HERO },
+        orderBy: { orden: "desc" },
       });
 
       const nueva = await ctx.db.contenido.create({
-        data: { categoria: HERO, s3Key: input.s3Key, tipo: input.tipo, orden: 0 },
+        data: {
+          categoria: HERO,
+          s3Key: input.s3Key,
+          tipo: input.tipo,
+          orden: (ultima?.orden ?? -1) + 1,
+        },
       });
 
-      if (previas.length > 0) {
-        await borrarObjetos(previas.map((p) => p.s3Key));
-        await ctx.db.contenido.deleteMany({
-          where: { id: { in: previas.map((p) => p.id) } },
-        });
-      }
-
       return { id: nueva.id };
+    }),
+
+  /** Saca un clip de portada. Los demás siguen alternándose. */
+  eliminarHero: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const fila = await ctx.db.contenido.findUnique({ where: { id: input.id } });
+      if (!fila || fila.categoria !== HERO) return { ok: true };
+      await borrarObjetos([fila.s3Key]);
+      await ctx.db.contenido.delete({ where: { id: fila.id } });
+      return { ok: true };
     }),
 
   /** Vuelve la portada al video de respaldo que vive en el repo. */

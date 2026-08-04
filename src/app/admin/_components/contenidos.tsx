@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { IconoFlecha, IconoMas } from "~/app/_components/iconos";
+import { IconoFlecha, IconoMas, IconoPapelera } from "~/app/_components/iconos";
 import { Encabezado } from "~/app/_components/ui";
 import { CATEGORIAS, HERO } from "~/app/_datos/categorias";
 import { api } from "~/trpc/react";
+import { BotonesSubida } from "./botones-subida";
 import { EsqueletoContenidos } from "./esqueletos";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
@@ -65,131 +66,119 @@ export function Contenidos() {
  */
 function TarjetaHero({ habilitado }: { habilitado: boolean }) {
   const utils = api.useUtils();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: hero } = api.contenido.hero.useQuery();
+  const { data: clips } = api.contenido.hero.useQuery();
   const firmar = api.contenido.urlDeSubida.useMutation();
   const guardarHero = api.contenido.guardarHero.useMutation();
-  const quitar = api.contenido.quitarHero.useMutation({
+  const eliminar = api.contenido.eliminarHero.useMutation({
     onSuccess: () => utils.contenido.hero.invalidate(),
   });
 
-  async function subir(file: File) {
+  /**
+   * Sube todo lo que le den, uno detrás de otro.
+   *
+   * En serie y no en paralelo a propósito: son videos de portada, pesados, y
+   * mandar cinco a la vez por una conexión de subida hogareña los hace competir
+   * entre sí y tardan más que en fila.
+   */
+  async function subir(archivos: File[]) {
     setError(null);
     setSubiendo(true);
     try {
-      const { url, key, tipo } = await firmar.mutateAsync({
-        categoria: HERO,
-        contentType: file.type,
-      });
-      const put = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`S3 rechazó la subida (${put.status}).`);
-      await guardarHero.mutateAsync({ s3Key: key, tipo });
+      for (const file of archivos) {
+        const { url, key, tipo } = await firmar.mutateAsync({
+          categoria: HERO,
+          contentType: file.type,
+        });
+        const put = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!put.ok) throw new Error(`S3 rechazó la subida (${put.status}).`);
+        await guardarHero.mutateAsync({ s3Key: key, tipo });
+      }
       await utils.contenido.hero.invalidate();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo subir.");
     } finally {
       setSubiendo(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
+  const total = clips?.length ?? 0;
+
   return (
-    <section className="mb-10 border border-ink">
+    <ZonaArrastre
+      alSoltar={subir}
+      deshabilitada={!habilitado || subiendo}
+      className="border border-ink"
+    >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink px-5 py-3.5">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-titulo text-[20px] uppercase">
-            Portada del sitio
-          </h2>
+          <h2 className="font-titulo text-[20px] uppercase">Portada</h2>
           <span className="font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
-            {hero ? (hero.tipo === "video" ? "Video" : "Imagen") : "Sin subir"}
+            {total === 0
+              ? "Sin subir"
+              : `${total} ${total === 1 ? "clip" : "clips"}`}
           </span>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={!habilitado || subiendo}
-            className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3.5 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <IconoMas />
-            {subiendo ? "Subiendo…" : hero ? "Cambiar" : "Subir"}
-          </button>
-
-          {hero && (
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("¿Volver al video de respaldo?")) quitar.mutate();
-              }}
-              disabled={quitar.isPending}
-              className="inline-flex cursor-pointer items-center gap-2 border border-marca px-3.5 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.05em] text-marca hover:bg-marca hover:text-paper disabled:opacity-40"
-            >
-              Quitar
-            </button>
-          )}
-        </div>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACEPTA}
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void subir(f);
-          }}
-        />
+        <BotonesSubida alElegir={subir} ocupado={!habilitado || subiendo} />
       </header>
 
       <div className="p-5">
-        {error && (
-          <p className="nota mb-4 border border-marca px-3 py-2 text-marca">
-            {error}
-          </p>
-        )}
+        <p className="nota mb-4 max-w-[70ch]">
+          Se ve a pantalla completa detrás del título. Conviene un video
+          horizontal, corto y sin audio: se reproduce solo y en bucle.{" "}
+          <strong className="font-semibold">
+            Si cargás varios, cada visita abre con uno distinto.
+          </strong>
+        </p>
 
-        {hero ? (
-          <div className="relative aspect-[21/9] w-full overflow-hidden border border-gray-20 bg-paper-dim">
-            {hero.tipo === "video" ? (
-              <video
-                src={hero.url}
-                muted
-                loop
-                autoPlay
-                playsInline
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={hero.url}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
-        ) : (
+        {error && <p className="nota mb-3 text-marca">{error}</p>}
+
+        {total === 0 ? (
           <p className="nota text-gray-45">
             {habilitado
-              ? "Sin portada propia — la landing usa el video de respaldo del repo. Subí un video horizontal (mp4) o una foto."
+              ? "Sin portada propia — la landing usa el video de respaldo del repo."
               : "Configurá S3 para poder subir."}
           </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {clips?.map((c) => (
+              <div
+                key={c.id}
+                className="group relative aspect-video overflow-hidden border border-gray-20 bg-paper-dim"
+              >
+                {c.tipo === "video" ? (
+                  <video
+                    src={c.url}
+                    muted
+                    loop
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.url} alt="" className="h-full w-full object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => eliminar.mutate({ id: c.id })}
+                  disabled={eliminar.isPending}
+                  aria-label="Quitar de la portada"
+                  className="absolute top-1.5 right-1.5 grid h-7 w-7 place-items-center border border-paper bg-paper/85 text-marca opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <IconoPapelera className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
-
-        <p className="nota mt-3 text-[11.5px] text-gray-45">
-          Se ve a pantalla completa detrás del título. Conviene un video
-          horizontal, corto y sin audio: se reproduce solo y en bucle.
-        </p>
       </div>
-    </section>
+    </ZonaArrastre>
   );
 }
 

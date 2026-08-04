@@ -3,33 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * El cometa que dibuja el logo, atado al scroll.
+ * El cometa que dibuja el logo, dentro de la sección del concepto.
  *
- * No es un GIF: un GIF se reproduce a su ritmo y no hay forma de llevarlo a un
- * frame determinado. Acá el video se usa como una tira de frames y el scroll
- * decide cuál se ve, así la animación avanza cuando se baja y se deshace cuando
- * se sube.
+ * Antes se llevaba una pantalla entera en negro: mucho espacio para una
+ * animación de ocho segundos, y cortaba la lectura en dos. Ahora es una pieza
+ * acotada al lado del texto —el cometa que se ve una vez cada setenta y cinco
+ * años, junto al párrafo que habla justamente de eso—.
  *
- * El archivo está codificado con todos los frames como keyframe: sin eso, cada
- * salto obligaría al navegador a decodificar desde el keyframe anterior y el
- * movimiento se vería a los tirones.
+ * Dos cosas pasan a la vez mientras se scrollea:
  *
- * La sección mide varias pantallas de alto —esa altura es la "pista" del
- * scroll— y adentro el video queda pegado. Lo que se recorre es la pista; lo
- * que se ve, siempre el mismo cuadro.
+ * - El video avanza cuadro a cuadro. No es un GIF: un GIF se reproduce a su
+ *   ritmo y no hay forma de llevarlo a un cuadro determinado. El archivo está
+ *   codificado con todos los cuadros como keyframe para que cada salto sea
+ *   instantáneo.
+ * - La pieza se desplaza más lento que la página. Ese desfasaje es el parallax:
+ *   da sensación de profundidad sin mover nada de lugar.
  */
 
-/** Cuántas pantallas dura la animación. Más alto = más lento de recorrer. */
-const PANTALLAS = 2.6;
+/** Cuánto se corre la pieza respecto de la página, en píxeles. */
+const RECORRIDO_PARALLAX = 56;
 
-export function LogoAnimado() {
-  const pista = useRef<HTMLDivElement>(null);
+export function LogoAnimado({ className = "" }: { className?: string }) {
+  const marco = useRef<HTMLDivElement>(null);
+  const capa = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [quieto, setQuieto] = useState(false);
 
   useEffect(() => {
-    // Con movimiento reducido no se scrubbea nada: queda el último cuadro, que
-    // es el logo terminado.
     const prefiere = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (prefiere.matches) {
       setQuieto(true);
@@ -37,32 +37,35 @@ export function LogoAnimado() {
     }
 
     const v = video.current;
-    const p = pista.current;
-    if (!v || !p) return;
+    const m = marco.current;
+    if (!v || !m) return;
 
     let pedido = 0;
-    let objetivo = 0;
+    let avance = 0;
 
     const medir = () => {
-      const caja = p.getBoundingClientRect();
-      // Cuánto de la pista ya pasó por arriba del borde superior, de 0 a 1.
-      const recorrido = -caja.top;
-      const total = caja.height - window.innerHeight;
-      const avance = total > 0 ? recorrido / total : 0;
-      objetivo = Math.min(Math.max(avance, 0), 1);
+      const caja = m.getBoundingClientRect();
+      const alto = window.innerHeight;
+      // De 0 —la pieza asomando por abajo— a 1 —ya saliendo por arriba—.
+      const bruto = (alto - caja.top) / (alto + caja.height);
+      avance = Math.min(Math.max(bruto, 0), 1);
     };
 
     const pintar = () => {
       pedido = 0;
-      const dur = v.duration;
-      if (!Number.isFinite(dur) || dur <= 0) return;
 
-      // Se deja un pelo antes del final: el último frame de un mp4 a veces no
-      // se puede buscar y el video quedaría en negro justo al terminar.
-      const t = objetivo * (dur - 0.05);
-      // Sin el umbral, cada scroll pide un `seek` nuevo y el decodificador se
-      // satura; con él, sólo se mueve cuando hay una diferencia que se nota.
-      if (Math.abs(v.currentTime - t) > 0.01) v.currentTime = t;
+      const dur = v.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        // Se deja un pelo antes del final: el último cuadro de un mp4 a veces no
+        // se puede buscar y quedaría en negro justo al terminar.
+        const t = avance * (dur - 0.05);
+        if (Math.abs(v.currentTime - t) > 0.01) v.currentTime = t;
+      }
+
+      if (capa.current) {
+        const corrimiento = (0.5 - avance) * RECORRIDO_PARALLAX;
+        capa.current.style.transform = `translate3d(0, ${corrimiento}px, 0)`;
+      }
     };
 
     const alScrollear = () => {
@@ -71,7 +74,6 @@ export function LogoAnimado() {
     };
 
     medir();
-    // El primer pintado espera a saber cuánto dura el video.
     if (v.readyState >= 1) pintar();
     else v.addEventListener("loadedmetadata", pintar, { once: true });
 
@@ -85,13 +87,18 @@ export function LogoAnimado() {
   }, []);
 
   return (
-    <section
-      ref={pista}
+    <div
+      ref={marco}
       aria-label="Halley Audiovisual"
-      className="relative bg-black"
-      style={{ height: `${PANTALLAS * 100}svh` }}
+      // El recorte es lo que permite el parallax: la capa de adentro se mueve y
+      // lo que se sale del marco no se ve.
+      className={`relative aspect-[16/10] overflow-hidden bg-black ${className}`}
     >
-      <div className="sticky top-0 flex h-svh items-center justify-center overflow-hidden">
+      {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
+      <div
+        ref={capa}
+        className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
+      >
         {quieto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -107,12 +114,11 @@ export function LogoAnimado() {
             muted
             playsInline
             preload="auto"
-            // No se reproduce solo: cada cuadro lo elige el scroll.
             aria-hidden="true"
             className="h-full w-full object-cover"
           />
         )}
       </div>
-    </section>
+    </div>
   );
 }
