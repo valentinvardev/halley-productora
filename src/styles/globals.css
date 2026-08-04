@@ -1121,3 +1121,41 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
   display: none !important;
   -webkit-appearance: none;
 }
+
+/* ---------------------------------------------------------------------------
+   Los papelitos del pago acreditado.
+
+   Caen una vez y se van. `forwards` deja el último cuadro —opacidad cero— para
+   que no reaparezcan al final de la animación.
+--------------------------------------------------------------------------- */
+.confeti-papel {
+  position: absolute;
+  top: -12%;
+  width: 3px;
+  opacity: 0;
+  animation: caer-papel 1.9s cubic-bezier(0.3, 0.7, 0.5, 1) forwards;
+}
+
+@keyframes caer-papel {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(var(--giro));
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    /* Cae más de lo que mide la caja: se van por abajo en vez de apilarse. */
+    transform: translateY(420px) rotate(calc(var(--giro) + 540deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confeti {
+    display: none;
+  }
+}

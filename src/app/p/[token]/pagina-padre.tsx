@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AvisosGrupo } from "~/app/_components/avisos-grupo";
+import { Confeti } from "~/app/_components/confeti";
 import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { IconoMercadoPago } from "~/app/_components/iconos";
@@ -62,6 +63,41 @@ export function PaginaPadre({
 
   const proxima = data.plan.proxima;
 
+  /**
+   * ¿Entró un pago mientras la familia miraba esta pantalla?
+   *
+   * Se compara contra lo que había al abrir. Si sube, es que la transferencia se
+   * acreditó recién y hay algo que festejar; si la página se abre ya pagada, no
+   * corresponde ningún festejo.
+   */
+  const pagados = data.pagos.length;
+  const alAbrir = useRef(pagados);
+  const [reciente, setReciente] = useState(false);
+
+  useEffect(() => {
+    if (pagados > alAbrir.current) {
+      alAbrir.current = pagados;
+      setReciente(true);
+      setEsperandoAcreditacion(false);
+    }
+  }, [pagados]);
+
+  /**
+   * La cuota que viene, ¿apremia o falta para eso?
+   *
+   * De esto depende todo el tono de la pantalla. Con algo vencido o por vencer,
+   * cobrar es el punto. Si la familia está al día y la próxima recién vence el
+   * mes que viene, insistir con el monto en grande la hace creer que debe pagar
+   * todo ya mismo, que es exactamente lo contrario de lo que pasa.
+   */
+  const DIAS_QUE_APREMIAN = 8;
+  const faltanDias = proxima
+    ? Math.ceil((new Date(proxima.venceEl).getTime() - Date.now()) / 86400000)
+    : 0;
+  const apremia =
+    !!proxima &&
+    (proxima.estado === "VENCIDA" || faltanDias <= DIAS_QUE_APREMIAN);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper-dimmer px-4 py-10">
       <div className="w-full max-w-[380px]">
@@ -82,7 +118,15 @@ export function PaginaPadre({
             </div>
           )}
 
-          {!proxima ? (
+          {reciente ? (
+            /* ------------------------------------ recién acreditado */
+            <ConfirmacionPago
+              monto={data.pagos[0]?.monto ?? 0}
+              proxima={proxima}
+              deuda={data.plan.deuda}
+              alSeguir={() => setReciente(false)}
+            />
+          ) : !proxima ? (
             /* --------------------------------------------- plan saldado */
             <div className="mt-8 flex flex-col items-center text-center">
               <Marca
@@ -105,14 +149,35 @@ export function PaginaPadre({
           ) : (
             /* ------------------------------------------ cuota a pagar */
             <>
-              <div className="mt-5 font-display text-[40px] leading-none">
-                {pesos(proxima.saldo)}
-              </div>
-              <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
-                {proxima.estado === "VENCIDA" ? "VENCIÓ" : "VENCE"}{" "}
-                {fecha(proxima.venceEl)} · CUOTA {proxima.numero} DE{" "}
-                {data.plan.cuotas.length}
-              </div>
+              {apremia ? (
+                <>
+                  <div className="mt-5 font-display text-[40px] leading-none">
+                    {pesos(proxima.saldo)}
+                  </div>
+                  <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
+                    {proxima.estado === "VENCIDA" ? "VENCIÓ" : "VENCE"}{" "}
+                    {fecha(proxima.venceEl)} · CUOTA {proxima.numero} DE{" "}
+                    {data.plan.cuotas.length}
+                  </div>
+                </>
+              ) : (
+                /* Al día: lo que corresponde decir es "estás al día", no un
+                   monto en grande que se lee como una deuda de hoy. */
+                <div className="mt-5">
+                  <div className="flex items-center gap-2.5">
+                    <Marca tipo="confirmado" className="h-6 w-6" grosor={4} />
+                    <span className="font-rotulo text-[12px] uppercase tracking-[0.1em]">
+                      Estás al día
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[13.5px] leading-relaxed text-gray-70">
+                    La próxima es la cuota {proxima.numero} de{" "}
+                    {data.plan.cuotas.length}, de {pesos(proxima.saldo)}, y
+                    vence el {fecha(proxima.venceEl)}. No hay nada que hacer
+                    hasta entonces.
+                  </p>
+                </div>
+              )}
 
               {data.proveedor === "MERCADOPAGO" ? (
                 /* --------------------------------------- Checkout Pro */
@@ -256,6 +321,80 @@ export function PaginaPadre({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * El momento en que la transferencia se acredita.
+ *
+ * Existe porque sin esto la pantalla simplemente pasaba a mostrar la cuota
+ * siguiente, y la familia no tenía forma de saber si su plata llegó. Peor: veía
+ * otra vez un monto en grande y podía entender que le seguían cobrando.
+ *
+ * Primero se confirma —tilde, monto, y que el comprobante va por email—, y
+ * recién después de que la persona dice "listo" se pasa al estado normal. No se
+ * va sola a los pocos segundos: es la única confirmación que va a ver.
+ */
+function ConfirmacionPago({
+  monto,
+  proxima,
+  deuda,
+  alSeguir,
+}: {
+  monto: number;
+  proxima: { numero: number; saldo: number; venceEl: Date | string } | null;
+  deuda: number;
+  alSeguir: () => void;
+}) {
+  return (
+    <div className="relative mt-8 flex flex-col items-center text-center">
+      <Confeti />
+
+      <Marca tipo="confirmado" className="h-24 w-24" grosor={3} animar />
+
+      <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
+        Pago acreditado
+      </div>
+      <div className="mt-2 font-display text-[34px] leading-none">
+        {pesos(monto)}
+      </div>
+      <p className="mt-5 text-[13px] leading-relaxed text-gray-70">
+        Recibimos tu transferencia. Te mandamos el comprobante por email.
+      </p>
+
+      {proxima ? (
+        <div className="mt-7 w-full border border-ink px-5 py-4 text-left">
+          <div className="font-rotulo text-[10.5px] uppercase tracking-[0.14em] text-gray-45">
+            Próxima cuota
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-display text-[26px] leading-none">
+              {pesos(proxima.saldo)}
+            </span>
+            <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
+              Cuota {proxima.numero} · vence {fecha(proxima.venceEl)}
+            </span>
+          </div>
+          <p className="nota mt-2 text-[12px]">
+            No hace falta pagarla ahora. Te quedan {pesos(deuda)} para terminar
+            el plan.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-7 w-full border border-ink px-5 py-4">
+          <div className="font-rotulo text-[11px] uppercase tracking-[0.1em]">
+            Plan saldado
+          </div>
+          <p className="nota mt-1.5 text-[12px]">
+            No queda nada por pagar. La galería queda liberada.
+          </p>
+        </div>
+      )}
+
+      <Boton className="mt-4 w-full" onClick={alSeguir}>
+        Entendido
+      </Boton>
     </div>
   );
 }
