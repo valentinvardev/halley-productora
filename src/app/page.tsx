@@ -176,7 +176,9 @@ function Hero({
             <br />
             son fugaces.
             <br />
-            Halley los hace eternos.
+            {/* El remate del eslogan, un punto más pesado que las dos líneas
+                que lo preparan. */}
+            <span className="titular-remate">Halley los hace eternos.</span>
           </h1>
 
           <p className="mt-7 max-w-[46ch] text-[14.5px] leading-relaxed">

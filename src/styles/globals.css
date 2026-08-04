@@ -1078,3 +1078,22 @@
   filter: invert(1);
   mix-blend-mode: multiply;
 }
+
+/* ---------------------------------------------------------------------------
+   El remate del titular: "Halley los hace eternos".
+
+   Bebas Neue tiene un solo peso. Pedirle negrita hace que el navegador la
+   fabrique estirando los trazos —la "negrita falsa"—, y en una condensada eso
+   se ve emborronado y con los gruesos disparejos.
+
+   Se engrosa el contorno en su lugar. Es el mismo dibujo de letra, un poco más
+   pesado, sin deformar nada. La medida va en `em` para que acompañe al tamaño
+   del titular, que es fluido: en `px` el remate quedaría fino en el monitor y
+   pastoso en el teléfono.
+--------------------------------------------------------------------------- */
+.titular-remate {
+  -webkit-text-stroke: 0.019em currentColor;
+  /* El trazo se dibuja centrado sobre el borde de la letra y come un poco hacia
+     adentro. Una pizca de espaciado evita que las letras se toquen entre sí. */
+  letter-spacing: 0.004em;
+}
