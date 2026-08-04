@@ -14,12 +14,14 @@ import type { CredencialesTalo } from "./types";
  */
 
 /**
- * En modo simulado no hay a quién autenticarse: el mock no sale a la red. Si acá
- * se exigieran credenciales, la demo quedaría pidiendo las llaves de una puerta
- * que no se abre —que es justo lo que pasó cuando esto se olvidó—.
+ * Credenciales de mentira, para cuando no hay a quién autenticarse.
+ *
+ * El mock no sale a la red: exigirle credenciales sería pedir las llaves de una
+ * puerta que no se abre. Pasa en dos casos —el sistema entero en modo simulado,
+ * o un grupo puntual marcado de prueba— y en los dos el pago se confirma contra
+ * el simulador, no contra Talo.
  */
-function siEsSimulado(): CredencialesTalo | null {
-  if (env.TALO_MODE === "real") return null;
+function simuladas(): CredencialesTalo {
   return {
     clientId: "demo",
     clientSecret: "demo",
@@ -27,6 +29,10 @@ function siEsSimulado(): CredencialesTalo | null {
     apiUrl: env.TALO_API_URL,
     cacheId: "demo",
   };
+}
+
+function siEsSimulado(): CredencialesTalo | null {
+  return env.TALO_MODE === "real" ? null : simuladas();
 }
 
 function delEntorno(): CredencialesTalo | null {
@@ -75,6 +81,11 @@ export async function credencialesDeGrupo(
     include: { cuentaPago: true },
   });
 
+  // Un grupo de prueba cobra contra el simulador aunque Talo esté en real, así
+  // que no necesita credenciales de nadie. Sin esto, ensayar un cobro exigiría
+  // tener cargada una cuenta real — justo lo que el modo prueba evita.
+  if (grupo?.modoPrueba) return simuladas();
+
   const propia = grupo?.cuentaPago?.activa
     ? deCuenta(grupo.cuentaPago)
     : null;
@@ -109,5 +120,6 @@ export async function credencialesDeAlumno(
     select: { grupoId: true },
   });
   if (!alumno) return delEntorno();
+
   return credencialesDeGrupo(alumno.grupoId);
 }

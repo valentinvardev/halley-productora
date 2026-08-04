@@ -62,6 +62,7 @@ export const grupoRouter = createTRPCRouter({
       colegio: g.colegio,
       tipo: g.tipo,
       autoRegistro: g.autoRegistro,
+      modoPrueba: g.modoPrueba,
       creadoEn: g.creadoEn,
       resumen: resumir(g.cuotas, g.alumnos),
     }));
@@ -93,6 +94,7 @@ export const grupoRouter = createTRPCRouter({
         colegio: grupo.colegio,
         tipo: grupo.tipo,
         autoRegistro: grupo.autoRegistro,
+        modoPrueba: grupo.modoPrueba,
         linkRegistro: linkGrupo(grupo.slug),
         modoDemo: simuladorTaloActivo(),
         cuentaPago: grupo.cuentaPago
@@ -269,6 +271,23 @@ export const grupoRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { cuotaId, ...datos } = input;
       await ctx.db.cuota.update({ where: { id: cuotaId }, data: datos });
+      return { ok: true };
+    }),
+
+  /**
+   * Enciende o apaga el modo de prueba.
+   *
+   * Con esto en `true` los pagos del grupo se simulan: no tocan a ningún
+   * proveedor y no mueve un peso. Sirve para ensayar el circuito entero en el
+   * sistema de verdad, sin abrir la puerta en los demás grupos.
+   */
+  modoPrueba: adminProcedure
+    .input(z.object({ id: z.string(), activo: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.grupo.update({
+        where: { id: input.id },
+        data: { modoPrueba: input.activo },
+      });
       return { ok: true };
     }),
 

@@ -410,6 +410,7 @@ export function Grupos() {
                 <div className="mb-1 flex items-center gap-2">
                   <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
                   {g.tipo === "PARTICULAR" && <Tag>Particular</Tag>}
+                  {g.modoPrueba && <Tag>Modo prueba</Tag>}
                 </div>
                 <div className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-70">
                   {g.tipo === "PARTICULAR"

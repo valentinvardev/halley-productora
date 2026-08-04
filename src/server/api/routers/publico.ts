@@ -52,9 +52,11 @@ export const publicoRouter = createTRPCRouter({
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         tieneCuenta: alumno._count.tutores > 0,
         modoDemo:
-          proveedor === "MERCADOPAGO"
+          alumno.grupo.modoPrueba ||
+          (proveedor === "MERCADOPAGO"
             ? simuladorMpActivo()
-            : simuladorTaloActivo(),
+            : simuladorTaloActivo()),
+        modoPrueba: alumno.grupo.modoPrueba,
         grupo: {
           nombre: alumno.grupo.nombre,
           colegio: alumno.grupo.colegio,

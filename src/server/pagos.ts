@@ -8,7 +8,7 @@ import { registrarEvento } from "./eventos";
 import { mercadoPago } from "./mercadopago";
 import { tokenVigente } from "./mercadopago/oauth";
 import { notificarPagoRecibido } from "./notificaciones";
-import { credencialesDeAlumno, talo } from "./talo";
+import { credencialesDeAlumno, talo, taloMock } from "./talo";
 
 /**
  * Procesamiento de un pago confirmado, venga de donde venga.
@@ -186,7 +186,11 @@ export async function procesarPagoRecibido(payload: {
     return { ok: false as const, motivo: "sin-credenciales" };
   }
 
-  const tx = await talo.obtenerTransaccion(
+  // Un grupo de prueba confirma contra el simulador aunque Talo esté en real:
+  // su "transferencia" nunca existió del lado del proveedor, así que
+  // preguntarle a Talo daría siempre "no encontrada".
+  const cliente = alumno.grupo.modoPrueba ? taloMock : talo;
+  const tx = await cliente.obtenerTransaccion(
     cred,
     payload.customerId,
     payload.transactionId,

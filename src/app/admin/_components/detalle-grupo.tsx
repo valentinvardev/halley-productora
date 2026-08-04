@@ -148,6 +148,12 @@ export function DetalleGrupo({ id }: { id: string }) {
         alCambiar={refrescar}
       />
 
+      <ModoPrueba
+        grupoId={id}
+        activo={grupo.modoPrueba}
+        alCambiar={refrescar}
+      />
+
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
           <div>
@@ -383,6 +389,58 @@ function PlanDelGrupo({
 }
 
 /* --------------------------------------------------------------- galerías */
+
+/**
+ * El interruptor de modo prueba.
+ *
+ * Con esto encendido los pagos del grupo se simulan y no tocan a ningún
+ * proveedor: sirve para ensayar el circuito entero —que la cuota se marque, que
+ * salga el email, que se destrabe la galería— sin mover un peso.
+ *
+ * Se avisa fuerte, y la familia también lo ve en su pantalla: un cobro de
+ * mentira que se parece a uno real es una trampa esperando.
+ */
+function ModoPrueba({
+  grupoId,
+  activo,
+  alCambiar,
+}: {
+  grupoId: string;
+  activo: boolean;
+  alCambiar: (mensaje?: string) => Promise<void>;
+}) {
+  const cambiar = api.grupo.modoPrueba.useMutation({
+    onSuccess: () =>
+      alCambiar(activo ? "Modo prueba apagado" : "Modo prueba encendido"),
+  });
+
+  return (
+    <div
+      className={`mb-8 flex flex-wrap items-center justify-between gap-3 border px-4 py-3 ${
+        activo ? "border-marca bg-marca/5" : "border-gray-20 bg-paper-dim"
+      }`}
+    >
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Etiqueta>Modo prueba</Etiqueta>
+          {activo && <Tag>Encendido</Tag>}
+        </div>
+        <div className="nota mt-0.5 max-w-[70ch] text-[11.5px] text-gray-45">
+          {activo
+            ? "Los pagos de este grupo se simulan: no llega plata de verdad y la familia ve que está en prueba."
+            : "Encendelo para ensayar el circuito completo sin mover un peso. Los demás grupos siguen cobrando normal."}
+        </div>
+      </div>
+      <Boton
+        variante={activo ? "solido" : "fantasma"}
+        onClick={() => cambiar.mutate({ id: grupoId, activo: !activo })}
+        disabled={cambiar.isPending}
+      >
+        {cambiar.isPending ? "Cambiando…" : activo ? "Apagar" : "Encender"}
+      </Boton>
+    </div>
+  );
+}
 
 /**
  * A qué cuenta van los cobros de este grupo. Es lo que enruta una boda a la

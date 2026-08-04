@@ -149,10 +149,14 @@ export const cuentaRouter = createTRPCRouter({
         alias: alumno.alias,
         cvu: alumno.cvu,
         proveedor,
+        // El botón de simular aparece si el sistema está en demo o si este
+        // grupo puntual está marcado de prueba.
         modoDemo:
-          proveedor === "MERCADOPAGO"
+          alumno.grupo.modoPrueba ||
+          (proveedor === "MERCADOPAGO"
             ? simuladorMpActivo()
-            : simuladorTaloActivo(),
+            : simuladorTaloActivo()),
+        modoPrueba: alumno.grupo.modoPrueba,
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         grupo: {
           nombre: alumno.grupo.nombre,

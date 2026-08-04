@@ -37,6 +37,17 @@ model Grupo {
     /// Permite que los padres se registren solos desde el link del grupo.
     autoRegistro Boolean @default(true)
 
+    /// Grupo de prueba: los pagos se simulan y no tocan ningún proveedor.
+    ///
+    /// Es para ensayar el circuito entero —que la cuota se marque, que salga el
+    /// email, que se destrabe la galería— sin mover un peso. Va por grupo y no
+    /// por entorno a propósito: así se prueba en el sistema de verdad sin abrir
+    /// la puerta en los demás grupos, que es lo que hacía DEMO_ABIERTA.
+    ///
+    /// Se muestra en todas las pantallas donde aparece plata. Un cobro de
+    /// mentira que se ve igual que uno real es una trampa esperando.
+    modoPrueba Boolean @default(false)
+
     cuotas         Cuota[]
     alumnos        Alumno[]
     galerias       Galeria[]

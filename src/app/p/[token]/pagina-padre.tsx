@@ -69,6 +69,17 @@ export function PaginaPadre({
             {data.grupo.nombre} — {data.grupo.colegio}
           </div>
           <h1 className="mt-1 text-[20px]">{data.nombre}</h1>
+          {data.modoPrueba && (
+            <div className="mt-4 border border-marca bg-marca/5 px-3.5 py-2.5">
+              <div className="font-rotulo text-[10.5px] uppercase tracking-[0.12em] text-marca">
+                Modo prueba
+              </div>
+              <p className="nota mt-0.5 text-[11.5px]">
+                Este grupo está en prueba: los pagos se simulan y no se cobra
+                nada de verdad.
+              </p>
+            </div>
+          )}
 
           {!proxima ? (
             /* --------------------------------------------- plan saldado */

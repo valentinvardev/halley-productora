@@ -10,7 +10,7 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
-import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
+import { puedeSimularGrupo, simuladorMpActivo } from "~/server/demo";
 import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
 import { tokenVigente } from "~/server/mercadopago/oauth";
 import { proveedorDeGrupo } from "~/server/pagos";
@@ -94,20 +94,17 @@ async function crearPreferenciaPago(
  * simulado: el pago entra por el mismo camino que va a usar en producción.
  */
 async function simularTransferencia(alumnoId: string, montoManual?: number) {
-  // Sin esto, cualquiera con el token de una familia se da por pagado sin
-  // transferir un peso —y de paso se destraba la galería—. Por eso la puerta
-  // está cerrada en producción salvo que se abra a propósito.
-  if (!simuladorTaloActivo()) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "No disponible.",
-    });
-  }
-
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
     include: { grupo: { include: { cuotas: true } }, pagos: true },
   });
+
+  // Sin esto, cualquiera con el token de una familia se da por pagado sin
+  // transferir un peso —y de paso se destraba la galería—. Se abre por grupo
+  // marcado de prueba, o con la demo entera abierta.
+  if (!(await puedeSimularGrupo(alumno.grupoId))) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "No disponible." });
+  }
 
   const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
   const monto = montoManual ?? plan.proxima?.saldo;

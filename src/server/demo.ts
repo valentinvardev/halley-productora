@@ -1,6 +1,7 @@
 import "server-only";
 
 import { env } from "~/env";
+import { db } from "./db";
 
 /**
  * La llave de las herramientas de demostración.
@@ -31,4 +32,23 @@ export function simuladorTaloActivo() {
 /** La confirmación de pagos falsos de Mercado Pago. Pide estar en modo mock. */
 export function simuladorMpActivo() {
   return demoAbierta() && env.MP_MODE !== "real";
+}
+
+/**
+ * ¿Se puede simular un pago para este grupo?
+ *
+ * Dos caminos: que la demo esté abierta —y entonces vale para todo— o que el
+ * grupo esté marcado como de prueba. Lo segundo es lo que permite ensayar el
+ * circuito en el sistema de verdad sin abrirlo para los demás grupos.
+ *
+ * El grupo de prueba no mira `TALO_MODE` ni `MP_MODE`: justamente existe para
+ * simular con los proveedores en real.
+ */
+export async function puedeSimularGrupo(grupoId: string) {
+  if (demoAbierta()) return true;
+  const grupo = await db.grupo.findUnique({
+    where: { id: grupoId },
+    select: { modoPrueba: true },
+  });
+  return grupo?.modoPrueba ?? false;
 }
