@@ -15,8 +15,8 @@ import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
-import { contenidoDe, contenidoHero } from "~/server/contenido";
-import { MAX_PORTADAS, PortadasRotativas } from "./_components/portadas-rotativas";
+import { heroAleatorio, muestraDe } from "~/server/contenido";
+import { MosaicoPortadas } from "./_components/mosaico-portadas";
 import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import { SERVICIOS } from "./_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
@@ -36,6 +36,9 @@ const SECCIONES = [
   { href: "#como", texto: "Cómo trabajamos" },
   { href: "#contacto", texto: "Contacto" },
 ];
+
+/** Celdas de la grilla de cada tipo de evento: alcanza para la pantalla ancha. */
+const CELDAS_GRILLA = 8;
 
 const VIDEO_PORTADA = "/portada/portada.mp4";
 const POSTER_PORTADA = "/portada/portada.jpg";
@@ -67,7 +70,7 @@ export default async function Landing() {
   // Los datos de contacto salen del panel, no del codigo.
   const datos = await contacto();
   // La portada que subió el admin manda; si no hay, el archivo del repo.
-  const hero = await contenidoHero();
+  const hero = await heroAleatorio();
 
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
@@ -299,12 +302,11 @@ function Concepto() {
  * entra deslizándose por encima.
  */
 async function Servicios() {
-  // El fondo de cada panel es la primera pieza que el admin subió a esa
-  // categoría; si no hay ninguna, el relleno. Se resuelve en el servidor.
+  // El fondo de cada panel es una grilla de trabajos al azar de esa categoría;
+  // si no hay ninguno, el relleno. Se resuelve en el servidor, por pedido, así
+  // que cada visita ve otras fotos.
   const fondos = await Promise.all(
-    SERVICIOS.map((s) =>
-      contenidoDe(s.slug).then((c) => c.slice(0, MAX_PORTADAS)),
-    ),
+    SERVICIOS.map((s) => muestraDe(s.slug, CELDAS_GRILLA)),
   );
 
   return (
@@ -325,11 +327,7 @@ async function Servicios() {
           <div key={s.slug} className="tramo-servicio">
             <article className="panel-servicio aisla relative flex items-end">
               {portadas.length > 0 ? (
-                // Hasta cuatro portadas que se van alternando. Cada una va en
-                // dos capas: una copia difuminada llena el panel y la foto
-                // entera entra encima, sin recortar, así una horizontal se ve
-                // completa lo mismo en desktop que en un teléfono vertical.
-                <PortadasRotativas piezas={portadas} />
+                <MosaicoPortadas piezas={portadas} />
               ) : (
                 <Image
                   src={`/servicios/${s.slug}-portada.jpg`}

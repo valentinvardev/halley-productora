@@ -187,8 +187,9 @@ export function GaleriaCategoria({
           </h1>
           <p className="nota mt-2">
             {piezas?.length ?? 0} {piezas?.length === 1 ? "pieza" : "piezas"} ·
-            arrastrá el mouse o usá el tilde para seleccionar · las primeras
-            {" "}{MAX_PORTADAS} son las portadas y se van alternando en la landing
+            arrastrá el mouse o usá el tilde para seleccionar · la landing arma
+            una grilla al azar con todas, y las primeras {MAX_PORTADAS} abren la
+            página de este servicio
           </p>
         </div>
 
@@ -268,7 +269,7 @@ export function GaleriaCategoria({
                 {i < MAX_PORTADAS ? (
                   <span className="pointer-events-none absolute top-1.5 right-1.5 flex items-center gap-1 bg-ink/85 px-1.5 py-1 font-rotulo text-[9px] uppercase tracking-[0.06em] text-paper">
                     <IconoEstrella className="h-2.5 w-2.5" />
-                    Portada {i + 1}
+                    Al frente
                   </span>
                 ) : (
                   <button
@@ -279,7 +280,7 @@ export function GaleriaCategoria({
                       marcarPortada.mutate({ id: p.id });
                     }}
                     disabled={marcarPortada.isPending}
-                    aria-label="Hacer portada"
+                    aria-label="Poner al frente"
                     className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink opacity-0 transition-opacity hover:bg-ink hover:text-paper group-hover:opacity-100"
                   >
                     <IconoEstrella className="h-3.5 w-3.5" />

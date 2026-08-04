@@ -54,3 +54,52 @@ export async function contenidoHero() {
     url: `/api/contenido/${fila.id}`,
   };
 }
+
+/* ------------------------------------------------------------- aleatoriedad */
+
+/**
+ * Baraja una copia. Fisher-Yates: cada orden posible sale con la misma
+ * probabilidad, a diferencia del `sort(() => Math.random() - 0.5)` que se ve por
+ * ahí y que reparte muy desparejo.
+ */
+function mezclar<T>(items: T[]): T[] {
+  const copia = [...items];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j]!, copia[i]!];
+  }
+  return copia;
+}
+
+/**
+ * Una muestra al azar de una categoría, distinta en cada visita.
+ *
+ * La landing es `force-dynamic`, así que esto se resuelve por pedido: quien
+ * vuelve a entrar ve otras fotos y la vitrina no se siente siempre igual con el
+ * mismo material.
+ *
+ * Si hay menos piezas que las pedidas, devuelve las que haya —no repite para
+ * llenar, que se nota feo—.
+ */
+export async function muestraDe(categoria: string, cuantas: number) {
+  const todas = await contenidoDe(categoria);
+  return mezclar(todas).slice(0, cuantas);
+}
+
+/**
+ * El fondo de la portada, elegido al azar entre lo que el admin haya subido a
+ * la categoría del hero.
+ *
+ * Antes era siempre el último que se subía. Con varios clips cargados, cada
+ * visita abre con uno distinto.
+ */
+export async function heroAleatorio() {
+  const filas = await db.contenido.findMany({ where: { categoria: HERO_SLUG } });
+  const elegida = mezclar(filas)[0];
+  if (!elegida) return null;
+  return {
+    id: elegida.id,
+    tipo: elegida.tipo === "video" ? ("video" as const) : ("imagen" as const),
+    url: `/api/contenido/${elegida.id}`,
+  };
+}
