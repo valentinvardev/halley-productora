@@ -10,8 +10,10 @@ import { api } from "~/trpc/react";
 import { EsqueletoContenidos } from "./esqueletos";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
+import { ZonaArrastre } from "./zona-arrastre";
 
-const ACEPTA = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
+const ACEPTA =
+  "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
 
 /** Cuántas piezas se muestran de preview en la tarjeta del resumen. */
 const PREVIEW = 5;
@@ -102,7 +104,9 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
     <section className="mb-10 border border-ink">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink px-5 py-3.5">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-titulo text-[20px] uppercase">Portada del sitio</h2>
+          <h2 className="font-titulo text-[20px] uppercase">
+            Portada del sitio
+          </h2>
           <span className="font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
             {hero ? (hero.tipo === "video" ? "Video" : "Imagen") : "Sin subir"}
           </span>
@@ -165,7 +169,11 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={hero.url} alt="" className="h-full w-full object-cover" />
+              <img
+                src={hero.url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             )}
           </div>
         ) : (
@@ -206,7 +214,11 @@ function TarjetaCategoria({
   const resto = total - preview.length;
 
   return (
-    <section className="border border-ink">
+    <ZonaArrastre
+      alSoltar={(fs) => subir(fs)}
+      deshabilitada={!habilitado || activo}
+      className="border border-ink"
+    >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink px-5 py-3.5">
         <div className="flex items-baseline gap-3">
           <h2 className="font-titulo text-[20px] uppercase">{nombre}</h2>
@@ -265,10 +277,19 @@ function TarjetaCategoria({
                 className="relative aspect-square overflow-hidden border border-gray-20 bg-paper-dim"
               >
                 {p.tipo === "video" ? (
-                  <video src={p.url} muted playsInline className="h-full w-full object-cover" />
+                  <video
+                    src={p.url}
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={p.url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 )}
                 {/* En la última del preview, cuántas más hay. */}
                 {resto > 0 && p.id === preview[preview.length - 1]!.id && (
@@ -283,6 +304,6 @@ function TarjetaCategoria({
       </div>
 
       <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
-    </section>
+    </ZonaArrastre>
   );
 }

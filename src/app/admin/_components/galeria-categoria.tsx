@@ -17,6 +17,7 @@ import { Lightbox } from "~/app/_components/lightbox";
 import { BotonesSubida } from "./botones-subida";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
+import { ZonaArrastre } from "./zona-arrastre";
 
 type Rect = { left: number; top: number; right: number; bottom: number };
 
@@ -116,12 +117,17 @@ export function GaleriaCategoria({
       setMarq(r);
 
       const nuevos = new Set(base);
-      gridRef.current?.querySelectorAll<HTMLElement>("[data-id]").forEach((el) => {
-        const b = el.getBoundingClientRect();
-        const fuera =
-          b.right < r.left || b.left > r.right || b.bottom < r.top || b.top > r.bottom;
-        if (!fuera && el.dataset.id) nuevos.add(el.dataset.id);
-      });
+      gridRef.current
+        ?.querySelectorAll<HTMLElement>("[data-id]")
+        .forEach((el) => {
+          const b = el.getBoundingClientRect();
+          const fuera =
+            b.right < r.left ||
+            b.left > r.right ||
+            b.bottom < r.top ||
+            b.top > r.bottom;
+          if (!fuera && el.dataset.id) nuevos.add(el.dataset.id);
+        });
       setSel(nuevos);
       ev.preventDefault();
     };
@@ -193,94 +199,107 @@ export function GaleriaCategoria({
         <BotonesSubida alElegir={(fs) => subir(fs)} ocupado={activo} />
       </div>
 
-      {isLoading ? (
-        <EsqueletoGaleria />
-      ) : !piezas || piezas.length === 0 ? (
-        <Vacio>Sin contenido en esta categoría todavía</Vacio>
-      ) : (
-        <div
-          ref={gridRef}
-          onMouseDown={alBajarEnGrilla}
-          className="relative grid grid-cols-2 gap-3 select-none sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-        >
-          {piezas.map((p, i) => {
-            const elegida = sel.has(p.id);
-            return (
-              <div
-                key={p.id}
-                data-id={p.id}
-                onClick={(e) => alClickPieza(e, p.id, i)}
-                className={`group relative aspect-square cursor-pointer overflow-hidden border bg-paper-dim ${
-                  elegida ? "border-ink ring-2 ring-ink" : "border-gray-20"
-                }`}
-              >
-                {p.tipo === "video" ? (
-                  <video src={p.url} muted playsInline className="h-full w-full object-cover" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.url} alt="" className="h-full w-full object-cover" />
-                )}
-
-                {p.tipo === "video" && (
-                  <span className="pointer-events-none absolute bottom-1.5 left-1.5 bg-ink/80 px-1.5 py-0.5 font-rotulo text-[9px] uppercase tracking-[0.08em] text-paper">
-                    Video
-                  </span>
-                )}
-
-                {/* El tilde de selección: no dispara el arrastre ni el visor. */}
-                <button
-                  type="button"
-                  data-no-marquee
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (e.shiftKey) rango(p.id);
-                    else alternar(p.id);
-                  }}
-                  aria-label={elegida ? "Quitar de la selección" : "Seleccionar"}
-                  className={`absolute top-1.5 left-1.5 grid h-6 w-6 place-items-center border text-[11px] transition-opacity ${
-                    elegida
-                      ? "border-ink bg-ink text-paper opacity-100"
-                      : "border-paper bg-paper/70 text-transparent opacity-0 group-hover:opacity-100"
+      <ZonaArrastre alSoltar={(fs) => subir(fs)} deshabilitada={activo}>
+        {isLoading ? (
+          <EsqueletoGaleria />
+        ) : !piezas || piezas.length === 0 ? (
+          <Vacio>Sin contenido en esta categoría todavía</Vacio>
+        ) : (
+          <div
+            ref={gridRef}
+            onMouseDown={alBajarEnGrilla}
+            className="relative grid grid-cols-2 gap-3 select-none sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          >
+            {piezas.map((p, i) => {
+              const elegida = sel.has(p.id);
+              return (
+                <div
+                  key={p.id}
+                  data-id={p.id}
+                  onClick={(e) => alClickPieza(e, p.id, i)}
+                  className={`group relative aspect-square cursor-pointer overflow-hidden border bg-paper-dim ${
+                    elegida ? "border-ink ring-2 ring-ink" : "border-gray-20"
                   }`}
                 >
-                  ✓
-                </button>
+                  {p.tipo === "video" ? (
+                    <video
+                      src={p.url}
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
 
-                {/* Portadas: las primeras de la lista son las que salen en la
-                    landing, alternándose. En esas va un sello con su turno; en
-                    las demás, un botón para subirlas al frente. */}
-                {i < MAX_PORTADAS ? (
-                  <span className="pointer-events-none absolute top-1.5 right-1.5 flex items-center gap-1 bg-ink/85 px-1.5 py-1 font-rotulo text-[9px] uppercase tracking-[0.06em] text-paper">
-                    <IconoEstrella className="h-2.5 w-2.5" />
-                    Al frente
-                  </span>
-                ) : (
+                  {p.tipo === "video" && (
+                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 bg-ink/80 px-1.5 py-0.5 font-rotulo text-[9px] uppercase tracking-[0.08em] text-paper">
+                      Video
+                    </span>
+                  )}
+
+                  {/* El tilde de selección: no dispara el arrastre ni el visor. */}
                   <button
                     type="button"
                     data-no-marquee
                     onClick={(e) => {
                       e.stopPropagation();
-                      marcarPortada.mutate({ id: p.id });
+                      if (e.shiftKey) rango(p.id);
+                      else alternar(p.id);
                     }}
-                    disabled={marcarPortada.isPending}
-                    aria-label="Poner al frente"
-                    className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink opacity-0 transition-opacity hover:bg-ink hover:text-paper group-hover:opacity-100"
+                    aria-label={
+                      elegida ? "Quitar de la selección" : "Seleccionar"
+                    }
+                    className={`absolute top-1.5 left-1.5 grid h-6 w-6 place-items-center border text-[11px] transition-opacity ${
+                      elegida
+                        ? "border-ink bg-ink text-paper opacity-100"
+                        : "border-paper bg-paper/70 text-transparent opacity-0 group-hover:opacity-100"
+                    }`}
                   >
-                    <IconoEstrella className="h-3.5 w-3.5" />
+                    ✓
                   </button>
-                )}
-              </div>
-            );
-          })}
 
-          {overlay && (
-            <div
-              className="pointer-events-none absolute z-10 border border-ink bg-ink/10"
-              style={overlay}
-            />
-          )}
-        </div>
-      )}
+                  {/* Portadas: las primeras de la lista son las que salen en la
+                    landing, alternándose. En esas va un sello con su turno; en
+                    las demás, un botón para subirlas al frente. */}
+                  {i < MAX_PORTADAS ? (
+                    <span className="pointer-events-none absolute top-1.5 right-1.5 flex items-center gap-1 bg-ink/85 px-1.5 py-1 font-rotulo text-[9px] uppercase tracking-[0.06em] text-paper">
+                      <IconoEstrella className="h-2.5 w-2.5" />
+                      Al frente
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      data-no-marquee
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        marcarPortada.mutate({ id: p.id });
+                      }}
+                      disabled={marcarPortada.isPending}
+                      aria-label="Poner al frente"
+                      className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink opacity-0 transition-opacity hover:bg-ink hover:text-paper group-hover:opacity-100"
+                    >
+                      <IconoEstrella className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {overlay && (
+              <div
+                className="pointer-events-none absolute z-10 border border-ink bg-ink/10"
+                style={overlay}
+              />
+            )}
+          </div>
+        )}
+      </ZonaArrastre>
 
       {/* Barra de selección: aparece con algo elegido. */}
       {sel.size > 0 && (

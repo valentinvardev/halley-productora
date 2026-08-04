@@ -9,6 +9,7 @@ import { api } from "~/trpc/react";
 import { BotonesSubida } from "./botones-subida";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaGaleria } from "./usar-carga-galeria";
+import { ZonaArrastre } from "./zona-arrastre";
 
 /**
  * El material de una galería de entrega, del lado del admin.
@@ -55,52 +56,66 @@ export function FotosGaleria({ galeriaId }: { galeriaId: string }) {
         <BotonesSubida alElegir={(fs) => subir(fs)} ocupado={activo} />
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="aspect-square animate-pulse bg-paper-dim" />
-          ))}
-        </div>
-      ) : !fotos || fotos.length === 0 ? (
-        <Vacio>Sin fotos subidas todavía</Vacio>
-      ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
-          {fotos.map((f) => {
-            const elegida = sel.has(f.id);
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => alternar(f.id)}
-                className={`group relative aspect-square overflow-hidden border bg-paper-dim ${
-                  elegida ? "border-ink ring-2 ring-ink" : "border-gray-20"
-                }`}
-              >
-                {f.tipo === "video" ? (
-                  <video src={f.url} muted playsInline className="h-full w-full object-cover" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={f.url} alt="" className="h-full w-full object-cover" />
-                )}
-                <span
-                  className={`absolute top-1 left-1 grid h-5 w-5 place-items-center border text-[10px] transition-opacity ${
-                    elegida
-                      ? "border-ink bg-ink text-paper opacity-100"
-                      : "border-paper bg-paper/70 text-transparent opacity-0 group-hover:opacity-100"
+      <ZonaArrastre alSoltar={(fs) => subir(fs)} deshabilitada={activo}>
+        {isLoading ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-square animate-pulse bg-paper-dim"
+              />
+            ))}
+          </div>
+        ) : !fotos || fotos.length === 0 ? (
+          <Vacio>Sin fotos subidas todavía</Vacio>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+            {fotos.map((f) => {
+              const elegida = sel.has(f.id);
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => alternar(f.id)}
+                  className={`group relative aspect-square overflow-hidden border bg-paper-dim ${
+                    elegida ? "border-ink ring-2 ring-ink" : "border-gray-20"
                   }`}
                 >
-                  ✓
-                </span>
-                {f.tipo === "video" && (
-                  <span className="pointer-events-none absolute bottom-1 left-1 bg-ink/80 px-1 py-0.5 font-rotulo text-[8px] uppercase tracking-[0.08em] text-paper">
-                    Video
+                  {f.tipo === "video" ? (
+                    <video
+                      src={f.url}
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={f.url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  <span
+                    className={`absolute top-1 left-1 grid h-5 w-5 place-items-center border text-[10px] transition-opacity ${
+                      elegida
+                        ? "border-ink bg-ink text-paper opacity-100"
+                        : "border-paper bg-paper/70 text-transparent opacity-0 group-hover:opacity-100"
+                    }`}
+                  >
+                    ✓
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                  {f.tipo === "video" && (
+                    <span className="pointer-events-none absolute bottom-1 left-1 bg-ink/80 px-1 py-0.5 font-rotulo text-[8px] uppercase tracking-[0.08em] text-paper">
+                      Video
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </ZonaArrastre>
 
       {sel.size > 0 && (
         <div className="mt-3 flex items-center gap-4">
