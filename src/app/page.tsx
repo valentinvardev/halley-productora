@@ -112,6 +112,8 @@ function Hero({
             loop
             autoPlay
             playsInline
+            disablePictureInPicture
+            disableRemotePlayback
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
           />
@@ -132,6 +134,8 @@ function Hero({
           loop
           autoPlay
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
         />
@@ -191,7 +195,10 @@ function Hero({
             un error de render, no como una decisión. */}
         <div className="mt-9 flex flex-wrap gap-3.5">
           <a
-            href={linkWhatsApp(whatsapp, "Hola Halley, quiero pedir un presupuesto.")}
+            href={linkWhatsApp(
+              whatsapp,
+              "Hola Halley, quiero pedir un presupuesto.",
+            )}
             target="_blank"
             rel="noreferrer"
             className={botonWhatsApp}
@@ -213,7 +220,9 @@ function Hero({
         href="#concepto"
         aria-label="Bajar"
         className={`absolute bottom-6 left-1/2 -translate-x-1/2 ${
-          hayFondo ? "text-white/70 hover:text-white" : "text-gray-45 hover:text-ink"
+          hayFondo
+            ? "text-white/70 hover:text-white"
+            : "text-gray-45 hover:text-ink"
         }`}
       >
         <IconoBajar className="h-4 w-4" />
@@ -260,13 +269,16 @@ function Estela() {
 
 function Concepto() {
   return (
-    <section id="concepto" className="border-b border-gray-20">
-      <div className="mx-auto grid max-w-[1140px] items-start gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[0.62fr_1.05fr_1fr] lg:gap-x-12">
-        {/* El cometa abre la sección, a la izquierda del título. */}
-        <Aparecer className="max-w-[300px] lg:max-w-none">
-          <LogoAnimado />
-        </Aparecer>
+    <section
+      id="concepto"
+      className="relative overflow-hidden border-b border-gray-20"
+    >
+      {/* El cometa no ocupa lugar en la grilla: va detrás, ocupando el aire que
+          la sección deja libre. Al estar fuera del flujo puede ser grande y
+          sangrar por los bordes sin empujar nada. */}
+      <LogoAnimado className="pointer-events-none absolute -bottom-[14%] -left-[10%] z-0 w-[78%] max-w-[720px] opacity-70 sm:w-[62%] lg:-bottom-[18%] lg:left-[2%] lg:w-[46%]" />
 
+      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16">
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
             Hay quien lo ve una vez en la vida.
@@ -275,7 +287,10 @@ function Concepto() {
           </h2>
         </Aparecer>
 
-        <Aparecer demora={0.12} className="max-w-[54ch] space-y-5 text-[15px] leading-relaxed text-gray-70">
+        <Aparecer
+          demora={0.12}
+          className="max-w-[54ch] space-y-5 text-[15px] leading-relaxed text-gray-70"
+        >
           <p>
             El cometa Halley orbita el Sol y se ve desde la Tierra cada 75 años.
             Es historia viva de la astronomía, pero para dejarse ver pide algo
@@ -330,57 +345,57 @@ async function Servicios() {
         {SERVICIOS.map((s, i) => {
           const portadas = fondos[i] ?? [];
           return (
-          <div key={s.slug} className="tramo-servicio">
-            <article className="panel-servicio aisla relative flex items-end">
-              {portadas.length > 0 ? (
-                <MosaicoPortadas piezas={portadas} />
-              ) : (
-                <Image
-                  src={`/servicios/${s.slug}-portada.jpg`}
-                  alt=""
-                  aria-hidden="true"
-                  fill
-                  sizes="100vw"
-                  priority={i === 0}
-                  className="fondo-servicio object-cover"
-                />
-              )}
-              {/* Sombra al pie de la diapositiva: sostiene el texto por más
+            <div key={s.slug} className="tramo-servicio">
+              <article className="panel-servicio aisla relative flex items-end">
+                {portadas.length > 0 ? (
+                  <MosaicoPortadas piezas={portadas} />
+                ) : (
+                  <Image
+                    src={`/servicios/${s.slug}-portada.jpg`}
+                    alt=""
+                    aria-hidden="true"
+                    fill
+                    sizes="100vw"
+                    priority={i === 0}
+                    className="fondo-servicio object-cover"
+                  />
+                )}
+                {/* Sombra al pie de la diapositiva: sostiene el texto por más
                   clara que sea la foto de fondo. */}
-              <div
-                className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgb(0_0_0/0.9)] via-[rgb(0_0_0/0.5)] to-transparent"
-                aria-hidden="true"
-              />
+                <div
+                  className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgb(0_0_0/0.9)] via-[rgb(0_0_0/0.5)] to-transparent"
+                  aria-hidden="true"
+                />
 
-              <div className="contenido-servicio relative mx-auto w-full max-w-[1140px] px-6 pb-14 sm:px-10 sm:pb-20">
-                <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] text-white/70">
-                  {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
-                </p>
+                <div className="contenido-servicio relative mx-auto w-full max-w-[1140px] px-6 pb-14 sm:px-10 sm:pb-20">
+                  <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] text-white/70">
+                    {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
+                  </p>
 
-                {/* El mismo filtro negativo que el titular de la portada: sobre
+                  {/* El mismo filtro negativo que el titular de la portada: sobre
                     una foto que todavía no existe, no hay color que sirva
                     siempre. */}
-                <h3 className="negativo mt-3 font-titulo text-[clamp(2.6rem,min(9vw,13svh),7rem)] leading-[0.86] uppercase">
-                  {s.nombre}
-                </h3>
+                  <h3 className="negativo mt-3 font-titulo text-[clamp(2.6rem,min(9vw,13svh),7rem)] leading-[0.86] uppercase">
+                    {s.nombre}
+                  </h3>
 
-                <p className="mt-4 max-w-[46ch] text-[16px] leading-snug text-white">
-                  {s.linea}
-                </p>
-                <p className="mt-2.5 max-w-[54ch] text-[14px] leading-relaxed text-white/70">
-                  {s.detalle}
-                </p>
+                  <p className="mt-4 max-w-[46ch] text-[16px] leading-snug text-white">
+                    {s.linea}
+                  </p>
+                  <p className="mt-2.5 max-w-[54ch] text-[14px] leading-relaxed text-white/70">
+                    {s.detalle}
+                  </p>
 
-                <Link
-                  href={`/servicios/${s.slug}`}
-                  className="mt-7 inline-flex items-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black"
-                >
-                  Ver {s.nombre.toLowerCase()}
-                  <IconoFlecha />
-                </Link>
-              </div>
-            </article>
-          </div>
+                  <Link
+                    href={`/servicios/${s.slug}`}
+                    className="mt-7 inline-flex items-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black"
+                  >
+                    Ver {s.nombre.toLowerCase()}
+                    <IconoFlecha />
+                  </Link>
+                </div>
+              </article>
+            </div>
           );
         })}
       </div>
@@ -422,7 +437,11 @@ function Como() {
 
 /* ----------------------------------------------------------------- contacto */
 
-function Contacto({ datos }: { datos: { whatsapp: string; instagram: string; mail: string } }) {
+function Contacto({
+  datos,
+}: {
+  datos: { whatsapp: string; instagram: string; mail: string };
+}) {
   return (
     <section id="contacto" className="border-b border-gray-20">
       <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -437,7 +456,10 @@ function Contacto({ datos }: { datos: { whatsapp: string; instagram: string; mai
 
           <div className="mt-9 flex flex-wrap gap-3.5">
             <a
-              href={linkWhatsApp(datos.whatsapp, "Hola Halley, quiero consultar por un evento.")}
+              href={linkWhatsApp(
+                datos.whatsapp,
+                "Hola Halley, quiero consultar por un evento.",
+              )}
               target="_blank"
               rel="noreferrer"
               className={botonWhatsApp}

@@ -28,7 +28,11 @@ const ENLACES = [
 /** Con ícono, para el sidebar; sin ícono, para la barra móvil. */
 const ENLACES_CON_ICONO = [
   { href: "/admin", texto: "Grupos", icono: <IconoGrupos /> },
-  { href: "/admin/transacciones", texto: "Transacciones", icono: <IconoBillete /> },
+  {
+    href: "/admin/transacciones",
+    texto: "Transacciones",
+    icono: <IconoBillete />,
+  },
   { href: "/admin/notificaciones", texto: "Bandeja", icono: <IconoSobre /> },
   { href: "/admin/contenidos", texto: "Contenidos", icono: <IconoImagen /> },
   { href: "/admin/galerias", texto: "Galerías", icono: <IconoCandado /> },
@@ -44,7 +48,10 @@ const IDENTIDAD = {
 function BotonSalir() {
   return (
     <form action={cerrarSesion}>
-      <button type="submit" className={`${itemCajon} border-b-0 py-0 text-gray-45`}>
+      <button
+        type="submit"
+        className={`${itemCajon} border-b-0 py-0 text-gray-45`}
+      >
         Salir
       </button>
     </form>

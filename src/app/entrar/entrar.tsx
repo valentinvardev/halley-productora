@@ -83,7 +83,8 @@ export function Entrar({ aviso }: { aviso: string | null }) {
       </form>
 
       <p className="nota mt-6 text-gray-45">
-        ¿Todavía no te registraste? Usá el link que Halley compartió en tu curso.
+        ¿Todavía no te registraste? Usá el link que Halley compartió en tu
+        curso.
       </p>
     </MarcoAcceso>
   );

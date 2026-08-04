@@ -1,8 +1,4 @@
-import {
-  Bloque,
-  EsqueletoTira,
-  Linea,
-} from "~/app/_components/esqueleto";
+import { Bloque, EsqueletoTira, Linea } from "~/app/_components/esqueleto";
 
 /**
  * El panel de la familia también se arma en el servidor —sesión más plan de

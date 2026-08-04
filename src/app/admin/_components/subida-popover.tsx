@@ -72,7 +72,9 @@ export function SubidaPopover({
                   className={`h-full transition-[width] duration-200 ${
                     c.estado === "error" ? "bg-marca" : "bg-ink"
                   }`}
-                  style={{ width: `${c.estado === "listo" ? 100 : c.progreso}%` }}
+                  style={{
+                    width: `${c.estado === "listo" ? 100 : c.progreso}%`,
+                  }}
                 />
               </div>
             </div>

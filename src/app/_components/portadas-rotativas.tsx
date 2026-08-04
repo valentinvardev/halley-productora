@@ -54,6 +54,8 @@ export function PortadasRotativas({ piezas }: { piezas: PiezaPortada[] }) {
                 loop
                 autoPlay
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 className="fondo-servicio absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
               />
               <video
@@ -62,6 +64,8 @@ export function PortadasRotativas({ piezas }: { piezas: PiezaPortada[] }) {
                 loop
                 autoPlay
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 className="absolute inset-0 h-full w-full object-contain"
               />
             </>

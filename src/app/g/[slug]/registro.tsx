@@ -28,7 +28,9 @@ export function Registro({
 }) {
   const { data: grupo } = api.cuenta.grupoPorSlug.useQuery({ slug });
   const [solapa, setSolapa] = useState<"registro" | "login">("registro");
-  const [alumnoId, setAlumnoId] = useState<string | null>(alumnoInicial ?? null);
+  const [alumnoId, setAlumnoId] = useState<string | null>(
+    alumnoInicial ?? null,
+  );
 
   const [estadoRegistro, accionRegistro, registrando] = useActionState<
     EstadoAcceso,
@@ -86,96 +88,96 @@ export function Registro({
       {/* La key hace que React remonte al cambiar de solapa, y con eso la
           animación de entrada vuelve a correr. */}
       <div key={solapa} className={`solapa-${solapa}`}>
-      {solapa === "registro" ? (
-        <>
-          <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
-            Elegí a tu hijo o hija y dejá tu email. Con eso entrás: no hay
-            contraseña. Pueden registrarse hasta {grupo.maxResponsables}{" "}
-            responsables por alumno.
-          </p>
+        {solapa === "registro" ? (
+          <>
+            <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
+              Elegí a tu hijo o hija y dejá tu email. Con eso entrás: no hay
+              contraseña. Pueden registrarse hasta {grupo.maxResponsables}{" "}
+              responsables por alumno.
+            </p>
 
-          {grupo.primerVencimiento && (
-            <div className="my-6 border-y border-gray-20 py-4">
-              <div className="font-display text-[30px] leading-none">
-                {pesos(grupo.montoCuota)}
+            {grupo.primerVencimiento && (
+              <div className="my-6 border-y border-gray-20 py-4">
+                <div className="font-display text-[30px] leading-none">
+                  {pesos(grupo.montoCuota)}
+                </div>
+                <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
+                  {grupo.cuotas} CUOTAS · LA PRIMERA VENCE{" "}
+                  {fecha(grupo.primerVencimiento)}
+                </div>
               </div>
-              <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
-                {grupo.cuotas} CUOTAS · LA PRIMERA VENCE{" "}
-                {fecha(grupo.primerVencimiento)}
-              </div>
-            </div>
-          )}
-
-          <form action={accionRegistro} className="grid gap-4">
-            <input type="hidden" name="slug" value={slug} />
-            <input type="hidden" name="alumnoId" value={alumnoId ?? ""} />
-
-            <Desplegable
-              label="¿Quién es tu hijo o hija?"
-              opciones={grupo.alumnos.map((a) => ({
-                valor: a.id,
-                etiqueta: a.nombre,
-                nota: a.completo
-                  ? "sin lugar"
-                  : a.responsables > 0
-                    ? `${a.responsables} de ${grupo.maxResponsables}`
-                    : undefined,
-                deshabilitada: a.completo,
-              }))}
-              valor={alumnoId}
-              alCambiar={setAlumnoId}
-              placeholder="Elegí de la lista"
-              vacio="Todavía no hay alumnos cargados"
-            />
-
-            <Campo
-              label="Tu email"
-              type="email"
-              name="email"
-              placeholder="mama@mail.com"
-              required
-            />
-
-            {estado && "error" in estado && (
-              <p className="nota text-marca">
-                {estado.error}
-              </p>
             )}
 
-            {/* Sin hijo elegido no hay nada que registrar. */}
-            <Boton type="submit" className="w-full" disabled={!alumnoId || registrando}>
-              {registrando ? "Entrando…" : "Registrarme"}
-            </Boton>
-          </form>
-        </>
-      ) : (
-        <>
-          <p className="mt-4 mb-6 text-[13.5px] leading-relaxed text-gray-70">
-            Entrá con el email con el que te registraste.
-          </p>
+            <form action={accionRegistro} className="grid gap-4">
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="alumnoId" value={alumnoId ?? ""} />
 
-          <form action={accionLogin} className="grid gap-4">
-            <Campo
-              label="Tu email"
-              type="email"
-              name="email"
-              placeholder="mama@mail.com"
-              autoFocus
-              required
-            />
+              <Desplegable
+                label="¿Quién es tu hijo o hija?"
+                opciones={grupo.alumnos.map((a) => ({
+                  valor: a.id,
+                  etiqueta: a.nombre,
+                  nota: a.completo
+                    ? "sin lugar"
+                    : a.responsables > 0
+                      ? `${a.responsables} de ${grupo.maxResponsables}`
+                      : undefined,
+                  deshabilitada: a.completo,
+                }))}
+                valor={alumnoId}
+                alCambiar={setAlumnoId}
+                placeholder="Elegí de la lista"
+                vacio="Todavía no hay alumnos cargados"
+              />
 
-            {estado && "error" in estado && (
-              <p className="nota text-marca">
-                {estado.error}
-              </p>
-            )}
+              <Campo
+                label="Tu email"
+                type="email"
+                name="email"
+                placeholder="mama@mail.com"
+                required
+              />
 
-            <Boton type="submit" className="w-full" disabled={entrando}>
-              {entrando ? "Entrando…" : "Entrar"}
-            </Boton>
-          </form>
-        </>
-      )}
+              {estado && "error" in estado && (
+                <p className="nota text-marca">{estado.error}</p>
+              )}
+
+              {/* Sin hijo elegido no hay nada que registrar. */}
+              <Boton
+                type="submit"
+                className="w-full"
+                disabled={!alumnoId || registrando}
+              >
+                {registrando ? "Entrando…" : "Registrarme"}
+              </Boton>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 mb-6 text-[13.5px] leading-relaxed text-gray-70">
+              Entrá con el email con el que te registraste.
+            </p>
+
+            <form action={accionLogin} className="grid gap-4">
+              <Campo
+                label="Tu email"
+                type="email"
+                name="email"
+                placeholder="mama@mail.com"
+                autoFocus
+                required
+              />
+
+              {estado && "error" in estado && (
+                <p className="nota text-marca">{estado.error}</p>
+              )}
+
+              <Boton type="submit" className="w-full" disabled={entrando}>
+                {entrando ? "Entrando…" : "Entrar"}
+              </Boton>
+            </form>
+          </>
+        )}
       </div>
     </MarcoAcceso>
   );

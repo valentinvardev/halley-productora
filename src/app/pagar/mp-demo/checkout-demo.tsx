@@ -51,9 +51,9 @@ export function CheckoutDemo({
           </div>
 
           <p className="mt-5 text-[12.5px] leading-relaxed text-[#737373]">
-            Esta pantalla reemplaza a Mercado Pago mientras el cobro está en modo
-            demo. Con la cuenta real del socio conectada, acá aparece el checkout
-            de Mercado Pago con sus medios de pago.
+            Esta pantalla reemplaza a Mercado Pago mientras el cobro está en
+            modo demo. Con la cuenta real del socio conectada, acá aparece el
+            checkout de Mercado Pago con sus medios de pago.
           </p>
 
           {yaAprobado ? (

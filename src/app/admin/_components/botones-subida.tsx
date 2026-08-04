@@ -6,7 +6,8 @@ import { IconoMas } from "~/app/_components/iconos";
 import { Boton } from "~/app/_components/ui";
 import { expandirArchivos } from "./expandir-archivos";
 
-const ACEPTA = "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
+const ACEPTA =
+  "image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm";
 const ACEPTA_ZIP = `${ACEPTA},.zip,application/zip,application/x-zip-compressed`;
 
 /**

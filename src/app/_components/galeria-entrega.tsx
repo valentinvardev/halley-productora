@@ -62,8 +62,15 @@ export function GaleriaEntrega({
                 />
                 <span className="absolute inset-0 grid place-items-center">
                   <span className="grid h-10 w-10 place-items-center border border-white/70 bg-black/45">
-                    <svg viewBox="0 0 16 16" className="h-4 w-4 text-white" aria-hidden="true">
-                      <path d="M4.5 2.5 L13 8 L4.5 13.5 Z" fill="currentColor" />
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-4 w-4 text-white"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4.5 2.5 L13 8 L4.5 13.5 Z"
+                        fill="currentColor"
+                      />
                     </svg>
                   </span>
                 </span>
@@ -164,9 +171,17 @@ function VisorEntrega({
         </button>
       )}
 
-      <div onClick={(e) => e.stopPropagation()} className="max-h-[80vh] max-w-full">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[80vh] max-w-full"
+      >
         {foto.tipo === "video" ? (
-          <video src={foto.url} controls autoPlay className="max-h-[80vh] max-w-full" />
+          <video
+            src={foto.url}
+            controls
+            autoPlay
+            className="max-h-[80vh] max-w-full"
+          />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img

@@ -9,7 +9,15 @@ import {
   IconoFlecha,
   IconoTilde,
 } from "~/app/_components/iconos";
-import { Boton, Campo, Dato, Encabezado, Tag, TiraDatos, Vacio } from "~/app/_components/ui";
+import {
+  Boton,
+  Campo,
+  Dato,
+  Encabezado,
+  Tag,
+  TiraDatos,
+  Vacio,
+} from "~/app/_components/ui";
 import { fecha, fechaHora, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -52,7 +60,8 @@ const TIPOS: Record<string, string> = {
  * fila se abre para mostrar el detalle completo.
  */
 export function Transacciones() {
-  const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["valor"]>("todo");
+  const [filtro, setFiltro] =
+    useState<(typeof FILTROS)[number]["valor"]>("todo");
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(0);
   const limite = 50;
@@ -154,7 +163,8 @@ export function Transacciones() {
             Anteriores
           </Boton>
           <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
-            {pagina * limite + 1}–{pagina * limite + data.filas.length} de {data.total}
+            {pagina * limite + 1}–{pagina * limite + data.filas.length} de{" "}
+            {data.total}
           </span>
           <Boton
             variante="fantasma"
@@ -200,8 +210,10 @@ function FilaTransaccion({ fila }: { fila: Fila }) {
             {!esPago && !fila.falla && <Tag>Aviso</Tag>}
           </div>
           <div className="mt-0.5 font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
-            {fila.grupo ?? "—"} · {fila.proveedor === "TALO" ? "Talo" : "Mercado Pago"}
-            {fila.resultado && ` · ${RESULTADOS[fila.resultado] ?? fila.resultado}`}
+            {fila.grupo ?? "—"} ·{" "}
+            {fila.proveedor === "TALO" ? "Talo" : "Mercado Pago"}
+            {fila.resultado &&
+              ` · ${RESULTADOS[fila.resultado] ?? fila.resultado}`}
           </div>
         </div>
 
@@ -220,7 +232,10 @@ function FilaTransaccion({ fila }: { fila: Fila }) {
         <div>
           <div className="border-t border-gray-20 bg-paper-dim px-5 py-4">
             <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-              <Detalle rotulo="Qué pasó" valor={TIPOS[fila.tipo] ?? fila.tipo} />
+              <Detalle
+                rotulo="Qué pasó"
+                valor={TIPOS[fila.tipo] ?? fila.tipo}
+              />
               <Detalle
                 rotulo="Resultado"
                 valor={
@@ -233,7 +248,10 @@ function FilaTransaccion({ fila }: { fila: Fila }) {
                 rotulo="Proveedor"
                 valor={fila.proveedor === "TALO" ? "Talo" : "Mercado Pago"}
               />
-              <Detalle rotulo="Cuenta que cobra" valor={fila.cuenta ?? "La de por defecto"} />
+              <Detalle
+                rotulo="Cuenta que cobra"
+                valor={fila.cuenta ?? "La de por defecto"}
+              />
               {fila.cuota !== null && (
                 <Detalle rotulo="Imputado a" valor={`Cuota ${fila.cuota}`} />
               )}

@@ -102,7 +102,10 @@ export function Lightbox({
       )}
 
       {/* El clic sobre el contenido no cierra: sólo el fondo. */}
-      <div onClick={(e) => e.stopPropagation()} className="max-h-full max-w-full">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-full max-w-full"
+      >
         {pieza.tipo === "video" ? (
           <Reproductor src={pieza.url} />
         ) : (

@@ -94,10 +94,14 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     <div
       ref={marco}
       aria-label="Halley Audiovisual"
+      // La posición la decide quien lo usa —hoy va absoluto, de fondo—, así que
+      // el marco no la fija: si acá dijera `relative` chocaría con el `absolute`
+      // que le pasan y cuál gana dependería del orden del CSS, no del código.
+      //
       // Sin caja ni fondo: el trazo queda sobre el papel de la sección. El
       // recorte es lo que permite el parallax —la capa de adentro se mueve y lo
       // que se sale del marco no se ve—.
-      className={`cometa relative aspect-square overflow-hidden ${className}`}
+      className={`cometa aspect-square overflow-hidden ${className}`}
     >
       {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
       <div
@@ -118,6 +122,8 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             poster="/marca/logo-animado.jpg"
             muted
             playsInline
+            disablePictureInPicture
+            disableRemotePlayback
             preload="auto"
             aria-hidden="true"
             className="h-full w-full object-contain"

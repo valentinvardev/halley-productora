@@ -110,71 +110,71 @@ export function Panel({
                 </div>
               ) : (
                 <>
-              {/* Estado del plan */}
-              <TiraDatos className="mt-6">
-                <Dato rotulo="Plan" valor={pesos(hijo.plan.total)} />
-                <Dato rotulo="Pagado" valor={pesos(hijo.plan.pagado)} />
-                <Dato
-                  rotulo="Falta"
-                  valor={pesos(hijo.plan.deuda)}
-                  detalle={
-                    hijo.plan.deuda === 0
-                      ? "Plan completo"
-                      : hijo.plan.alDia
-                        ? "Al día"
-                        : "Con cuotas vencidas"
-                  }
-                />
-                {hijo.plan.aFavor > 0 && (
-                  <Dato rotulo="A favor" valor={pesos(hijo.plan.aFavor)} />
-                )}
-              </TiraDatos>
-
-              {/* Cómo pagar la próxima */}
-              {hijo.plan.proxima && (
-                <div className="mt-6 border border-ink p-6">
-                  <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <div>
-                      <div className="eyebrow">
-                        Cuota {hijo.plan.proxima.numero} — vence{" "}
-                        {fecha(hijo.plan.proxima.venceEl)}
-                      </div>
-                      <div className="mt-1 font-display text-[34px] leading-none">
-                        {pesos(hijo.plan.proxima.saldo)}
-                      </div>
-                    </div>
-                    {hijo.plan.proxima.estado === "VENCIDA" && (
-                      <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-marca">
-                        Vencida
-                      </span>
+                  {/* Estado del plan */}
+                  <TiraDatos className="mt-6">
+                    <Dato rotulo="Plan" valor={pesos(hijo.plan.total)} />
+                    <Dato rotulo="Pagado" valor={pesos(hijo.plan.pagado)} />
+                    <Dato
+                      rotulo="Falta"
+                      valor={pesos(hijo.plan.deuda)}
+                      detalle={
+                        hijo.plan.deuda === 0
+                          ? "Plan completo"
+                          : hijo.plan.alDia
+                            ? "Al día"
+                            : "Con cuotas vencidas"
+                      }
+                    />
+                    {hijo.plan.aFavor > 0 && (
+                      <Dato rotulo="A favor" valor={pesos(hijo.plan.aFavor)} />
                     )}
-                  </div>
+                  </TiraDatos>
 
-                  {/* El QR, el alias y el "ya transferí" viven en la pantalla
+                  {/* Cómo pagar la próxima */}
+                  {hijo.plan.proxima && (
+                    <div className="mt-6 border border-ink p-6">
+                      <div className="flex flex-wrap items-baseline justify-between gap-3">
+                        <div>
+                          <div className="eyebrow">
+                            Cuota {hijo.plan.proxima.numero} — vence{" "}
+                            {fecha(hijo.plan.proxima.venceEl)}
+                          </div>
+                          <div className="mt-1 font-display text-[34px] leading-none">
+                            {pesos(hijo.plan.proxima.saldo)}
+                          </div>
+                        </div>
+                        {hijo.plan.proxima.estado === "VENCIDA" && (
+                          <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-marca">
+                            Vencida
+                          </span>
+                        )}
+                      </div>
+
+                      {/* El QR, el alias y el "ya transferí" viven en la pantalla
                       de cobro: acá alcanza con decir cuánto y llevar hasta
                       ella. */}
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <Link
-                      href={`/mi/pagar/${hijo.id}?hasta=${hijo.plan.proxima.id}`}
-                      className={botonSolido}
-                    >
-                      Pagar esta cuota
-                    </Link>
-                    <Boton
-                      variante="fantasma"
-                      onClick={() => setGestionando(hijo.id)}
-                    >
-                      Gestionar cuotas
-                    </Boton>
-                  </div>
+                      <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <Link
+                          href={`/mi/pagar/${hijo.id}?hasta=${hijo.plan.proxima.id}`}
+                          className={botonSolido}
+                        >
+                          Pagar esta cuota
+                        </Link>
+                        <Boton
+                          variante="fantasma"
+                          onClick={() => setGestionando(hijo.id)}
+                        >
+                          Gestionar cuotas
+                        </Boton>
+                      </div>
 
-                  <p className="nota mt-4">
-                    Transferí con el QR o el alias desde tu banco o billetera.
-                    Cuando se acredite lo vas a ver acá y te llega el
-                    comprobante por mail.
-                  </p>
-                </div>
-              )}
+                      <p className="nota mt-4">
+                        Transferí con el QR o el alias desde tu banco o
+                        billetera. Cuando se acredite lo vas a ver acá y te
+                        llega el comprobante por mail.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -250,8 +250,8 @@ export function Panel({
                       Se libera al saldar el plan
                     </div>
                     <p className="nota mt-1">
-                      Cuando termines de pagar, la galería aparece acá. Te faltan{" "}
-                      {pesos(hijo.plan.deuda)}.
+                      Cuando termines de pagar, la galería aparece acá. Te
+                      faltan {pesos(hijo.plan.deuda)}.
                     </p>
                   </div>
                 </div>
@@ -283,7 +283,10 @@ export function Panel({
 
                       <div className="mt-4">
                         {galeria.fotos.length > 0 ? (
-                          <GaleriaEntrega titulo={galeria.titulo} fotos={galeria.fotos} />
+                          <GaleriaEntrega
+                            titulo={galeria.titulo}
+                            fotos={galeria.fotos}
+                          />
                         ) : (
                           <div>
                             <div className="text-[14px]">{galeria.titulo}</div>

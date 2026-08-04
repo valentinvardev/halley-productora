@@ -191,9 +191,7 @@ export function Dato({
         {rotulo}
       </div>
       <div className="mt-1 font-display text-[22px] leading-none">{valor}</div>
-      {detalle && (
-        <div className="mt-1.5 nota text-[11.5px]">{detalle}</div>
-      )}
+      {detalle && <div className="mt-1.5 nota text-[11.5px]">{detalle}</div>}
     </div>
   );
 }

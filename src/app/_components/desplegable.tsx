@@ -94,7 +94,10 @@ export function Desplegable({
   }
 
   return (
-    <div className={`relative flex flex-col gap-1.5 ${className}`} ref={contenedor}>
+    <div
+      className={`relative flex flex-col gap-1.5 ${className}`}
+      ref={contenedor}
+    >
       <Etiqueta>{label}</Etiqueta>
 
       <button

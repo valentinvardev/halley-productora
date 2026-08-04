@@ -85,7 +85,12 @@ export function PaginaPadre({
           {!proxima ? (
             /* --------------------------------------------- plan saldado */
             <div className="mt-8 flex flex-col items-center text-center">
-              <Marca tipo="confirmado" className="h-24 w-24" grosor={3} animar />
+              <Marca
+                tipo="confirmado"
+                className="h-24 w-24"
+                grosor={3}
+                animar
+              />
               <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
                 Plan saldado
               </div>
@@ -138,41 +143,42 @@ export function PaginaPadre({
               ) : (
                 /* -------------------------------------------- Talo / CVU */
                 <>
-              <DatosTransferencia alias={data.alias} cvu={data.cvu} />
+                  <DatosTransferencia alias={data.alias} cvu={data.cvu} />
 
-              {data.reportoTransferenciaEl ? (
-                <p className="nota mt-6 border border-gray-20 bg-paper px-3 py-3 text-center">
-                  Avisaste que transferiste. En cuanto se acredite lo vas a ver acá.
-                </p>
-              ) : (
-                <Boton
-                  className="mt-6 w-full"
-                  onClick={() => reportar.mutate({ token })}
-                  disabled={reportar.isPending}
-                >
-                  Ya transferí
-                </Boton>
-              )}
-
-              {data.modoDemo && (
-                <div className="mt-6 border-t border-gray-20 pt-4 text-center">
-                  <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
-                    Demo — Talo simulado
-                  </div>
-                  {esperandoAcreditacion ? (
-                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
-                      Esperando la acreditación…
-                    </span>
+                  {data.reportoTransferenciaEl ? (
+                    <p className="nota mt-6 border border-gray-20 bg-paper px-3 py-3 text-center">
+                      Avisaste que transferiste. En cuanto se acredite lo vas a
+                      ver acá.
+                    </p>
                   ) : (
-                    <BotonTexto
-                      onClick={() => simular.mutate({ token })}
-                      disabled={simular.isPending}
+                    <Boton
+                      className="mt-6 w-full"
+                      onClick={() => reportar.mutate({ token })}
+                      disabled={reportar.isPending}
                     >
-                      Simular transferencia desde el banco
-                    </BotonTexto>
+                      Ya transferí
+                    </Boton>
                   )}
-                </div>
-              )}
+
+                  {data.modoDemo && (
+                    <div className="mt-6 border-t border-gray-20 pt-4 text-center">
+                      <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
+                        Demo — Talo simulado
+                      </div>
+                      {esperandoAcreditacion ? (
+                        <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
+                          Esperando la acreditación…
+                        </span>
+                      ) : (
+                        <BotonTexto
+                          onClick={() => simular.mutate({ token })}
+                          disabled={simular.isPending}
+                        >
+                          Simular transferencia desde el banco
+                        </BotonTexto>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </>

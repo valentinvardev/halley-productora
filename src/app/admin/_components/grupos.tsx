@@ -148,9 +148,7 @@ function FormularioGrupo({ alCerrar }: { alCerrar: () => void }) {
         </div>
       </div>
 
-      {crear.error && (
-        <p className="nota text-marca">{crear.error.message}</p>
-      )}
+      {crear.error && <p className="nota text-marca">{crear.error.message}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
         <Boton type="submit" disabled={crear.isPending || !vence}>
@@ -186,7 +184,8 @@ function SelectorCuenta({
           ?.filter((c) => c.activa)
           .map((c) => (
             <option key={c.id} value={c.id}>
-              {c.nombre} — {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
+              {c.nombre} —{" "}
+              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
               {c.pista}
             </option>
           ))}
@@ -217,15 +216,19 @@ function FormularioParticular({ alCerrar }: { alCerrar: () => void }) {
     { monto: "", vence: "" },
   ]);
 
-  const setCuota = (i: number, patch: Partial<{ monto: string; vence: string }>) =>
-    setCuotas((cs) => cs.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  const setCuota = (
+    i: number,
+    patch: Partial<{ monto: string; vence: string }>,
+  ) => setCuotas((cs) => cs.map((c, j) => (j === i ? { ...c, ...patch } : c)));
 
   const validas = cuotas
     .map((c) => ({ monto: Number(c.monto), vence: c.vence }))
     .filter((c) => c.monto > 0 && c.vence);
   const total = validas.reduce((t, c) => t + c.monto, 0);
   const listo =
-    cliente.trim().length >= 2 && evento.trim().length >= 2 && validas.length > 0;
+    cliente.trim().length >= 2 &&
+    evento.trim().length >= 2 &&
+    validas.length > 0;
 
   return (
     <form

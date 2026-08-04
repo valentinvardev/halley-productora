@@ -226,6 +226,8 @@ export function GaleriaCategoria({
                       src={p.url}
                       muted
                       playsInline
+                      disablePictureInPicture
+                      disableRemotePlayback
                       className="h-full w-full object-cover"
                     />
                   ) : (

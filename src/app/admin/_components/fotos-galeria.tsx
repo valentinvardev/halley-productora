@@ -86,6 +86,8 @@ export function FotosGaleria({ galeriaId }: { galeriaId: string }) {
                       src={f.url}
                       muted
                       playsInline
+                      disablePictureInPicture
+                      disableRemotePlayback
                       className="h-full w-full object-cover"
                     />
                   ) : (

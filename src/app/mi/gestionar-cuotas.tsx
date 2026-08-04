@@ -57,7 +57,11 @@ export function GestionarCuotas({
            el comprobante: la lista queda, sin ningún botón de pago. */
         <>
           <div className="flex items-center gap-4 border border-ink px-5 py-5">
-            <Marca tipo="confirmado" className="h-11 w-11 shrink-0" grosor={3} />
+            <Marca
+              tipo="confirmado"
+              className="h-11 w-11 shrink-0"
+              grosor={3}
+            />
             <div>
               <div className="font-rotulo text-[12px] uppercase tracking-[0.08em]">
                 Plan saldado
@@ -84,7 +88,8 @@ export function GestionarCuotas({
                 <div
                   key={fila.id}
                   className={`flex items-center gap-3 border-b border-gray-20 px-4 py-3 last:border-b-0 ${
-                    FONDO_ESTADO[fila.estado] || (esProxima ? "bg-paper-dim" : "")
+                    FONDO_ESTADO[fila.estado] ||
+                    (esProxima ? "bg-paper-dim" : "")
                   }`}
                 >
                   <span className="h-5 w-5 shrink-0">

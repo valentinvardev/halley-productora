@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 import { IconoFlecha, IconoWhatsApp } from "./iconos";
 import { Lightbox, type PiezaLightbox } from "./lightbox";
@@ -95,12 +90,14 @@ export function GaleriaPublica({
 }) {
   const { eligiendo, gustaron, alternar } = useSeleccion();
   // Qué lista está abierta en el visor y en qué posición.
-  const [visor, setVisor] = useState<{ lista: "fotos" | "videos"; i: number } | null>(
-    null,
-  );
+  const [visor, setVisor] = useState<{
+    lista: "fotos" | "videos";
+    i: number;
+  } | null>(null);
   const [reciente, setReciente] = useState<string | null>(null);
 
-  const abrir = (lista: "fotos" | "videos", i: number) => setVisor({ lista, i });
+  const abrir = (lista: "fotos" | "videos", i: number) =>
+    setVisor({ lista, i });
 
   const piezasVisor = visor?.lista === "videos" ? videos : fotos;
 
@@ -150,7 +147,9 @@ export function GaleriaPublica({
                     <span
                       aria-hidden="true"
                       className={`absolute inset-0 transition-colors ${
-                        marcada ? "bg-black/25" : "bg-black/0 group-hover:bg-black/15"
+                        marcada
+                          ? "bg-black/25"
+                          : "bg-black/0 group-hover:bg-black/15"
                       }`}
                     />
                   )}
@@ -198,6 +197,8 @@ export function GaleriaPublica({
                   src={p.url}
                   muted
                   playsInline
+                  disablePictureInPicture
+                  disableRemotePlayback
                   preload="metadata"
                   className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
                 />
@@ -206,8 +207,15 @@ export function GaleriaPublica({
                   className="absolute inset-0 grid place-items-center"
                 >
                   <span className="grid h-14 w-14 place-items-center border border-white/70 bg-black/40 transition-colors group-hover:bg-black/70">
-                    <svg viewBox="0 0 16 16" className="h-5 w-5 text-white" aria-hidden="true">
-                      <path d="M4.5 2.5 L13 8 L4.5 13.5 Z" fill="currentColor" />
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-5 w-5 text-white"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4.5 2.5 L13 8 L4.5 13.5 Z"
+                        fill="currentColor"
+                      />
                     </svg>
                   </span>
                 </span>
@@ -280,7 +288,12 @@ export function BarraSeleccion({
           <button type="button" onClick={cancelar} className={botonFantasma}>
             Cancelar
           </button>
-          <a href={url} target="_blank" rel="noreferrer" className={botonWhatsApp}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className={botonWhatsApp}
+          >
             <IconoWhatsApp />
             Pedir presupuesto
             <IconoFlecha />

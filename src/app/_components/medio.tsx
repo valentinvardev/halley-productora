@@ -18,7 +18,9 @@ import { IconoReproducir } from "./iconos";
  */
 
 export function existeEnPublico(ruta: string) {
-  return existsSync(path.join(process.cwd(), "public", ruta.replace(/^\//, "")));
+  return existsSync(
+    path.join(process.cwd(), "public", ruta.replace(/^\//, "")),
+  );
 }
 
 export function Medio({
@@ -51,12 +53,18 @@ export function Medio({
             loop
             autoPlay
             playsInline
+            disablePictureInPicture
+            disableRemotePlayback
             aria-label={alt}
             className="h-full w-full object-cover"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={directo.url} alt={alt} className="h-full w-full object-cover" />
+          <img
+            src={directo.url}
+            alt={alt}
+            className="h-full w-full object-cover"
+          />
         )}
       </div>
     );
@@ -73,6 +81,8 @@ export function Medio({
         loop
         autoPlay
         playsInline
+        disablePictureInPicture
+        disableRemotePlayback
         aria-label={alt}
         className={`${proporcion} w-full object-cover ${className}`}
       />
@@ -81,13 +91,28 @@ export function Medio({
 
   if (hay) {
     return (
-      <div className={`${proporcion} relative w-full overflow-hidden ${className}`}>
-        <Image src={src} alt={alt} fill priority={prioridad} className="object-cover" />
+      <div
+        className={`${proporcion} relative w-full overflow-hidden ${className}`}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          priority={prioridad}
+          className="object-cover"
+        />
       </div>
     );
   }
 
-  return <Marcador src={src} alt={alt} proporcion={proporcion} className={className} />;
+  return (
+    <Marcador
+      src={src}
+      alt={alt}
+      proporcion={proporcion}
+      className={className}
+    />
+  );
 }
 
 /** Lo que se ve mientras el archivo no está. */

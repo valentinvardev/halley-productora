@@ -124,11 +124,17 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
                     muted
                     loop
                     playsInline
+                    disablePictureInPicture
+                    disableRemotePlayback
                     className="h-full w-full object-cover"
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={c.url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 )}
                 <button
                   type="button"
@@ -237,6 +243,8 @@ function TarjetaCategoria({
                     src={p.url}
                     muted
                     playsInline
+                    disablePictureInPicture
+                    disableRemotePlayback
                     className="h-full w-full object-cover"
                   />
                 ) : (

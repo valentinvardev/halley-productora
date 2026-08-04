@@ -121,7 +121,10 @@ function FormularioNueva({ alCerrar }: { alCerrar: () => void }) {
       {crear.error && <p className="nota text-marca">{crear.error.message}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Boton type="submit" disabled={crear.isPending || titulo.trim().length < 2}>
+        <Boton
+          type="submit"
+          disabled={crear.isPending || titulo.trim().length < 2}
+        >
           {crear.isPending ? "Creando…" : "Crear galería"}
         </Boton>
         <Boton type="button" variante="fantasma" onClick={alCerrar}>
@@ -175,7 +178,9 @@ function Tarjeta({
       {/* El link para compartir. */}
       {galeria.link && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-20 bg-paper-dim px-5 py-3">
-          <span className="font-mono text-[12px] break-all">{galeria.link}</span>
+          <span className="font-mono text-[12px] break-all">
+            {galeria.link}
+          </span>
           <div className="flex items-center gap-3">
             <a
               href={galeria.link}
@@ -227,8 +232,8 @@ function Tarjeta({
         titulo="Eliminar galería"
       >
         <p className="text-[14px] leading-relaxed text-gray-70">
-          Se borran la galería, sus fotos del bucket y el link deja de funcionar.
-          No se puede deshacer.
+          Se borran la galería, sus fotos del bucket y el link deja de
+          funcionar. No se puede deshacer.
         </p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <Boton variante="fantasma" onClick={() => setConfirmar(false)}>
@@ -292,7 +297,9 @@ function FormularioEditar({
           placeholder="Dejalo vacío para no cambiar"
         />
         <Campo
-          label={galeria.tienePassword ? "Cambiar contraseña" : "Poner contraseña"}
+          label={
+            galeria.tienePassword ? "Cambiar contraseña" : "Poner contraseña"
+          }
           type="text"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

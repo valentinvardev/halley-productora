@@ -56,7 +56,9 @@ export function AvisosGrupoAdmin({ grupoId }: { grupoId: string }) {
       )}
 
       {!isLoading && avisos?.length === 0 && !creando && (
-        <Vacio>Sin avisos — lo que cargues acá lo ve la familia en su panel</Vacio>
+        <Vacio>
+          Sin avisos — lo que cargues acá lo ve la familia en su panel
+        </Vacio>
       )}
 
       <div className="grid gap-3">
@@ -93,7 +95,9 @@ function Tarjeta({
 
   const mover = api.aviso.mover.useMutation({ onSuccess: alCambiar });
   const eliminar = api.aviso.eliminar.useMutation({ onSuccess: alCambiar });
-  const eliminarFoto = api.aviso.eliminarFoto.useMutation({ onSuccess: alCambiar });
+  const eliminarFoto = api.aviso.eliminarFoto.useMutation({
+    onSuccess: alCambiar,
+  });
 
   const { cola, activo, subir, limpiar } = useCargaAviso(aviso.id, () =>
     utils.aviso.listar.invalidate({ grupoId }),
@@ -161,7 +165,11 @@ function Tarjeta({
                 className="group relative aspect-square overflow-hidden border border-gray-20 bg-paper-dim"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={f.url} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={f.url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => eliminarFoto.mutate({ id: f.id })}
@@ -254,10 +262,15 @@ function Formulario({
         </span>
       </label>
 
-      {guardar.error && <p className="nota text-marca">{guardar.error.message}</p>}
+      {guardar.error && (
+        <p className="nota text-marca">{guardar.error.message}</p>
+      )}
 
       <div className="flex flex-wrap gap-3">
-        <Boton type="submit" disabled={guardar.isPending || titulo.trim().length < 2}>
+        <Boton
+          type="submit"
+          disabled={guardar.isPending || titulo.trim().length < 2}
+        >
           {guardar.isPending ? "Guardando…" : "Guardar"}
         </Boton>
         <Boton type="button" variante="fantasma" onClick={alCancelar}>

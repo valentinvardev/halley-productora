@@ -11,11 +11,14 @@ import {
   IconoSobre,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
+import { PlanCuotas, type CuotaVista } from "~/app/_components/plan-cuotas";
 import {
-  PlanCuotas,
-  type CuotaVista,
-} from "~/app/_components/plan-cuotas";
-import { Boton, BotonTexto, Campo, Dato, TiraDatos } from "~/app/_components/ui";
+  Boton,
+  BotonTexto,
+  Campo,
+  Dato,
+  TiraDatos,
+} from "~/app/_components/ui";
 import { fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
@@ -52,7 +55,13 @@ export type AlumnoAcciones = {
   }[];
 };
 
-function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Seccion({
+  titulo,
+  children,
+}: {
+  titulo: string;
+  children: ReactNode;
+}) {
   return (
     <section className="border-t border-gray-20 pt-4 first:border-t-0 first:pt-0">
       <div className="eyebrow mb-2.5">{titulo}</div>

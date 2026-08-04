@@ -78,10 +78,7 @@ export function Ajustes() {
             onClick={() =>
               guardar.mutate(
                 Object.fromEntries(
-                  CAMPOS_AJUSTE.map((c) => [
-                    c.clave,
-                    valores[c.clave] ?? "",
-                  ]),
+                  CAMPOS_AJUSTE.map((c) => [c.clave, valores[c.clave] ?? ""]),
                 ) as Record<ClaveAjusteUI, string>,
               )
             }
@@ -103,8 +100,8 @@ export function Ajustes() {
       </div>
 
       <p className="nota mt-4 max-w-[62ch]">
-        Los cambios se ven en la web enseguida: las páginas públicas leen esto en
-        cada visita.
+        Los cambios se ven en la web enseguida: las páginas públicas leen esto
+        en cada visita.
       </p>
     </>
   );

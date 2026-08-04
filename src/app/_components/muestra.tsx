@@ -135,7 +135,10 @@ function CuadroDePelicula({
       />
 
       {/* Grano de película */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.18]" aria-hidden>
+      <svg
+        className="absolute inset-0 h-full w-full opacity-[0.18]"
+        aria-hidden
+      >
         <filter id={`grano-${indice}`}>
           <feTurbulence
             type="fractalNoise"

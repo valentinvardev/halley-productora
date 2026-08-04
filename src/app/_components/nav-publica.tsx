@@ -88,7 +88,11 @@ export function NavPublica({
             {s.texto}
           </a>
         ))}
-        <Link href="/entrar" onClick={() => setMenu(false)} className={itemCajon}>
+        <Link
+          href="/entrar"
+          onClick={() => setMenu(false)}
+          className={itemCajon}
+        >
           Panel de familias
         </Link>
       </Cajon>

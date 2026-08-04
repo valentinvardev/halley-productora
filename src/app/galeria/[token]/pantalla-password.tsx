@@ -17,10 +17,10 @@ export function PantallaPassword({
   token: string;
   titulo: string;
 }) {
-  const [estado, accion, pendiente] = useActionState<EstadoDesbloqueo, FormData>(
-    desbloquearGaleria.bind(null, token),
-    null,
-  );
+  const [estado, accion, pendiente] = useActionState<
+    EstadoDesbloqueo,
+    FormData
+  >(desbloquearGaleria.bind(null, token), null);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper-dimmer px-6">
@@ -43,7 +43,9 @@ export function PantallaPassword({
           placeholder="••••••••"
         />
 
-        {estado?.error && <p className="nota mt-3 text-marca">{estado.error}</p>}
+        {estado?.error && (
+          <p className="nota mt-3 text-marca">{estado.error}</p>
+        )}
 
         <Boton type="submit" className="mt-6 w-full" disabled={pendiente}>
           {pendiente ? "Abriendo…" : "Entrar"}

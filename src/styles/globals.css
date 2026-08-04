@@ -1097,3 +1097,27 @@
      adentro. Una pizca de espaciado evita que las letras se toquen entre sí. */
   letter-spacing: 0.004em;
 }
+
+/* ---------------------------------------------------------------------------
+   Los botones que el navegador pone encima de los videos.
+
+   Un `<video>` sin `controls` igual recibe, al pasarle el puntero, los botones
+   de "imagen en imagen" y "reproducir aparte" que agrega el propio navegador.
+   Sobre un video decorativo —el fondo de la portada, el cometa, las miniaturas
+   de una grilla— no tienen nada que hacer: invitan a sacar de la página algo
+   que es parte de la página.
+
+   Se apagan por atributo donde se puede (`disablePictureInPicture`,
+   `disableRemotePlayback`) y por CSS acá, porque cada navegador los dibuja con
+   un pseudoelemento propio y ninguno respeta al otro.
+
+   Los que sí llevan `controls` —el visor de la galería, donde la familia mira
+   su video— quedan intactos: ahí los controles son el punto.
+--------------------------------------------------------------------------- */
+video:not([controls])::-webkit-media-controls,
+video:not([controls])::-webkit-media-controls-enclosure,
+video:not([controls])::-webkit-media-controls-panel,
+video:not([controls])::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}

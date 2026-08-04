@@ -94,7 +94,8 @@ export function CampoFecha({
   // devuelve al campo al cerrarse.
   useEffect(() => {
     if (abierto) dialogo.current?.focus();
-    else if (document.activeElement === document.body) disparador.current?.focus();
+    else if (document.activeElement === document.body)
+      disparador.current?.focus();
   }, [abierto]);
 
   // Cerrar al hacer click afuera o con Escape.
@@ -151,7 +152,10 @@ export function CampoFecha({
   }
 
   return (
-    <div className={`relative flex flex-col gap-1.5 ${className}`} ref={contenedor}>
+    <div
+      className={`relative flex flex-col gap-1.5 ${className}`}
+      ref={contenedor}
+    >
       <Etiqueta>{label}</Etiqueta>
 
       <button
@@ -187,7 +191,9 @@ export function CampoFecha({
           <div className="flex items-center justify-between border-b border-ink px-2 py-2">
             <button
               type="button"
-              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
+              onClick={() =>
+                setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))
+              }
               aria-label="Mes anterior"
               className="px-2 py-1 font-mono text-[13px] hover:bg-ink hover:text-paper"
             >
@@ -198,7 +204,9 @@ export function CampoFecha({
             </span>
             <button
               type="button"
-              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
+              onClick={() =>
+                setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))
+              }
               aria-label="Mes siguiente"
               className="px-2 py-1 font-mono text-[13px] hover:bg-ink hover:text-paper"
             >
@@ -245,7 +253,11 @@ export function CampoFecha({
                     enfocado && !elegido ? "bg-paper-dim" : ""
                   }`}
                 >
-                  <span className={esHoy && !elegido ? "underline underline-offset-4" : ""}>
+                  <span
+                    className={
+                      esHoy && !elegido ? "underline underline-offset-4" : ""
+                    }
+                  >
                     {dia.getDate()}
                   </span>
 

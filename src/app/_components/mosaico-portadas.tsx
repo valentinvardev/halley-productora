@@ -58,6 +58,8 @@ export function MosaicoPortadas({
               loop
               autoPlay
               playsInline
+              disablePictureInPicture
+              disableRemotePlayback
               className="h-full w-full object-cover"
             />
           ) : (

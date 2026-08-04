@@ -186,19 +186,24 @@ export function DetalleGrupo({ id }: { id: string }) {
           <table className="w-full min-w-[900px] border-collapse border border-ink">
             <thead>
               <tr>
-                {["Cuadro", "Alumno", "Alias", "Plan", "Cuotas", ""].map((h) => (
-                  <th
-                    key={h}
-                    className="border-b border-ink px-3.5 py-2.5 text-left font-rotulo text-[11.5px] uppercase tracking-[0.05em] text-gray-70"
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Cuadro", "Alumno", "Alias", "Plan", "Cuotas", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="border-b border-ink px-3.5 py-2.5 text-left font-rotulo text-[11.5px] uppercase tracking-[0.05em] text-gray-70"
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {grupo.alumnos.map((a, i) => (
-                <tr key={a.id} className="border-b border-gray-20 last:border-b-0">
+                <tr
+                  key={a.id}
+                  className="border-b border-gray-20 last:border-b-0"
+                >
                   <td className="px-3.5 py-3 font-mono text-[12px] text-gray-45">
                     {cuadro(i)}
                   </td>
@@ -242,7 +247,10 @@ export function DetalleGrupo({ id }: { id: string }) {
 
                   <td className="px-3.5 py-3 font-mono text-[12.5px] whitespace-nowrap">
                     {pesos(a.plan.pagado)}
-                    <span className="text-gray-45"> / {pesos(a.plan.total)}</span>
+                    <span className="text-gray-45">
+                      {" "}
+                      / {pesos(a.plan.total)}
+                    </span>
                     {a.plan.deuda > 0 && (
                       <div className="text-[10.5px] text-gray-45">
                         debe {pesos(a.plan.deuda)}
@@ -454,7 +462,11 @@ function CuentaDePago({
   alCambiar,
 }: {
   grupoId: string;
-  actual: { id: string; nombre: string; proveedor: "TALO" | "MERCADOPAGO" } | null;
+  actual: {
+    id: string;
+    nombre: string;
+    proveedor: "TALO" | "MERCADOPAGO";
+  } | null;
   alCambiar: (mensaje?: string) => Promise<void>;
 }) {
   const { data: cuentas } = api.cuentaPago.listar.useQuery();
@@ -489,7 +501,8 @@ function CuentaDePago({
           .map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre} —{" "}
-              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"} {c.pista}
+              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
+              {c.pista}
             </option>
           ))}
       </select>
@@ -539,9 +552,7 @@ function Galerias({
         )}
       </div>
 
-      {galerias.length === 0 && !abierto && (
-        <Vacio>Sin galería asignada</Vacio>
-      )}
+      {galerias.length === 0 && !abierto && <Vacio>Sin galería asignada</Vacio>}
 
       {galerias.map((g) => (
         <div key={g.id} className="mb-2 border border-gray-20 px-4 py-3">
@@ -570,7 +581,12 @@ function Galerias({
             e.preventDefault();
             const vence = new Date();
             vence.setFullYear(vence.getFullYear() + 1);
-            guardar.mutate({ grupoId, titulo, linkDrive: link, venceEl: vence });
+            guardar.mutate({
+              grupoId,
+              titulo,
+              linkDrive: link,
+              venceEl: vence,
+            });
           }}
           className="grid gap-4 border border-ink p-6"
         >

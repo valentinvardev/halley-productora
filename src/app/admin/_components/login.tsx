@@ -34,9 +34,7 @@ export function Login() {
         />
 
         {estado?.error && (
-          <p className="mt-3 nota text-marca">
-            {estado.error}
-          </p>
+          <p className="mt-3 nota text-marca">{estado.error}</p>
         )}
 
         <Boton type="submit" className="mt-6 w-full" disabled={pendiente}>

@@ -23,14 +23,28 @@ type Proveedor = (typeof PROVEEDORES)[number]["valor"];
 /** Lo que dejó el callback de Mercado Pago en la URL, en castellano. */
 const AVISOS: Record<string, { texto: string; mal?: boolean }> = {
   vinculada: { texto: "Cuenta de Mercado Pago vinculada." },
-  revinculada: { texto: "Esa cuenta ya estaba vinculada: se renovó el permiso." },
+  revinculada: {
+    texto: "Esa cuenta ya estaba vinculada: se renovó el permiso.",
+  },
   cancelado: { texto: "Se canceló la vinculación en Mercado Pago.", mal: true },
-  "sin-sesion": { texto: "Se venció la sesión del panel. Entrá y probá de nuevo.", mal: true },
-  incompleto: { texto: "Mercado Pago volvió sin los datos necesarios.", mal: true },
-  "estado-invalido": { texto: "No pudimos validar el pedido. Probá de nuevo.", mal: true },
+  "sin-sesion": {
+    texto: "Se venció la sesión del panel. Entrá y probá de nuevo.",
+    mal: true,
+  },
+  incompleto: {
+    texto: "Mercado Pago volvió sin los datos necesarios.",
+    mal: true,
+  },
+  "estado-invalido": {
+    texto: "No pudimos validar el pedido. Probá de nuevo.",
+    mal: true,
+  },
   "estado-usado": { texto: "Ese enlace de vinculación ya se usó.", mal: true },
   "estado-vencido": { texto: "El pedido venció. Probá de nuevo.", mal: true },
-  "canje-fallido": { texto: "Mercado Pago rechazó el canje. Probá de nuevo.", mal: true },
+  "canje-fallido": {
+    texto: "Mercado Pago rechazó el canje. Probá de nuevo.",
+    mal: true,
+  },
 };
 
 /**
@@ -53,8 +67,12 @@ export function CuentasPago() {
 
   const refrescar = () => utils.cuentaPago.listar.invalidate();
 
-  const porDefecto = api.cuentaPago.porDefecto.useMutation({ onSuccess: refrescar });
-  const actualizar = api.cuentaPago.actualizar.useMutation({ onSuccess: refrescar });
+  const porDefecto = api.cuentaPago.porDefecto.useMutation({
+    onSuccess: refrescar,
+  });
+  const actualizar = api.cuentaPago.actualizar.useMutation({
+    onSuccess: refrescar,
+  });
   const eliminar = api.cuentaPago.eliminar.useMutation({
     onSuccess: async () => {
       setABorrar(null);
@@ -100,7 +118,9 @@ export function CuentasPago() {
         </p>
       )}
 
-      {conectando && <ConectarMercadoPago alCerrar={() => setConectando(false)} />}
+      {conectando && (
+        <ConectarMercadoPago alCerrar={() => setConectando(false)} />
+      )}
 
       {creando && (
         <FormularioCuenta
@@ -113,7 +133,9 @@ export function CuentasPago() {
       )}
 
       {error && (
-        <p className="nota mb-6 border border-marca px-4 py-3 text-marca">{error}</p>
+        <p className="nota mb-6 border border-marca px-4 py-3 text-marca">
+          {error}
+        </p>
       )}
 
       {isLoading ? (

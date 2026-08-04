@@ -94,7 +94,8 @@ function Lightbox({
   useEffect(() => {
     const teclas = (e: KeyboardEvent) => {
       if (e.key === "Escape") alCerrar();
-      if (e.key === "ArrowRight" && indice < fotos.length - 1) alCambiar(indice + 1);
+      if (e.key === "ArrowRight" && indice < fotos.length - 1)
+        alCambiar(indice + 1);
       if (e.key === "ArrowLeft" && indice > 0) alCambiar(indice - 1);
     };
     document.addEventListener("keydown", teclas);

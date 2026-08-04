@@ -126,7 +126,6 @@ export function Barra({
           </Link>
         ))}
       </Cajon>
-
     </>
   );
 }

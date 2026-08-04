@@ -98,8 +98,20 @@ export function Reproductor({ src }: { src: string }) {
         >
           {andando ? (
             <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
-              <rect x="3.5" y="2.5" width="3.2" height="11" fill="currentColor" />
-              <rect x="9.3" y="2.5" width="3.2" height="11" fill="currentColor" />
+              <rect
+                x="3.5"
+                y="2.5"
+                width="3.2"
+                height="11"
+                fill="currentColor"
+              />
+              <rect
+                x="9.3"
+                y="2.5"
+                width="3.2"
+                height="11"
+                fill="currentColor"
+              />
             </svg>
           ) : (
             <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
@@ -115,10 +127,7 @@ export function Reproductor({ src }: { src: string }) {
         {/* La barra: el input va invisible encima para no pelear con el estilo. */}
         <div className="relative flex-1">
           <div className="h-[3px] w-full bg-white/25">
-            <div
-              className="h-full bg-white"
-              style={{ width: `${avance}%` }}
-            />
+            <div className="h-full bg-white" style={{ width: `${avance}%` }} />
           </div>
           <input
             type="range"
@@ -148,12 +157,28 @@ export function Reproductor({ src }: { src: string }) {
           aria-label={mudo ? "Activar sonido" : "Silenciar"}
           className="shrink-0 text-white/80 hover:text-white"
         >
-          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.4} aria-hidden="true">
-            <path d="M3 6 L6 6 L9.5 3 L9.5 13 L6 10 L3 10 Z" strokeLinejoin="round" />
+          <svg
+            viewBox="0 0 16 16"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.4}
+            aria-hidden="true"
+          >
+            <path
+              d="M3 6 L6 6 L9.5 3 L9.5 13 L6 10 L3 10 Z"
+              strokeLinejoin="round"
+            />
             {mudo ? (
-              <path d="M11.5 6 L14.5 10 M14.5 6 L11.5 10" strokeLinecap="round" />
+              <path
+                d="M11.5 6 L14.5 10 M14.5 6 L11.5 10"
+                strokeLinecap="round"
+              />
             ) : (
-              <path d="M11.6 5.8 A3.4 3.4 0 0 1 11.6 10.2" strokeLinecap="round" />
+              <path
+                d="M11.6 5.8 A3.4 3.4 0 0 1 11.6 10.2"
+                strokeLinecap="round"
+              />
             )}
           </svg>
         </button>
@@ -164,7 +189,14 @@ export function Reproductor({ src }: { src: string }) {
           aria-label="Pantalla completa"
           className="shrink-0 text-white/80 hover:text-white"
         >
-          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.4} aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.4}
+            aria-hidden="true"
+          >
             <path d="M2 6 L2 2 L6 2 M10 2 L14 2 L14 6 M14 10 L14 14 L10 14 M6 14 L2 14 L2 10" />
           </svg>
         </button>
