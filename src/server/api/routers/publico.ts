@@ -23,6 +23,11 @@ export const publicoRouter = createTRPCRouter({
           grupo: {
             include: {
               cuotas: { orderBy: { numero: "asc" } },
+              avisos: {
+                where: { publicado: true },
+                orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
+                include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+              },
               galerias: {
                 orderBy: { creadoEn: "desc" },
                 include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
@@ -67,6 +72,16 @@ export const publicoRouter = createTRPCRouter({
         pagos: alumno.pagos.map((p) => ({
           monto: Number(p.monto),
           recibidoEn: p.recibidoEn,
+        })),
+        avisos: alumno.grupo.avisos.map((v) => ({
+          id: v.id,
+          titulo: v.titulo,
+          cuerpo: v.cuerpo,
+          fotos: v.fotos.map((f) => ({
+            id: f.id,
+            nombre: f.nombre,
+            url: `/api/aviso/${f.id}?t=${input.token}`,
+          })),
         })),
         // Las fotos llevan el token en la URL: es la llave con la que la ruta
         // las sirve a quien entra sin cuenta. Sólo si está al día.

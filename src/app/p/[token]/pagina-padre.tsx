@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { AvisosGrupo } from "~/app/_components/avisos-grupo";
 import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { Marca } from "~/app/_components/marca";
@@ -170,6 +171,13 @@ export function PaginaPadre({
           <div className="eyebrow mb-2">Tus cuotas</div>
           <PlanCuotas cuotas={data.plan.cuotas} destacar={proxima?.id} />
         </div>
+
+        {data.avisos.length > 0 && (
+          <div className="mt-8">
+            <div className="eyebrow mb-3">Información</div>
+            <AvisosGrupo avisos={data.avisos} />
+          </div>
+        )}
 
         {/* Galería */}
         {data.galerias.length > 0 && (

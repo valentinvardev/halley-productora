@@ -200,6 +200,11 @@ export const cuentaRouter = createTRPCRouter({
         grupo: {
           include: {
             cuotas: { orderBy: { numero: "asc" } },
+            avisos: {
+              where: { publicado: true },
+              orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
+              include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+            },
             galerias: {
               orderBy: { creadoEn: "desc" },
               include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
@@ -251,6 +256,18 @@ export const cuentaRouter = createTRPCRouter({
           id: p.id,
           monto: Number(p.monto),
           recibidoEn: p.recibidoEn,
+        })),
+        // Los avisos no dependen del pago: son justamente lo que hay que poder
+        // leer antes.
+        avisos: a.grupo.avisos.map((v) => ({
+          id: v.id,
+          titulo: v.titulo,
+          cuerpo: v.cuerpo,
+          fotos: v.fotos.map((f) => ({
+            id: f.id,
+            nombre: f.nombre,
+            url: `/api/aviso/${f.id}`,
+          })),
         })),
         // Las fotos sólo viajan si la familia está al día: es lo mismo que
         // chequea la ruta que las sirve, pero acá evita anunciar lo que no se

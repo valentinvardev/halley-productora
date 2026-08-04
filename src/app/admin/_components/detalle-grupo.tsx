@@ -34,6 +34,7 @@ import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
 import { EsqueletoDetalle } from "./esqueletos";
+import { AvisosGrupoAdmin } from "./avisos-grupo-admin";
 import { FotosGaleria } from "./fotos-galeria";
 
 export function DetalleGrupo({ id }: { id: string }) {
@@ -163,6 +164,8 @@ export function DetalleGrupo({ id }: { id: string }) {
           <Copiar valor={grupo.linkRegistro} etiqueta="Copiar link" />
         </div>
       )}
+
+      <AvisosGrupoAdmin grupoId={id} />
 
       <Galerias grupoId={id} galerias={grupo.galerias} alGuardar={refrescar} />
 

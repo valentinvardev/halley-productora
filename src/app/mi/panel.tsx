@@ -6,6 +6,7 @@ import { useState } from "react";
 import { salir } from "~/app/_acciones/sesion";
 import { Barra } from "~/app/_components/barra";
 import { itemCajon } from "~/app/_components/cajon";
+import { AvisosGrupo } from "~/app/_components/avisos-grupo";
 import { Copiar } from "~/app/_components/copiar";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { IconoCandado } from "~/app/_components/iconos";
@@ -224,6 +225,16 @@ export function Panel({
                     cuotas={hijo.plan.cuotas}
                     destacar={hijo.plan.proxima?.id}
                   />
+                </>
+              )}
+
+              {/* Lo que la productora quiere contarle a la familia. Va antes
+                  de la galería: son fechas e instrucciones, y sirven aunque
+                  todavía no haya nada para descargar. */}
+              {hijo.avisos.length > 0 && (
+                <>
+                  <h2 className="mt-10 mb-3 text-[17px]">Información</h2>
+                  <AvisosGrupo avisos={hijo.avisos} />
                 </>
               )}
 

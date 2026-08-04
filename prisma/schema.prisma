@@ -40,6 +40,7 @@ model Grupo {
     cuotas         Cuota[]
     alumnos        Alumno[]
     galerias       Galeria[]
+    avisos         AvisoGrupo[]
     notificaciones Notificacion[]
 
     creadoEn DateTime @default(now())
@@ -359,6 +360,51 @@ model EstadoOauth {
     usadoEl  DateTime?
     expiraEl DateTime
     creadoEn DateTime  @default(now())
+}
+
+/// Un aviso del grupo para su familia: fechas, instrucciones, lo que sea.
+///
+/// Es texto que el admin escribe y fotos que adjunta, y aparece en el panel de
+/// la familia junto a la cuota. Nace de que todo lo que no era "cuánto debo" o
+/// "dónde están mis fotos" terminaba yendo por WhatsApp y se perdía.
+///
+/// Las fotos van en el mismo bucket que el resto, pero son públicas para quien
+/// tenga acceso al grupo: no hay nada que liberar al pagar, un aviso es
+/// justamente lo que hay que poder leer antes.
+model AvisoGrupo {
+    id      String @id @default(cuid())
+    grupoId String
+    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+    titulo String
+    cuerpo String
+
+    /// Dónde va en la lista. El admin ordena; sin esto, el orden lo decidiría
+    /// la casualidad de cuándo se escribió cada uno.
+    orden Int @default(0)
+
+    /// Un borrador no se le muestra a nadie hasta que se publica.
+    publicado Boolean @default(true)
+
+    fotos    FotoAviso[]
+    creadoEn DateTime    @default(now())
+
+    @@index([grupoId, orden])
+}
+
+/// Una foto adjunta a un aviso.
+model FotoAviso {
+    id      String     @id @default(cuid())
+    avisoId String
+    aviso   AvisoGrupo @relation(fields: [avisoId], references: [id], onDelete: Cascade)
+
+    s3Key  String @unique
+    nombre String
+    orden  Int    @default(0)
+
+    creadoEn DateTime @default(now())
+
+    @@index([avisoId, orden])
 }
 
 /// Bitácora de todo lo que pasa alrededor del dinero.
