@@ -23,14 +23,18 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // Cloudflare inyecta su beacon de analítica en el sitio que tiene delante.
+  // Sin esto la consola se llena de errores de CSP en cada visita. Es
+  // infraestructura propia del dominio, no un tercero cualquiera.
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline'",
   // Las fotos salen del CDN o de S3 firmado; los blobs, del guardado en iOS.
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "font-src 'self' data:",
-  // Mercado Pago se abre por redirección, no por fetch.
-  "connect-src 'self'",
+  // Mercado Pago se abre por redirección, no por fetch. El beacon de Cloudflare
+  // reporta contra el mismo dominio, pero se lo nombra igual por si cambia.
+  "connect-src 'self' https://cloudflareinsights.com",
   "upgrade-insecure-requests",
 ].join("; ");
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { env } from "~/env";
-import { armarAlias, credencialesDeGrupo, talo } from "~/server/talo";
+import { armarAlias, credencialesDeGrupo, talo, taloMock } from "~/server/talo";
 import { db } from "./db";
 import { imputarPagos } from "./dominio";
 import { notificarInvitacion } from "./notificaciones";
@@ -41,7 +41,13 @@ export async function crearAlumno(input: {
     );
   }
 
-  const cliente = await talo.crearCustomer(cred, {
+  // Un grupo de prueba genera su CVU con el simulador aunque Talo esté en real.
+  // Sus credenciales son de mentira —justamente para no tener que cargar unas
+  // buenas—, así que mandárselas a Talo daría un rechazo y el alumno no se
+  // crearía. Es la misma decisión que al confirmar un pago suyo.
+  const proveedor = grupo.modoPrueba ? taloMock : talo;
+
+  const cliente = await proveedor.crearCustomer(cred, {
     customerId: id,
     nombre,
     email: input.emailContacto ?? env.ADMIN_EMAIL,
