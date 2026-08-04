@@ -6,9 +6,13 @@ import { useEffect, useRef, useState } from "react";
  * El cometa que dibuja el logo, dentro de la sección del concepto.
  *
  * Antes se llevaba una pantalla entera en negro: mucho espacio para una
- * animación de ocho segundos, y cortaba la lectura en dos. Ahora es una pieza
- * acotada al lado del texto —el cometa que se ve una vez cada setenta y cinco
- * años, junto al párrafo que habla justamente de eso—.
+ * animación de ocho segundos, y cortaba la lectura en dos. Ahora va al lado del
+ * título —el cometa que se ve una vez cada setenta y cinco años, junto a la
+ * frase que habla justamente de eso— y sin caja: el fondo negro del archivo se
+ * saca con mezcla, así el trazo queda sobre el papel de la sección.
+ *
+ * Al no haber caja, el video va con `object-contain`: no hace falta recortarlo
+ * para que llene nada, y el recorrido del cometa se ve entero.
  *
  * Dos cosas pasan a la vez mientras se scrollea:
  *
@@ -90,9 +94,10 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     <div
       ref={marco}
       aria-label="Halley Audiovisual"
-      // El recorte es lo que permite el parallax: la capa de adentro se mueve y
-      // lo que se sale del marco no se ve.
-      className={`relative aspect-[16/10] overflow-hidden bg-black ${className}`}
+      // Sin caja ni fondo: el trazo queda sobre el papel de la sección. El
+      // recorte es lo que permite el parallax —la capa de adentro se mueve y lo
+      // que se sale del marco no se ve—.
+      className={`cometa relative aspect-square overflow-hidden ${className}`}
     >
       {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
       <div
@@ -104,7 +109,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
           <img
             src="/marca/logo-animado.jpg"
             alt="Halley Audiovisual"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         ) : (
           <video
@@ -115,7 +120,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             playsInline
             preload="auto"
             aria-hidden="true"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         )}
       </div>

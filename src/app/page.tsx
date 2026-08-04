@@ -259,7 +259,12 @@ function Estela() {
 function Concepto() {
   return (
     <section id="concepto" className="border-b border-gray-20">
-      <div className="mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:gap-y-12">
+      <div className="mx-auto grid max-w-[1140px] items-start gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[0.62fr_1.05fr_1fr] lg:gap-x-12">
+        {/* El cometa abre la sección, a la izquierda del título. */}
+        <Aparecer className="max-w-[300px] lg:max-w-none">
+          <LogoAnimado />
+        </Aparecer>
+
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
             Hay quien lo ve una vez en la vida.
@@ -284,13 +289,6 @@ function Concepto() {
             La posibilidad de volver a sentir, de volver a mirar, de volver a
             abrazar.
           </p>
-        </Aparecer>
-
-        {/* El cometa, al lado del párrafo que habla de él. Ocupa las dos
-            columnas en desktop: es una pieza ancha y partida al medio se
-            perdería el recorrido que hace de un lado al otro. */}
-        <Aparecer className="lg:col-span-2">
-          <LogoAnimado />
         </Aparecer>
       </div>
     </section>

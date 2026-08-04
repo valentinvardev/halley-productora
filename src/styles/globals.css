@@ -1027,3 +1027,54 @@
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   El cometa, sin su fondo negro.
+
+   El video viene crema sobre negro y no hay un solo modo de mezcla que sirva
+   para los dos temas, así que se usan dos caminos:
+
+   - En oscuro, `screen`: lo negro no aporta nada y desaparece contra el fondo;
+     el trazo crema queda.
+   - En claro, primero se invierte el video —pasa a trazo oscuro sobre blanco— y
+     después `multiply`: lo blanco no aporta y desaparece; el trazo oscuro queda.
+
+   Invertir con CSS en vez de generar un segundo archivo: es el mismo video,
+   pesa lo mismo y no hay dos cosas que mantener sincronizadas.
+
+   El contenedor lleva el color del papel y se aísla. Las dos cosas son
+   necesarias y por motivos distintos: aislar evita que la mezcla se aplique
+   contra toda la pila de la página, y el fondo le da a la mezcla contra qué
+   mezclar —sobre transparente, `multiply` no hace nada y el recuadro blanco
+   volvería a aparecer—.
+--------------------------------------------------------------------------- */
+.cometa {
+  isolation: isolate;
+  background: var(--color-paper);
+}
+
+.cometa video,
+.cometa img {
+  filter: invert(1);
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .cometa video,
+  :root:not([data-tema="claro"]) .cometa img {
+    filter: none;
+    mix-blend-mode: screen;
+  }
+}
+
+:root[data-tema="oscuro"] .cometa video,
+:root[data-tema="oscuro"] .cometa img {
+  filter: none;
+  mix-blend-mode: screen;
+}
+
+:root[data-tema="claro"] .cometa video,
+:root[data-tema="claro"] .cometa img {
+  filter: invert(1);
+  mix-blend-mode: multiply;
+}

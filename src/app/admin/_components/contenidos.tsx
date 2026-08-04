@@ -11,6 +11,7 @@ import { BotonesSubida } from "./botones-subida";
 import { EsqueletoContenidos } from "./esqueletos";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
+import { useCargaHero } from "./usar-carga-hero";
 import { ZonaArrastre } from "./zona-arrastre";
 
 const ACEPTA =
@@ -66,54 +67,21 @@ export function Contenidos() {
  */
 function TarjetaHero({ habilitado }: { habilitado: boolean }) {
   const utils = api.useUtils();
-  const [subiendo, setSubiendo] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { data: clips } = api.contenido.hero.useQuery();
-  const firmar = api.contenido.urlDeSubida.useMutation();
-  const guardarHero = api.contenido.guardarHero.useMutation();
+  const { cola, activo, subir, limpiar } = useCargaHero(() =>
+    utils.contenido.hero.invalidate(),
+  );
   const eliminar = api.contenido.eliminarHero.useMutation({
     onSuccess: () => utils.contenido.hero.invalidate(),
   });
-
-  /**
-   * Sube todo lo que le den, uno detrás de otro.
-   *
-   * En serie y no en paralelo a propósito: son videos de portada, pesados, y
-   * mandar cinco a la vez por una conexión de subida hogareña los hace competir
-   * entre sí y tardan más que en fila.
-   */
-  async function subir(archivos: File[]) {
-    setError(null);
-    setSubiendo(true);
-    try {
-      for (const file of archivos) {
-        const { url, key, tipo } = await firmar.mutateAsync({
-          categoria: HERO,
-          contentType: file.type,
-        });
-        const put = await fetch(url, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        if (!put.ok) throw new Error(`S3 rechazó la subida (${put.status}).`);
-        await guardarHero.mutateAsync({ s3Key: key, tipo });
-      }
-      await utils.contenido.hero.invalidate();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo subir.");
-    } finally {
-      setSubiendo(false);
-    }
-  }
 
   const total = clips?.length ?? 0;
 
   return (
     <ZonaArrastre
       alSoltar={subir}
-      deshabilitada={!habilitado || subiendo}
+      deshabilitada={!habilitado || activo}
       className="border border-ink"
     >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink px-5 py-3.5">
@@ -125,7 +93,7 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
               : `${total} ${total === 1 ? "clip" : "clips"}`}
           </span>
         </div>
-        <BotonesSubida alElegir={subir} ocupado={!habilitado || subiendo} />
+        <BotonesSubida alElegir={subir} ocupado={!habilitado || activo} />
       </header>
 
       <div className="p-5">
@@ -136,8 +104,6 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
             Si cargás varios, cada visita abre con uno distinto.
           </strong>
         </p>
-
-        {error && <p className="nota mb-3 text-marca">{error}</p>}
 
         {total === 0 ? (
           <p className="nota text-gray-45">
@@ -178,6 +144,7 @@ function TarjetaHero({ habilitado }: { habilitado: boolean }) {
           </div>
         )}
       </div>
+      <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
     </ZonaArrastre>
   );
 }

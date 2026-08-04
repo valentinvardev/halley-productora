@@ -13,6 +13,7 @@ import {
 } from "~/app/_components/ui";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { BotonesSubida } from "./botones-subida";
+import { SubidaPopover } from "./subida-popover";
 import { useCargaAviso } from "./usar-carga-aviso";
 
 type Aviso = RouterOutputs["aviso"]["listar"][number];
@@ -94,7 +95,7 @@ function Tarjeta({
   const eliminar = api.aviso.eliminar.useMutation({ onSuccess: alCambiar });
   const eliminarFoto = api.aviso.eliminarFoto.useMutation({ onSuccess: alCambiar });
 
-  const { activo, subir } = useCargaAviso(aviso.id, () =>
+  const { cola, activo, subir, limpiar } = useCargaAviso(aviso.id, () =>
     utils.aviso.listar.invalidate({ grupoId }),
   );
 
@@ -174,6 +175,8 @@ function Tarjeta({
           </div>
         )}
       </div>
+
+      <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
 
       {editando && (
         <div className="mt-4 border-t border-gray-20 pt-4">
