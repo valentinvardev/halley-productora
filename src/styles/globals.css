@@ -995,3 +995,35 @@
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   La próxima cuota, después del festejo.
+
+   No se monta y desmonta: se despliega. Con `grid-template-rows` la caja crece
+   exactamente hasta donde llega su contenido, y el bloque de abajo se corre en
+   el mismo movimiento en vez de aparecer de golpe.
+--------------------------------------------------------------------------- */
+.proxima-cuota {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.5s cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 0.4s ease 0.1s;
+}
+
+.proxima-cuota[data-visible="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.proxima-cuota > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proxima-cuota {
+    transition: none;
+  }
+}

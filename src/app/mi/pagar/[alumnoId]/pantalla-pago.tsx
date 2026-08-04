@@ -12,8 +12,14 @@ import { Boton, BotonTexto, botonFantasma } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
-/** Cuánto se deja ver la confirmación antes de volver solo al panel. */
-const MS_ANTES_DE_VOLVER = 2600;
+/**
+ * Cuánto dura el festejo antes de que aparezca lo que viene.
+ *
+ * El tilde tiene que poder leerse como un final —"listo, pagué"— antes de que
+ * la pantalla vuelva a hablar de plata. Si la próxima cuota entra junto con la
+ * confirmación, el alivio dura cero.
+ */
+const MS_HASTA_LA_PROXIMA = 2200;
 
 /**
  * La pantalla de cobro: el monto exacto y cómo pagarlo — según el grupo, los
@@ -52,28 +58,36 @@ export function PantallaPago({
 
   const recienPagado = data.listo && !yaVenia;
 
+  /** Se destapa un rato después del tilde: primero el alivio, después lo que viene. */
+  const [mostrarProxima, setMostrarProxima] = useState(false);
+
   useEffect(() => {
     if (!recienPagado) return;
-
-    const reloj = setTimeout(() => {
-      void (async () => {
-        // El panel guarda su propia copia en React Query, con un staleTime de
-        // 30s: si no se toca, la familia vuelve y ve la cuota que acaba de
-        // pagar todavía impaga hasta que venza ese plazo.
-        //
-        // Va `reset` y no `invalidate` a propósito. Invalidar la marca vieja
-        // pero la deja en la caché, así que el panel igual pinta una vez con
-        // los datos de antes y recién después llega el refetch. Al vaciarla,
-        // en cambio, entra el `initialData` que el servidor acaba de calcular
-        // y la cuota aparece pagada en el primer frame.
-        await utils.cuenta.panel.reset();
-        router.push("/mi");
-        router.refresh();
-      })();
-    }, MS_ANTES_DE_VOLVER);
-
+    const reloj = setTimeout(
+      () => setMostrarProxima(true),
+      MS_HASTA_LA_PROXIMA,
+    );
     return () => clearTimeout(reloj);
-  }, [recienPagado, router, utils]);
+  }, [recienPagado]);
+
+  /**
+   * Vuelve al panel dejándolo al día.
+   *
+   * El panel guarda su propia copia en React Query con un staleTime de 30s: si
+   * no se toca, la familia vuelve y ve la cuota que acaba de pagar todavía
+   * impaga. Va `reset` y no `invalidate` a propósito — invalidar la marca vieja
+   * pero la deja en la caché, así que el panel igual pinta una vez con los datos
+   * de antes. Al vaciarla entra el `initialData` que el servidor acaba de
+   * calcular y la cuota aparece pagada en el primer frame.
+   */
+  const volverAlPanel = async () => {
+    await utils.cuenta.panel.reset();
+    router.push("/mi");
+    router.refresh();
+  };
+
+  /** La primera que sigue sin saldar, para anunciarla después del festejo. */
+  const proxima = data.plan.cuotas.find((c) => c.estado !== "PAGADA") ?? null;
 
   const refrescar = () =>
     utils.cuenta.cobro.invalidate({ alumnoId, hastaCuotaId });
@@ -143,17 +157,66 @@ export function PantallaPago({
                   </div>
                   <p className="mt-5 text-[13px] leading-relaxed text-gray-70">
                     {data.plan.deuda === 0
-                      ? `Con esto queda saldado el plan completo. Te mandamos el comprobante por email.`
-                      : `Ya está registrado. Te queda ${pesos(data.plan.deuda)} para terminar el plan.`}
+                      ? "Con esto queda saldado el plan completo."
+                      : "Ya está registrado."}{" "}
+                    Te mandamos el comprobante por email.
                   </p>
-                  <p className="mt-6 font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
-                    Volviendo a tu panel…
-                  </p>
+
+                  {/* Lo que viene. Entra después, no junto con el tilde. */}
+                  <div
+                    className="proxima-cuota mt-8 w-full"
+                    data-visible={mostrarProxima}
+                  >
+                    {/* Un solo hijo: la fila que se anima es una, y todo lo que
+                        se despliega tiene que vivir adentro. */}
+                    <div>
+                      {proxima ? (
+                        <div className="border border-ink px-5 py-4 text-left">
+                          <div className="font-rotulo text-[10.5px] uppercase tracking-[0.14em] text-gray-45">
+                            Próxima cuota
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="font-display text-[26px] leading-none">
+                              {pesos(proxima.saldo)}
+                            </span>
+                            <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
+                              Cuota {proxima.numero} · vence{" "}
+                              {fecha(proxima.venceEl)}
+                            </span>
+                          </div>
+                          <p className="nota mt-2 text-[12px]">
+                            Te queda {pesos(data.plan.deuda)} para terminar el
+                            plan.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="border border-ink px-5 py-4">
+                          <div className="font-rotulo text-[11px] uppercase tracking-[0.1em]">
+                            No queda nada por pagar
+                          </div>
+                          <p className="nota mt-1.5 text-[12px]">
+                            Pagaste las {data.totalCuotas} cuotas. La galería
+                            queda liberada.
+                          </p>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => void volverAlPanel()}
+                        className={`mt-4 w-full ${botonFantasma}`}
+                      >
+                        Volver a mi panel
+                      </button>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
                   <div className="mt-6 font-rotulo text-[12px] uppercase tracking-[0.1em]">
-                    {data.plan.deuda === 0 ? "Plan saldado" : "Sin saldo pendiente acá"}
+                    {data.plan.deuda === 0
+                      ? "Plan saldado"
+                      : "Sin saldo pendiente acá"}
                   </div>
                   <p className="mt-4 text-[13px] leading-relaxed text-gray-70">
                     {data.plan.deuda === 0
@@ -222,54 +285,54 @@ export function PantallaPago({
               ) : (
                 /* -------------------------------------------- Talo / CVU */
                 <>
-              <DatosTransferencia alias={data.alias} cvu={data.cvu} />
+                  <DatosTransferencia alias={data.alias} cvu={data.cvu} />
 
-              {/* Una vez que la familia avisó que transfirió, la pantalla
+                  {/* Una vez que la familia avisó que transfirió, la pantalla
                   queda esperando algo que no depende de ella. La barra es para
                   eso: no promete un porcentaje que nadie conoce, sólo dice que
                   el sistema sigue mirando. */}
-              {esperandoPago ? (
-                <div className="mt-6 border border-ink px-4 py-4 text-center">
-                  <BarraCarga />
-                  <div className="mt-3.5 font-rotulo text-[12px] uppercase tracking-[0.08em]">
-                    Esperando la acreditación
-                  </div>
-                  <p className="nota mt-1.5 text-[11.5px] text-gray-45">
-                    Suele tardar unos segundos. Cuando entre, volvés solo a tu
-                    panel.
-                  </p>
-                </div>
-              ) : (
-                <Boton
-                  className="mt-6 w-full"
-                  onClick={() => reportar.mutate({ alumnoId })}
-                  disabled={reportar.isPending}
-                >
-                  {reportar.isPending ? "Avisando…" : "Ya transferí"}
-                </Boton>
-              )}
-
-              {data.modoDemo && (
-                <div className="mt-6 border-t border-gray-20 pt-4 text-center">
-                  <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
-                    Demo — Talo simulado
-                  </div>
                   {esperandoPago ? (
-                    <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
-                      Transferencia enviada al webhook
-                    </span>
+                    <div className="mt-6 border border-ink px-4 py-4 text-center">
+                      <BarraCarga />
+                      <div className="mt-3.5 font-rotulo text-[12px] uppercase tracking-[0.08em]">
+                        Esperando la acreditación
+                      </div>
+                      <p className="nota mt-1.5 text-[11.5px] text-gray-45">
+                        Suele tardar unos segundos. Cuando entre, volvés solo a
+                        tu panel.
+                      </p>
+                    </div>
                   ) : (
-                    <BotonTexto
-                      onClick={() =>
-                        simular.mutate({ alumnoId, monto: data.monto })
-                      }
-                      disabled={simular.isPending}
+                    <Boton
+                      className="mt-6 w-full"
+                      onClick={() => reportar.mutate({ alumnoId })}
+                      disabled={reportar.isPending}
                     >
-                      Simular transferencia desde el banco
-                    </BotonTexto>
+                      {reportar.isPending ? "Avisando…" : "Ya transferí"}
+                    </Boton>
                   )}
-                </div>
-              )}
+
+                  {data.modoDemo && (
+                    <div className="mt-6 border-t border-gray-20 pt-4 text-center">
+                      <div className="mb-2 font-rotulo text-[10.5px] uppercase tracking-[0.1em] text-gray-45">
+                        Demo — Talo simulado
+                      </div>
+                      {esperandoPago ? (
+                        <span className="font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-45">
+                          Transferencia enviada al webhook
+                        </span>
+                      ) : (
+                        <BotonTexto
+                          onClick={() =>
+                            simular.mutate({ alumnoId, monto: data.monto })
+                          }
+                          disabled={simular.isPending}
+                        >
+                          Simular transferencia desde el banco
+                        </BotonTexto>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </>
