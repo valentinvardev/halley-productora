@@ -143,9 +143,15 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     >
       {/* La pieza se queda quieta mientras la sección pasa por detrás. Eso es lo
           que le da tiempo al trazo: sin esto se iría de pantalla a los pocos
-          cientos de píxeles. */}
-      <div className="sticky top-1/2 -translate-y-1/2">
-        <div className="cometa relative aspect-square overflow-hidden">
+          cientos de píxeles.
+
+          El tramo pegajoso mide una pantalla y la pieza se centra adentro con
+          flex. Antes se pegaba a media altura y se subía con `translate`, y eso
+          la sacaba fuera de la sección en las dos puntas del recorrido: como el
+          recorte tuvo que salir para que `sticky` funcionara, terminaba
+          metiéndose encima del hero y de los servicios. */}
+      <div className="sticky top-0 flex h-svh items-center">
+        <div className="cometa relative aspect-square w-full overflow-hidden">
           {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
           <div
             ref={capa}
