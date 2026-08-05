@@ -280,19 +280,27 @@ function Concepto() {
       // el lienzo de la página depende de detalles del navegador.
       className="relative border-b border-gray-20 bg-paper"
     >
-      {/* El cometa no ocupa lugar en la grilla: va detrás y centrado en el alto
-          de la sección, así que puede crecer sin empujar nada.
+      {/* El contenedor no lleva `z`: con uno propio se volvería un grupo de
+          apilado aparte y la mezcla que le saca el fondo negro al cometa se
+          quedaría encerrada adentro. Sin `z` no hace falta: el cometa y el texto
+          no se pisan en ningún ancho. */}
+      <div className="relative mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
+        {/* El cometa cambia de lugar según haya o no dónde ponerlo.
 
-          En pantalla grande ocupa la franja de la izquierda y nada más: mide el
-          margen que sobra afuera del texto más un ancho fijo, y a ese mismo
-          ancho se corre el texto. Los dos lados salen de la misma cuenta, así
-          que la pieza llega hasta donde empieza la columna y no la pisa. En
-          pantallas donde ese margen no existe no hay franja que ocupar, y el
-          cometa pasa a ser una marca de agua detrás del texto: por eso queda
-          más tenue ahí que en grande. */}
-      <LogoAnimado className="left-0 top-1/2 z-0 w-[86%] max-w-[520px] -translate-y-1/2 opacity-45 sm:w-[70%] lg:w-[calc((100vw_-_1140px)/2_+_250px)] lg:max-w-[620px] lg:opacity-70" />
+            En pantalla grande sobra margen afuera de la columna de texto: ahí va
+            a la franja de la izquierda, fuera del flujo y centrado en el alto.
+            Mide ese margen más un ancho fijo, y a ese mismo ancho se corre el
+            texto; las dos cuentas son la misma, así que la pieza llega justo
+            hasta donde empieza la columna y no la pisa.
 
-      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
+            En pantallas angostas ese margen no existe. Antes pasaba a ser marca
+            de agua detrás del texto, que es ponerlo donde no hay lugar. Ahora
+            entra en el flujo y se queda con una fila propia arriba del título:
+            se hace el lugar en vez de robarlo, y de paso la fila la reserva él
+            mismo, sin un alto escrito en otro lado que haya que mantener igual
+            al suyo. */}
+        <LogoAnimado className="w-full max-w-[420px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[620px] lg:-translate-y-1/2 lg:opacity-70" />
+
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
             Hay quien lo ve una vez en la vida.

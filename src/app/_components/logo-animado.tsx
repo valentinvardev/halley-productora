@@ -147,10 +147,15 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     //
     // Apaisada y no cuadrada: el video es 16:9 y en un cuadrado quedaba con
     // bandas vacías arriba y abajo.
+    //
+    // Cómo se ubica lo decide quien la usa, porque cambia con el ancho: en el
+    // flujo cuando tiene que ocupar una fila propia, fuera del flujo cuando va
+    // en un hueco del fondo. Lo único que la pieza necesita es estar posicionada
+    // —la capa del parallax se cuelga de ella—, así que va `relative` de mínima.
     <div
       ref={marco}
       aria-hidden="true"
-      className={`cometa pointer-events-none absolute aspect-[16/10] overflow-hidden ${className}`}
+      className={`cometa pointer-events-none relative aspect-[16/10] overflow-hidden ${className}`}
     >
       {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
       <div
