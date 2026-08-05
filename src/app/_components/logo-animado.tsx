@@ -28,14 +28,25 @@ import { useEffect, useRef, useState } from "react";
 const RECORRIDO_PARALLAX = 56;
 
 /**
- * Dónde termina el dibujo dentro del tramo en que la pieza está pegada.
+ * El tramo de scroll del dibujo, medido en pantallas y no en secciones.
  *
- * Se usa casi todo: el trazo arranca apenas se pega y llega al final poco antes
- * de despegarse. Ese margen del final es para poder mirar el logo terminado un
- * momento antes de que la pieza siga de largo; sin él, se completa justo cuando
- * se va y no se llega a ver.
+ * El trazo arranca cuando la pieza asoma por abajo —`ARRANQUE`, una pantalla— y
+ * termina cuando su borde de arriba casi toca el borde de arriba de la ventana
+ * —`REMATE`—. Entre esos dos puntos hay poco menos de una pantalla de scroll,
+ * que es más o menos lo que había antes.
+ *
+ * Que el tramo se mida contra la ventana es el punto: antes se medía contra la
+ * sección, así que la sección tenía que ser altísima —una pantalla y media— sólo
+ * para darle recorrido al dibujo, y ese alto de más se veía como un hueco
+ * enorme alrededor del texto. Contra la ventana, el recorrido es el mismo con la
+ * sección midiendo lo que mide su contenido.
+ *
+ * El remate no es cero para que el logo terminado se pueda mirar un momento
+ * antes de que la pieza se vaya: si el trazo se completara justo al salir, no
+ * se llegaría a ver nunca entero.
  */
-const HASTA = 0.9;
+const ARRANQUE = 1;
+const REMATE = 0.05;
 
 /**
  * Cuánto se acerca el video a su objetivo en cada cuadro.
@@ -48,7 +59,6 @@ const SUAVIDAD = 0.12;
 
 export function LogoAnimado({ className = "" }: { className?: string }) {
   const marco = useRef<HTMLDivElement>(null);
-  const pegada = useRef<HTMLDivElement>(null);
   const capa = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [quieto, setQuieto] = useState(false);
@@ -71,17 +81,15 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
 
     const medir = () => {
       const caja = m.getBoundingClientRect();
-      const altoPegada = pegada.current?.offsetHeight ?? 0;
+      const ventana = window.innerHeight;
 
-      // El dibujo se reparte exactamente sobre el tramo en que la pieza está
-      // pegada: empieza cuando se pega —el borde de arriba de la pista llega al
-      // borde de la ventana— y termina cuando se despega, al final de la pista.
-      // Así la pieza no se va nunca antes de tiempo: mientras se dibuja, está.
-      const total = caja.height - altoPegada;
-      const crudo = total > 0 ? -caja.top / total : 0;
+      // El dibujo se reparte sobre el viaje de la pieza por la ventana, de abajo
+      // hacia arriba. Mientras se dibuja está siempre a la vista, y el tramo
+      // mide lo mismo sin importar cuánto mida la sección.
+      const total = (ARRANQUE - REMATE) * ventana;
+      const crudo = (ARRANQUE * ventana - caja.top) / total;
 
-      const util = Math.min(Math.max(crudo, 0), 1) / HASTA;
-      avance = Math.min(util, 1);
+      avance = Math.min(Math.max(crudo, 0), 1);
     };
 
     const pintar = () => {
@@ -133,56 +141,43 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    // La pista abarca el alto de la sección. No se ve: sólo marca cuánto scroll
-    // tiene el dibujo para desarrollarse.
+    // Una sola caja, del tamaño de la pieza. Antes había otra por fuera que
+    // abarcaba la sección entera: era la que le medía el scroll al dibujo, y ya
+    // no hace falta porque el recorrido se mide contra la ventana.
+    //
+    // Apaisada y no cuadrada: el video es 16:9 y en un cuadrado quedaba con
+    // bandas vacías arriba y abajo.
     <div
       ref={marco}
       aria-hidden="true"
-      className={`cometa pointer-events-none absolute inset-y-0 ${className}`}
+      className={`cometa pointer-events-none absolute aspect-[16/10] overflow-hidden ${className}`}
     >
-      {/* La pieza se queda quieta mientras la sección pasa por detrás. Eso es lo
-          que le da tiempo al trazo: sin esto se iría de pantalla a los pocos
-          cientos de píxeles.
-
-          El tramo pegajoso mide una pantalla y la pieza se centra adentro con
-          flex. Antes se pegaba a media altura y se subía con `translate`, y eso
-          la sacaba fuera de la sección en las dos puntas del recorrido: como el
-          recorte tuvo que salir para que `sticky` funcionara, terminaba
-          metiéndose encima del hero y de los servicios. */}
-      <div ref={pegada} className="sticky top-[16vh]">
-        {/* Apaisada, no cuadrada: el video es 16:9 y en un cuadrado quedaba con
-            bandas vacías arriba y abajo. Al ras, la pieza se ve más grande y
-            además ocupa menos alto — y cuanto menos alto ocupa, más tramo de
-            scroll queda para que el trazo se desarrolle. */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden">
-          {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
-          <div
-            ref={capa}
-            className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
-          >
-            {quieto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src="/marca/logo-animado.jpg"
-                alt="Halley Audiovisual"
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <video
-                ref={video}
-                src="/marca/logo-animado.mp4"
-                poster="/marca/logo-animado.jpg"
-                muted
-                playsInline
-                disablePictureInPicture
-                disableRemotePlayback
-                preload="auto"
-                aria-hidden="true"
-                className="h-full w-full object-contain"
-              />
-            )}
-          </div>
-        </div>
+      {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
+      <div
+        ref={capa}
+        className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
+      >
+        {quieto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/marca/logo-animado.jpg"
+            alt="Halley Audiovisual"
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <video
+            ref={video}
+            src="/marca/logo-animado.mp4"
+            poster="/marca/logo-animado.jpg"
+            muted
+            playsInline
+            disablePictureInPicture
+            disableRemotePlayback
+            preload="auto"
+            aria-hidden="true"
+            className="h-full w-full object-contain"
+          />
+        )}
       </div>
     </div>
   );

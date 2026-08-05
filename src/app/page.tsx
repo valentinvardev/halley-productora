@@ -271,24 +271,28 @@ function Concepto() {
   return (
     <section
       id="concepto"
-      // Sin `overflow-hidden`: recortar acá convierte a la sección en un
-      // contenedor de scroll y el `sticky` del cometa deja de pegarse. Por eso
-      // la pieza se queda adentro de los bordes en vez de sangrar.
-      // El alto de más no es decorativo: es el scroll del que dispone el dibujo.
-      // Mientras la sección pasa, el cometa queda pegado y se va trazando; con
-      // la altura justa del texto se resolvía en un pestañeo. El texto va
-      // centrado para que ese aire no se lea como un hueco.
+      // La sección mide lo que mide su texto. Tuvo alto de más un tiempo —una
+      // pantalla y media— para darle recorrido al dibujo del cometa; ahora ese
+      // recorrido se mide contra la ventana y el alto sobraba: se veía como un
+      // hueco enorme alrededor del texto.
       // El papel va declarado y no heredado del `body`: es contra este fondo
       // que el cometa se mezcla para perder su recuadro negro, y mezclar contra
       // el lienzo de la página depende de detalles del navegador.
-      className="relative border-b border-gray-20 bg-paper min-h-[125vh] lg:min-h-[165vh]"
+      className="relative border-b border-gray-20 bg-paper"
     >
-      {/* El cometa no ocupa lugar en la grilla: va detrás, ocupando el aire que
-          la sección deja libre. Al estar fuera del flujo puede ser grande y
-          sangrar por los bordes sin empujar nada. */}
-      <LogoAnimado className="left-0 z-0 w-full max-w-[980px] opacity-65 sm:w-[86%] lg:w-[72%]" />
+      {/* El cometa no ocupa lugar en la grilla: va detrás y centrado en el alto
+          de la sección, así que puede crecer sin empujar nada.
 
-      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:min-h-[165vh] lg:grid-cols-[1.05fr_1fr] lg:content-center lg:gap-x-16 lg:py-40">
+          En pantalla grande ocupa la franja de la izquierda y nada más: mide el
+          margen que sobra afuera del texto más un ancho fijo, y a ese mismo
+          ancho se corre el texto. Los dos lados salen de la misma cuenta, así
+          que la pieza llega hasta donde empieza la columna y no la pisa. En
+          pantallas donde ese margen no existe no hay franja que ocupar, y el
+          cometa pasa a ser una marca de agua detrás del texto: por eso queda
+          más tenue ahí que en grande. */}
+      <LogoAnimado className="left-0 top-1/2 z-0 w-[86%] max-w-[520px] -translate-y-1/2 opacity-45 sm:w-[70%] lg:w-[calc((100vw_-_1140px)/2_+_250px)] lg:max-w-[620px] lg:opacity-70" />
+
+      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
             Hay quien lo ve una vez en la vida.
