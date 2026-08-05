@@ -298,8 +298,14 @@ function Concepto() {
             entra en el flujo y se queda con una fila propia arriba del título:
             se hace el lugar en vez de robarlo, y de paso la fila la reserva él
             mismo, sin un alto escrito en otro lado que haya que mantener igual
-            al suyo. */}
-        <LogoAnimado className="w-full max-w-[420px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[620px] lg:-translate-y-1/2 lg:opacity-70" />
+            al suyo.
+
+            El tope de 500 en grande es por el alto, no por el ancho: la pieza es
+            cuadrada, así que ancho y alto son lo mismo, y ahí va fuera del flujo
+            —no empuja nada, y de pasarse se metería en las secciones vecinas—.
+            La sección mide unos 630 de mínima, así que 500 le deja aire arriba y
+            abajo. */}
+        <LogoAnimado className="w-full max-w-[420px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[500px] lg:-translate-y-1/2 lg:opacity-70" />
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">

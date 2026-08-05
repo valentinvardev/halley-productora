@@ -11,8 +11,15 @@ import { useEffect, useRef, useState } from "react";
  * frase que habla justamente de eso— y sin caja: el fondo negro del archivo se
  * saca con mezcla, así el trazo queda sobre el papel de la sección.
  *
- * Al no haber caja, el video va con `object-contain`: no hace falta recortarlo
- * para que llene nada, y el recorrido del cometa se ve entero.
+ * El archivo viene con muchísimo aire: en 1280x720 el dibujo ocupa un cuadrado
+ * de unos 235 de lado, o sea el 18% del ancho. Mostrado entero, el logo queda
+ * diminuto por más grande que sea la pieza. Así que se recorta al dibujo y nada
+ * más: el video se agranda y se corre dentro de la caja hasta que la ventana
+ * caiga justo sobre él. El logo pasa a verse tres veces más grande sin que la
+ * pieza ocupe un píxel más.
+ *
+ * Por eso la caja es cuadrada: el dibujo lo es. Antes era apaisada como el
+ * archivo, y eso sólo servía cuando se mostraba el archivo entero.
  *
  * Dos cosas pasan a la vez mientras se scrollea:
  *
@@ -30,23 +37,56 @@ const RECORRIDO_PARALLAX = 56;
 /**
  * El tramo de scroll del dibujo, medido en pantallas y no en secciones.
  *
- * El trazo arranca cuando la pieza asoma por abajo —`ARRANQUE`, una pantalla— y
- * termina cuando su borde de arriba casi toca el borde de arriba de la ventana
- * —`REMATE`—. Entre esos dos puntos hay poco menos de una pantalla de scroll,
- * que es más o menos lo que había antes.
- *
  * Que el tramo se mida contra la ventana es el punto: antes se medía contra la
  * sección, así que la sección tenía que ser altísima —una pantalla y media— sólo
- * para darle recorrido al dibujo, y ese alto de más se veía como un hueco
- * enorme alrededor del texto. Contra la ventana, el recorrido es el mismo con la
- * sección midiendo lo que mide su contenido.
+ * para darle recorrido al dibujo, y ese alto de más se veía como un hueco enorme
+ * alrededor del texto.
  *
- * El remate no es cero para que el logo terminado se pueda mirar un momento
- * antes de que la pieza se vaya: si el trazo se completara justo al salir, no
- * se llegaría a ver nunca entero.
+ * El trazo arranca con la pieza todavía abajo de la pantalla (`ARRANQUE` mide
+ * en pantallas desde el borde de arriba) y termina cuando al borde de abajo de
+ * la pieza le queda `REMATE` de pantalla por arriba. Empezar antes de que la
+ * pieza asome no cuesta nada: ese arranque del video es negro. Y el remate no es
+ * cero para que el logo terminado se quede a la vista en vez de completarse
+ * justo cuando se va.
+ *
+ * El total es `(ARRANQUE - REMATE)` pantallas más el alto de la pieza, así que
+ * una pieza más alta también estira el recorrido.
  */
-const ARRANQUE = 1;
-const REMATE = 0.05;
+const ARRANQUE = 1.25;
+const REMATE = 0.3;
+
+/**
+ * Cómo se reparte el scroll sobre el tiempo del video.
+ *
+ * El archivo reparte pésimo su propio tiempo: el 15% del principio es negro, y
+ * de la mitad en adelante casi no cambia nada —sólo aparece "AUDIOVISUAL"—. Todo
+ * el dibujo pasa entre el 15% y el 46%. Repartido pareja contra el scroll, eso
+ * significa que la parte que se mira ocupa un tercio del recorrido y se resuelve
+ * en un pestañeo, mientras dos tercios del scroll no muestran nada.
+ *
+ * Estos puntos lo enderezan: al tramo que dibuja se le da el grueso del scroll y
+ * al resto lo que sobra. El dibujo se ve más del doble de lento sin agrandar
+ * nada, que es la única forma de ganar lentitud sin pedirle más alto a la
+ * sección.
+ *
+ * Cada par es (fracción del scroll, fracción del video); entre punto y punto se
+ * interpola derecho.
+ */
+const REPARTO = [
+  [0, 0.1],
+  [0.85, 0.5],
+  [1, 1],
+] as const;
+
+/** El momento del video que le toca a un avance del scroll. */
+function momento(avance: number) {
+  let i = 1;
+  while (i < REPARTO.length - 1 && avance > REPARTO[i]![0]) i++;
+  const [desdeScroll, desdeVideo] = REPARTO[i - 1]!;
+  const [hastaScroll, hastaVideo] = REPARTO[i]!;
+  const t = (avance - desdeScroll) / (hastaScroll - desdeScroll);
+  return desdeVideo + (hastaVideo - desdeVideo) * Math.min(Math.max(t, 0), 1);
+}
 
 /**
  * Cuánto se acerca el video a su objetivo en cada cuadro.
@@ -84,10 +124,12 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       const ventana = window.innerHeight;
 
       // El dibujo se reparte sobre el viaje de la pieza por la ventana, de abajo
-      // hacia arriba. Mientras se dibuja está siempre a la vista, y el tramo
-      // mide lo mismo sin importar cuánto mida la sección.
-      const total = (ARRANQUE - REMATE) * ventana;
-      const crudo = (ARRANQUE * ventana - caja.top) / total;
+      // hacia arriba: el tramo mide lo mismo sin importar cuánto mida la
+      // sección. Se mide el borde de abajo contra el remate, así que una pieza
+      // más alta tarda más en cruzar y el dibujo sale más lento.
+      const desde = ARRANQUE * ventana;
+      const hasta = REMATE * ventana - caja.height;
+      const crudo = (desde - caja.top) / (desde - hasta);
 
       avance = Math.min(Math.max(crudo, 0), 1);
     };
@@ -109,7 +151,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       if (Number.isFinite(dur) && dur > 0) {
         // Se deja un pelo antes del final: el último cuadro de un mp4 a veces no
         // se puede buscar y quedaría en negro justo al terminar.
-        const t = actual * (dur - 0.05);
+        const t = Math.min(momento(actual) * dur, dur - 0.05);
         if (Math.abs(v.currentTime - t) > 0.005) v.currentTime = t;
       }
 
@@ -145,8 +187,8 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     // abarcaba la sección entera: era la que le medía el scroll al dibujo, y ya
     // no hace falta porque el recorrido se mide contra la ventana.
     //
-    // Apaisada y no cuadrada: el video es 16:9 y en un cuadrado quedaba con
-    // bandas vacías arriba y abajo.
+    // Cuadrada, como el dibujo. La caja es la ventana del recorte: adentro el
+    // video va agrandado y corrido hasta que el dibujo quede justo acá.
     //
     // Cómo se ubica lo decide quien la usa, porque cambia con el ancho: en el
     // flujo cuando tiene que ocupar una fila propia, fuera del flujo cuando va
@@ -155,19 +197,27 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     <div
       ref={marco}
       aria-hidden="true"
-      className={`cometa pointer-events-none relative aspect-[16/10] overflow-hidden ${className}`}
+      className={`cometa pointer-events-none relative aspect-square overflow-hidden ${className}`}
     >
-      {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
-      <div
-        ref={capa}
-        className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
-      >
+      {/* La capa mide lo mismo que la caja. Antes se le daba alto de más para
+          que el parallax no descubriera un borde al correrse; ahora el video
+          asoma por los cuatro lados mucho más que ese corrimiento y alcanza. */}
+      <div ref={capa} className="absolute inset-0 will-change-transform">
+        {/* El recorte, en porcentajes de la caja.
+            El dibujo vive en un cuadrado de 420 dentro de los 1280x720 del
+            archivo, con la esquina en (428, 147). Para que ese cuadrado llene la
+            caja, el video tiene que medir 1280/420 y 720/420 de ella —304,76% y
+            171,43%— y correrse 428/420 y 147/420 —101,9% y 35%—. Como la caja es
+            cuadrada, los porcentajes de arriba y de la izquierda se resuelven
+            contra el mismo lado y la cuenta cierra sola.
+            `max-w-none` porque Tailwind le pone `max-width:100%` a `img` y
+            `video`, y sin sacarlo el recorte no se agranda nada. */}
         {quieto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src="/marca/logo-animado.jpg"
             alt="Halley Audiovisual"
-            className="h-full w-full object-contain"
+            className="absolute top-[-35%] left-[-101.9%] h-[171.43%] w-[304.76%] max-w-none object-cover"
           />
         ) : (
           <video
@@ -180,7 +230,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             disableRemotePlayback
             preload="auto"
             aria-hidden="true"
-            className="h-full w-full object-contain"
+            className="absolute top-[-35%] left-[-101.9%] h-[171.43%] w-[304.76%] max-w-none object-cover"
           />
         )}
       </div>
