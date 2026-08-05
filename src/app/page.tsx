@@ -283,7 +283,7 @@ function Concepto() {
       {/* El cometa no ocupa lugar en la grilla: va detrás, ocupando el aire que
           la sección deja libre. Al estar fuera del flujo puede ser grande y
           sangrar por los bordes sin empujar nada. */}
-      <LogoAnimado className="left-0 z-0 w-[92%] max-w-[780px] opacity-65 sm:w-[68%] lg:w-[54%]" />
+      <LogoAnimado className="left-0 z-0 w-full max-w-[980px] opacity-65 sm:w-[86%] lg:w-[72%]" />
 
       <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:min-h-[165vh] lg:grid-cols-[1.05fr_1fr] lg:content-center lg:gap-x-16 lg:py-40">
         <Aparecer>

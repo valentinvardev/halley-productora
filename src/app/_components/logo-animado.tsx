@@ -28,15 +28,14 @@ import { useEffect, useRef, useState } from "react";
 const RECORRIDO_PARALLAX = 56;
 
 /**
- * En qué parte del recorrido empieza y termina el dibujo.
+ * Dónde termina el dibujo dentro del tramo en que la pieza está pegada.
  *
- * No se usa la pista entera: arrancar apenas asoma la sección y terminar justo
- * al irse deja el logo formado sólo un instante. Con estos márgenes el dibujo
- * ocupa el tramo del medio —cuando la pieza está bien a la vista— y llega al
- * final con sección de sobra para que se lo pueda mirar terminado.
+ * Se usa casi todo: el trazo arranca apenas se pega y llega al final poco antes
+ * de despegarse. Ese margen del final es para poder mirar el logo terminado un
+ * momento antes de que la pieza siga de largo; sin él, se completa justo cuando
+ * se va y no se llega a ver.
  */
-const DESDE = 0.12;
-const HASTA = 0.78;
+const HASTA = 0.9;
 
 /**
  * Cuánto se acerca el video a su objetivo en cada cuadro.
@@ -49,6 +48,7 @@ const SUAVIDAD = 0.12;
 
 export function LogoAnimado({ className = "" }: { className?: string }) {
   const marco = useRef<HTMLDivElement>(null);
+  const pegada = useRef<HTMLDivElement>(null);
   const capa = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [quieto, setQuieto] = useState(false);
@@ -71,18 +71,17 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
 
     const medir = () => {
       const caja = m.getBoundingClientRect();
-      const alto = window.innerHeight;
+      const altoPegada = pegada.current?.offsetHeight ?? 0;
 
-      // La pista es todo el alto de la sección, no el de la pieza: como la pieza
-      // queda pegada mientras la sección pasa, el dibujo dispone de todo ese
-      // scroll en vez de los pocos cientos de píxeles que tarda un elemento
-      // suelto en cruzar la pantalla. Ahí estaba lo apurado.
-      const recorrido = alto * 0.5 - caja.top;
-      const crudo = Math.min(Math.max(recorrido / caja.height, 0), 1);
+      // El dibujo se reparte exactamente sobre el tramo en que la pieza está
+      // pegada: empieza cuando se pega —el borde de arriba de la pista llega al
+      // borde de la ventana— y termina cuando se despega, al final de la pista.
+      // Así la pieza no se va nunca antes de tiempo: mientras se dibuja, está.
+      const total = caja.height - altoPegada;
+      const crudo = total > 0 ? -caja.top / total : 0;
 
-      // Se reencuadra al tramo útil, con márgenes antes y después.
-      const util = (crudo - DESDE) / (HASTA - DESDE);
-      avance = Math.min(Math.max(util, 0), 1);
+      const util = Math.min(Math.max(crudo, 0), 1) / HASTA;
+      avance = Math.min(util, 1);
     };
 
     const pintar = () => {
@@ -150,8 +149,12 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
           la sacaba fuera de la sección en las dos puntas del recorrido: como el
           recorte tuvo que salir para que `sticky` funcionara, terminaba
           metiéndose encima del hero y de los servicios. */}
-      <div className="sticky top-0 flex h-svh items-center">
-        <div className="cometa relative aspect-square w-full overflow-hidden">
+      <div ref={pegada} className="sticky top-[16vh]">
+        {/* Apaisada, no cuadrada: el video es 16:9 y en un cuadrado quedaba con
+            bandas vacías arriba y abajo. Al ras, la pieza se ve más grande y
+            además ocupa menos alto — y cuanto menos alto ocupa, más tramo de
+            scroll queda para que el trazo se desarrolle. */}
+        <div className="cometa relative aspect-[16/10] w-full overflow-hidden">
           {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
           <div
             ref={capa}
