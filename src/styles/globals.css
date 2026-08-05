@@ -1042,41 +1042,53 @@
    Invertir con CSS en vez de generar un segundo archivo: es el mismo video,
    pesa lo mismo y no hay dos cosas que mantener sincronizadas.
 
-   El contenedor lleva el color del papel y se aísla. Las dos cosas son
-   necesarias y por motivos distintos: aislar evita que la mezcla se aplique
-   contra toda la pila de la página, y el fondo le da a la mezcla contra qué
-   mezclar —sobre transparente, `multiply` no hace nada y el recuadro blanco
-   volvería a aparecer—.
+   La mezcla va en la pieza entera y no en el video, y ese es el punto. Mezclar
+   sólo alcanza lo que está pintado dentro del mismo grupo de apilado, y la capa
+   del parallax abre uno propio por llevar `transform`. Puesta en el video, la
+   mezcla quedaba encerrada ahí adentro, sin nada contra qué mezclar, y el
+   recuadro negro del archivo se veía tal cual. En claro pasaba desapercibido
+   —invertido da un recuadro blanco sobre papel casi blanco— y en oscuro no.
+
+   Desde la pieza entera la mezcla sí llega al papel de la sección. Por eso
+   tampoco hace falta pintarle un fondo propio: mezcla contra el que haya, y no
+   queda un color duplicado que mantener igual al de la sección.
 --------------------------------------------------------------------------- */
 .cometa {
-  isolation: isolate;
-  background: var(--color-paper);
+  mix-blend-mode: multiply;
 }
 
 .cometa video,
 .cometa img {
   filter: invert(1);
-  mix-blend-mode: multiply;
 }
 
 @media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .cometa {
+    mix-blend-mode: screen;
+  }
+
   :root:not([data-tema="claro"]) .cometa video,
   :root:not([data-tema="claro"]) .cometa img {
     filter: none;
-    mix-blend-mode: screen;
   }
+}
+
+:root[data-tema="oscuro"] .cometa {
+  mix-blend-mode: screen;
 }
 
 :root[data-tema="oscuro"] .cometa video,
 :root[data-tema="oscuro"] .cometa img {
   filter: none;
-  mix-blend-mode: screen;
+}
+
+:root[data-tema="claro"] .cometa {
+  mix-blend-mode: multiply;
 }
 
 :root[data-tema="claro"] .cometa video,
 :root[data-tema="claro"] .cometa img {
   filter: invert(1);
-  mix-blend-mode: multiply;
 }
 
 /* ---------------------------------------------------------------------------

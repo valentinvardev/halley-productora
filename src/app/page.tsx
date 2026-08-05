@@ -278,7 +278,10 @@ function Concepto() {
       // Mientras la sección pasa, el cometa queda pegado y se va trazando; con
       // la altura justa del texto se resolvía en un pestañeo. El texto va
       // centrado para que ese aire no se lea como un hueco.
-      className="relative border-b border-gray-20 min-h-[125vh] lg:min-h-[165vh]"
+      // El papel va declarado y no heredado del `body`: es contra este fondo
+      // que el cometa se mezcla para perder su recuadro negro, y mezclar contra
+      // el lienzo de la página depende de detalles del navegador.
+      className="relative border-b border-gray-20 bg-paper min-h-[125vh] lg:min-h-[165vh]"
     >
       {/* El cometa no ocupa lugar en la grilla: va detrás, ocupando el aire que
           la sección deja libre. Al estar fuera del flujo puede ser grande y

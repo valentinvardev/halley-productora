@@ -138,7 +138,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     <div
       ref={marco}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-y-0 ${className}`}
+      className={`cometa pointer-events-none absolute inset-y-0 ${className}`}
     >
       {/* La pieza se queda quieta mientras la sección pasa por detrás. Eso es lo
           que le da tiempo al trazo: sin esto se iría de pantalla a los pocos
@@ -154,7 +154,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             bandas vacías arriba y abajo. Al ras, la pieza se ve más grande y
             además ocupa menos alto — y cuanto menos alto ocupa, más tramo de
             scroll queda para que el trazo se desarrolle. */}
-        <div className="cometa relative aspect-[16/10] w-full overflow-hidden">
+        <div className="relative aspect-[16/10] w-full overflow-hidden">
           {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
           <div
             ref={capa}
