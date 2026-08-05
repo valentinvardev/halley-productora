@@ -271,14 +271,21 @@ function Concepto() {
   return (
     <section
       id="concepto"
-      className="relative overflow-hidden border-b border-gray-20"
+      // Sin `overflow-hidden`: recortar acá convierte a la sección en un
+      // contenedor de scroll y el `sticky` del cometa deja de pegarse. Por eso
+      // la pieza se queda adentro de los bordes en vez de sangrar.
+      // El alto de más no es decorativo: es el scroll del que dispone el dibujo.
+      // Mientras la sección pasa, el cometa queda pegado y se va trazando; con
+      // la altura justa del texto se resolvía en un pestañeo. El texto va
+      // centrado para que ese aire no se lea como un hueco.
+      className="relative border-b border-gray-20 lg:min-h-[165vh]"
     >
       {/* El cometa no ocupa lugar en la grilla: va detrás, ocupando el aire que
           la sección deja libre. Al estar fuera del flujo puede ser grande y
           sangrar por los bordes sin empujar nada. */}
-      <LogoAnimado className="pointer-events-none absolute top-1/2 -left-[14%] z-0 w-[86%] max-w-[760px] -translate-y-1/2 opacity-65 sm:-left-[8%] sm:w-[64%] lg:-left-[6%] lg:w-[52%]" />
+      <LogoAnimado className="left-0 z-0 w-[92%] max-w-[780px] opacity-65 sm:w-[68%] lg:w-[54%]" />
 
-      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16">
+      <div className="relative z-10 mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:min-h-[165vh] lg:grid-cols-[1.05fr_1fr] lg:content-center lg:gap-x-16 lg:py-40">
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
             Hay quien lo ve una vez en la vida.

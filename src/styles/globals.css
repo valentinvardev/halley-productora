@@ -1092,10 +1092,10 @@
    pastoso en el teléfono.
 --------------------------------------------------------------------------- */
 .titular-remate {
-  -webkit-text-stroke: 0.019em currentColor;
+  -webkit-text-stroke: 0.034em currentColor;
   /* El trazo se dibuja centrado sobre el borde de la letra y come un poco hacia
      adentro. Una pizca de espaciado evita que las letras se toquen entre sí. */
-  letter-spacing: 0.004em;
+  letter-spacing: 0.008em;
 }
 
 /* ---------------------------------------------------------------------------

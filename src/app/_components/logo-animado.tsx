@@ -28,14 +28,15 @@ import { useEffect, useRef, useState } from "react";
 const RECORRIDO_PARALLAX = 56;
 
 /**
- * Cuánto del recorrido se usa para dibujar el logo.
+ * En qué parte del recorrido empieza y termina el dibujo.
  *
- * Con 1 la animación entera entra en el tramo que la sección tarda en cruzar la
- * pantalla, y en un scroll rápido pasa entera en un pestañeo. Con un valor más
- * chico se reparte el mismo dibujo en más scroll: avanza más despacio y se
- * alcanza a ver. El resto del tramo queda con el logo ya formado.
+ * No se usa la pista entera: arrancar apenas asoma la sección y terminar justo
+ * al irse deja el logo formado sólo un instante. Con estos márgenes el dibujo
+ * ocupa el tramo del medio —cuando la pieza está bien a la vista— y llega al
+ * final con sección de sobra para que se lo pueda mirar terminado.
  */
-const TRAMO_UTIL = 0.55;
+const DESDE = 0.12;
+const HASTA = 0.78;
 
 /**
  * Cuánto se acerca el video a su objetivo en cada cuadro.
@@ -71,11 +72,17 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     const medir = () => {
       const caja = m.getBoundingClientRect();
       const alto = window.innerHeight;
-      // De 0 —la pieza asomando por abajo— a 1 —ya saliendo por arriba—.
-      const bruto = (alto - caja.top) / (alto + caja.height);
-      const crudo = Math.min(Math.max(bruto, 0), 1);
-      // El dibujo se reparte sólo en un tramo: más scroll para lo mismo.
-      avance = Math.min(crudo / TRAMO_UTIL, 1);
+
+      // La pista es todo el alto de la sección, no el de la pieza: como la pieza
+      // queda pegada mientras la sección pasa, el dibujo dispone de todo ese
+      // scroll en vez de los pocos cientos de píxeles que tarda un elemento
+      // suelto en cruzar la pantalla. Ahí estaba lo apurado.
+      const recorrido = alto * 0.5 - caja.top;
+      const crudo = Math.min(Math.max(recorrido / caja.height, 0), 1);
+
+      // Se reencuadra al tramo útil, con márgenes antes y después.
+      const util = (crudo - DESDE) / (HASTA - DESDE);
+      avance = Math.min(Math.max(util, 0), 1);
     };
 
     const pintar = () => {
@@ -127,44 +134,46 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
   }, []);
 
   return (
+    // La pista abarca el alto de la sección. No se ve: sólo marca cuánto scroll
+    // tiene el dibujo para desarrollarse.
     <div
       ref={marco}
-      aria-label="Halley Audiovisual"
-      // La posición la decide quien lo usa —hoy va absoluto, de fondo—, así que
-      // el marco no la fija: si acá dijera `relative` chocaría con el `absolute`
-      // que le pasan y cuál gana dependería del orden del CSS, no del código.
-      //
-      // Sin caja ni fondo: el trazo queda sobre el papel de la sección. El
-      // recorte es lo que permite el parallax —la capa de adentro se mueve y lo
-      // que se sale del marco no se ve—.
-      className={`cometa aspect-square overflow-hidden ${className}`}
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-y-0 ${className}`}
     >
-      {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
-      <div
-        ref={capa}
-        className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
-      >
-        {quieto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/marca/logo-animado.jpg"
-            alt="Halley Audiovisual"
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <video
-            ref={video}
-            src="/marca/logo-animado.mp4"
-            poster="/marca/logo-animado.jpg"
-            muted
-            playsInline
-            disablePictureInPicture
-            disableRemotePlayback
-            preload="auto"
-            aria-hidden="true"
-            className="h-full w-full object-contain"
-          />
-        )}
+      {/* La pieza se queda quieta mientras la sección pasa por detrás. Eso es lo
+          que le da tiempo al trazo: sin esto se iría de pantalla a los pocos
+          cientos de píxeles. */}
+      <div className="sticky top-1/2 -translate-y-1/2">
+        <div className="cometa relative aspect-square overflow-hidden">
+          {/* Más alta que el marco para que al desplazarse no descubra un borde. */}
+          <div
+            ref={capa}
+            className="absolute inset-x-0 -inset-y-[8%] will-change-transform"
+          >
+            {quieto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/marca/logo-animado.jpg"
+                alt="Halley Audiovisual"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <video
+                ref={video}
+                src="/marca/logo-animado.mp4"
+                poster="/marca/logo-animado.jpg"
+                muted
+                playsInline
+                disablePictureInPicture
+                disableRemotePlayback
+                preload="auto"
+                aria-hidden="true"
+                className="h-full w-full object-contain"
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
