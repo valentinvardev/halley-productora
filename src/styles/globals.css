@@ -569,27 +569,15 @@
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Scroll asistido entre categorías.
-
-   Cada tramo es una parada. `always` es lo que hace que un solo gesto lleve a la
-   siguiente y no a la de más allá: el scroll no puede pasar de largo una parada
-   por rápido que venga el envión.
-
-   Va en `proximity` y no en `mandatory` porque las paradas están sólo acá. Con
-   `mandatory` el resto de la página —que no tiene ninguna— quedaría tironeando
-   hacia estas cuatro.
---------------------------------------------------------------------------- */
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-snap-type: y proximity;
-  }
-
-  .tramo-servicio {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-}
+/* Sin scroll asistido entre categorías.
+   Se probó con paradas por tramo y `scroll-snap-stop: always`. Un gesto llevaba
+   a la categoría siguiente, que era la idea, pero el precio fue el scroll
+   entero: el gesto deja de responder a la mano y pasa a decidirlo el navegador,
+   y en el teléfono se sentía trabado. Encima el snap reacomoda el scroll por su
+   cuenta, y las capas de los paneles se animan atadas justamente al scroll: cada
+   reacomodo les daba un tirón.
+   El deslizamiento entre paneles ya lo dan el `sticky` y las animaciones del
+   tramo, y ése no le pelea a nadie. */
 
 @keyframes deriva {
   from {

@@ -44,16 +44,26 @@ const RECORRIDO_PARALLAX = 56;
  *
  * El trazo arranca con la pieza todavía abajo de la pantalla (`ARRANQUE` mide
  * en pantallas desde el borde de arriba) y termina cuando al borde de abajo de
- * la pieza le queda `REMATE` de pantalla por arriba. Empezar antes de que la
- * pieza asome no cuesta nada: ese arranque del video es negro. Y el remate no es
- * cero para que el logo terminado se quede a la vista en vez de completarse
- * justo cuando se va.
+ * la pieza le queda `REMATE` de pantalla por arriba. El remate no es cero para
+ * que el logo terminado se quede a la vista en vez de completarse justo cuando
+ * se va.
+ *
+ * Que arranque casi media pantalla antes de asomar es a propósito, y es de donde
+ * sale la lentitud. El techo lo pone la geometría: la pieza sólo se dibuja
+ * mientras se la ve, y eso dura una pantalla más su propio alto. Contra ese techo
+ * no hay reparto que alcance. Arrancando antes, el cometa entra en pantalla ya
+ * volando —con un 18% del trazo puesto en escritorio, 41% en el teléfono, donde
+ * la pieza es más chica— y el resto se reparte sobre un recorrido más largo.
+ *
+ * El límite de cuánto antes lo pone el propio cometa: si arranca demasiado antes,
+ * para cuando la pieza asoma el cometa ya pasó y sólo se ve dibujarse el barrilete.
+ * Volando es cuando vale la pena mirarlo.
  *
  * El total es `(ARRANQUE - REMATE)` pantallas más el alto de la pieza, así que
  * una pieza más alta también estira el recorrido.
  */
-const ARRANQUE = 1.2;
-const REMATE = 0.35;
+const ARRANQUE = 1.4;
+const REMATE = 0.376;
 
 /**
  * Cuánto se corre la pieza entera, hacia abajo, a lo largo del recorrido.
@@ -77,17 +87,16 @@ const DERIVA = 240;
  * significa que la parte que se mira ocupa un tercio del recorrido y se resuelve
  * en un pestañeo, mientras dos tercios del scroll no muestran nada.
  *
- * Estos puntos lo enderezan: al tramo que dibuja se le da el grueso del scroll y
- * al resto lo que sobra. El dibujo se ve más del doble de lento sin agrandar
- * nada, que es la única forma de ganar lentitud sin pedirle más alto a la
- * sección.
+ * Estos puntos lo enderezan: al tramo que dibuja se le da casi todo el scroll y
+ * al resto lo que sobra. Junto con arrancar antes y con la deriva de la pieza,
+ * es lo que da lentitud sin pedirle un píxel más de alto a la sección.
  *
  * Cada par es (fracción del scroll, fracción del video); entre punto y punto se
  * interpola derecho.
  */
 const REPARTO = [
   [0, 0.13],
-  [0.88, 0.47],
+  [0.94, 0.47],
   [1, 1],
 ] as const;
 
@@ -204,11 +213,34 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       alScrollear();
     };
 
+    // El teléfono no bufferea un video que nunca se reprodujo, y sin datos
+    // `currentTime` no se mueve: el video se queda clavado en el primer cuadro,
+    // que es negro. Invertido sobre papel casi blanco eso es invisible, así que
+    // el logo directamente no aparecía. Un play seguido de pause lo obliga a
+    // decodificar; queda mudo y en línea, que es lo que la política de
+    // reproducción automática pide. Si la rechaza igual, el póster —el logo
+    // terminado— es lo que queda a la vista, que es un final aceptable.
+    const despertar = () => {
+      const promesa = v.play();
+      if (promesa) void promesa.then(() => v.pause()).catch(() => undefined);
+    };
+
     ubicar();
     medir();
     actual = avance;
-    if (v.readyState >= 1) pintar();
-    else v.addEventListener("loadedmetadata", pintar, { once: true });
+    if (v.readyState >= 1) {
+      despertar();
+      pintar();
+    } else {
+      v.addEventListener(
+        "loadedmetadata",
+        () => {
+          despertar();
+          pintar();
+        },
+        { once: true },
+      );
+    }
 
     window.addEventListener("scroll", alScrollear, { passive: true });
     window.addEventListener("resize", alRedimensionar);
