@@ -11,12 +11,12 @@ import { useEffect, useRef, useState } from "react";
  * frase que habla justamente de eso— y sin caja: el fondo negro del archivo se
  * saca con mezcla, así el trazo queda sobre el papel de la sección.
  *
- * El archivo viene con muchísimo aire: en 1280x720 el dibujo ocupa un cuadrado
- * de unos 235 de lado, o sea el 18% del ancho. Mostrado entero, el logo queda
- * diminuto por más grande que sea la pieza. Así que se recorta al dibujo y nada
- * más: el video se agranda y se corre dentro de la caja hasta que la ventana
- * caiga justo sobre él. El logo pasa a verse tres veces más grande sin que la
- * pieza ocupe un píxel más.
+ * El archivo viene con muchísimo aire: en 1280x720 el dibujo entra en 210x224,
+ * o sea el 16% del ancho. Mostrado entero, el logo queda diminuto por más grande
+ * que sea la pieza. Así que se recorta al dibujo y nada más: el video se agranda
+ * y se corre dentro de la caja hasta que la ventana caiga justo sobre él. El
+ * dibujo pasa a ocupar el 75% de la pieza en vez del 16%, sin que la pieza ocupe
+ * un píxel más.
  *
  * Por eso la caja es cuadrada: el dibujo lo es. Antes era apaisada como el
  * archivo, y eso sólo servía cuando se mostraba el archivo entero.
@@ -204,12 +204,14 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
           asoma por los cuatro lados mucho más que ese corrimiento y alcanza. */}
       <div ref={capa} className="absolute inset-0 will-change-transform">
         {/* El recorte, en porcentajes de la caja.
-            El dibujo vive en un cuadrado de 420 dentro de los 1280x720 del
-            archivo, con la esquina en (428, 147). Para que ese cuadrado llene la
-            caja, el video tiene que medir 1280/420 y 720/420 de ella —304,76% y
-            171,43%— y correrse 428/420 y 147/420 —101,9% y 35%—. Como la caja es
-            cuadrada, los porcentajes de arriba y de la izquierda se resuelven
-            contra el mismo lado y la cuenta cierra sola.
+            Medido sobre todo lo que el video pinta alguna vez, el dibujo entra
+            en 210x224 de los 1280x720 del archivo. El recorte es el cuadrado de
+            280 con la esquina en (523, 224): deja unos treinta píxeles de aire
+            alrededor y nada más. Para que ese cuadrado llene la caja, el video
+            tiene que medir 1280/280 y 720/280 de ella —457,14% y 257,14%— y
+            correrse 523/280 y 224/280 —186,79% y 80%—. Como la caja es cuadrada,
+            los porcentajes de arriba y de la izquierda se resuelven contra el
+            mismo lado y la cuenta cierra sola.
             `max-w-none` porque Tailwind le pone `max-width:100%` a `img` y
             `video`, y sin sacarlo el recorte no se agranda nada. */}
         {quieto ? (
@@ -217,7 +219,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
           <img
             src="/marca/logo-animado.jpg"
             alt="Halley Audiovisual"
-            className="absolute top-[-35%] left-[-101.9%] h-[171.43%] w-[304.76%] max-w-none object-cover"
+            className="absolute top-[-80%] left-[-186.79%] h-[257.14%] w-[457.14%] max-w-none object-cover"
           />
         ) : (
           <video
@@ -230,7 +232,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             disableRemotePlayback
             preload="auto"
             aria-hidden="true"
-            className="absolute top-[-35%] left-[-101.9%] h-[171.43%] w-[304.76%] max-w-none object-cover"
+            className="absolute top-[-80%] left-[-186.79%] h-[257.14%] w-[457.14%] max-w-none object-cover"
           />
         )}
       </div>

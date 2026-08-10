@@ -11,6 +11,7 @@ import {
   IconoWhatsApp,
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
+import { FondoParallax } from "./_components/fondo-parallax";
 import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
@@ -78,6 +79,16 @@ export default async function Landing() {
 
       <Hero whatsapp={datos.whatsapp} hero={hero} />
       <Concepto />
+      {/* Después del concepto y antes de los servicios: la sección de al lado
+          habla de lo que no se repite, y esto es exactamente eso pasando. */}
+      <FondoParallax
+        fondo="/fondos/manteo.jpg"
+        figura="/fondos/manteo-figura.webp"
+        alt="Egresados levantando a un compañero con una tela, al atardecer"
+        // Sale del recorte: la figura ocupaba 295x356 en (664, 104) dentro de un
+        // cuadro de 1620x911.
+        caja={{ izquierda: 40.988, arriba: 11.416, ancho: 18.21 }}
+      />
       <Servicios />
       <Como />
       <Contacto datos={datos} />
@@ -284,7 +295,7 @@ function Concepto() {
           apilado aparte y la mezcla que le saca el fondo negro al cometa se
           quedaría encerrada adentro. Sin `z` no hace falta: el cometa y el texto
           no se pisan en ningún ancho. */}
-      <div className="relative mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
+      <div className="relative mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:min-h-[620px] lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
         {/* El cometa cambia de lugar según haya o no dónde ponerlo.
 
             En pantalla grande sobra margen afuera de la columna de texto: ahí va
@@ -300,12 +311,13 @@ function Concepto() {
             mismo, sin un alto escrito en otro lado que haya que mantener igual
             al suyo.
 
-            El tope de 500 en grande es por el alto, no por el ancho: la pieza es
+            El tope de 540 en grande es por el alto, no por el ancho: la pieza es
             cuadrada, así que ancho y alto son lo mismo, y ahí va fuera del flujo
-            —no empuja nada, y de pasarse se metería en las secciones vecinas—.
-            La sección mide unos 630 de mínima, así que 500 le deja aire arriba y
-            abajo. */}
-        <LogoAnimado className="w-full max-w-[420px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[500px] lg:-translate-y-1/2 lg:opacity-70" />
+            —no empuja nada, y de pasarse se metería en las secciones vecinas—. El
+            piso de 620 en el contenedor es la red: la sección mide más o menos
+            eso por su texto, así que en la práctica no cambia nada, pero deja por
+            escrito el alto del que la pieza depende para no desbordar. */}
+        <LogoAnimado className="w-full max-w-[480px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[540px] lg:-translate-y-1/2 lg:opacity-70" />
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
