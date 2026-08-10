@@ -546,6 +546,19 @@
       animation-range: cover 0% cover 100%;
     }
 
+    /* El del manteo, recortado sobre el fondo: sube mientras el campo baja. Es
+       el mismo mecanismo que el fondo, al revés y bastante más, así que las dos
+       capas se despegan de verdad en vez de insinuarlo.
+
+       El 18% es del alto de la figura, no del panel: como la figura ocupa un 39%
+       del lienzo, se corre un 7% del lienzo. Y encima tiene un 11,4% de aire
+       —ahí arrancaba en la foto—, así que le sobra para no salirse por arriba. */
+    .figura-servicio {
+      animation: elevar linear both;
+      animation-timeline: --tramo;
+      animation-range: cover 0% cover 100%;
+    }
+
     /* El contenido del panel que se va se apaga antes de que lo tape el que
        viene: si no, se leen dos titulares encimados. */
     .contenido-servicio {
@@ -556,12 +569,43 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Scroll asistido entre categorías.
+
+   Cada tramo es una parada. `always` es lo que hace que un solo gesto lleve a la
+   siguiente y no a la de más allá: el scroll no puede pasar de largo una parada
+   por rápido que venga el envión.
+
+   Va en `proximity` y no en `mandatory` porque las paradas están sólo acá. Con
+   `mandatory` el resto de la página —que no tiene ninguna— quedaría tironeando
+   hacia estas cuatro.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+
+  .tramo-servicio {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
 @keyframes deriva {
   from {
     transform: translateY(-8%) scale(1.2);
   }
   to {
     transform: translateY(8%) scale(1.2);
+  }
+}
+
+@keyframes elevar {
+  from {
+    transform: translateY(18%);
+  }
+  to {
+    transform: translateY(-18%);
   }
 }
 

@@ -11,7 +11,6 @@ import {
   IconoWhatsApp,
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
-import { FondoParallax } from "./_components/fondo-parallax";
 import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
@@ -79,16 +78,6 @@ export default async function Landing() {
 
       <Hero whatsapp={datos.whatsapp} hero={hero} />
       <Concepto />
-      {/* Después del concepto y antes de los servicios: la sección de al lado
-          habla de lo que no se repite, y esto es exactamente eso pasando. */}
-      <FondoParallax
-        fondo="/fondos/manteo.jpg"
-        figura="/fondos/manteo-figura.webp"
-        alt="Egresados levantando a un compañero con una tela, al atardecer"
-        // Sale del recorte: la figura ocupaba 295x356 en (664, 104) dentro de un
-        // cuadro de 1620x911.
-        caja={{ izquierda: 40.988, arriba: 11.416, ancho: 18.21 }}
-      />
       <Servicios />
       <Como />
       <Contacto datos={datos} />
@@ -311,13 +300,19 @@ function Concepto() {
             mismo, sin un alto escrito en otro lado que haya que mantener igual
             al suyo.
 
-            El tope de 540 en grande es por el alto, no por el ancho: la pieza es
-            cuadrada, así que ancho y alto son lo mismo, y ahí va fuera del flujo
-            —no empuja nada, y de pasarse se metería en las secciones vecinas—. El
-            piso de 620 en el contenedor es la red: la sección mide más o menos
-            eso por su texto, así que en la práctica no cambia nada, pero deja por
-            escrito el alto del que la pieza depende para no desbordar. */}
-        <LogoAnimado className="w-full max-w-[480px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(50vw_-_320px)] lg:max-w-[540px] lg:-translate-y-1/2 lg:opacity-70" />
+            El ancho en grande es siete décimos de la franja, que es el pedido de
+            achicarla un 30%: la franja sigue midiendo lo mismo —es la que le abre
+            lugar al texto— y la pieza ocupa menos de ella. Va con la cuenta ya
+            resuelta, `35vw - 224px` en vez de `(50vw - 320px) * 0,7`, porque
+            Tailwind no parsea el calc anidado y descarta la clase sin avisar.
+
+            El tope de 378 es por el alto, no por el ancho: la pieza es cuadrada,
+            así que ancho y alto son lo mismo, y ahí va fuera del flujo —no empuja
+            nada, y de pasarse se metería en las secciones vecinas—. El piso de
+            620 en el contenedor es la red, y ahora sí hace falta: la pieza se
+            corre 240 a lo largo del recorrido, así que necesita 378 + 240 de alto
+            para no desbordar. */}
+        <LogoAnimado className="w-[70%] max-w-[336px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(35vw_-_224px)] lg:max-w-[378px] lg:-translate-y-1/2 lg:opacity-70" />
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
@@ -387,7 +382,43 @@ async function Servicios() {
           return (
             <div key={s.slug} className="tramo-servicio">
               <article className="panel-servicio aisla relative flex items-end">
-                {portadas.length > 0 ? (
+                {s.slug === "egresados" ? (
+                  /* Egresados va en dos capas: el manteo de fondo y el que está
+                     en el aire, recortado, subiendo mientras el campo se queda
+                     atrás. Las dos viven en un lienzo con la proporción exacta
+                     del archivo y la figura se ubica en porcentajes de ese
+                     lienzo —la misma posición que tenía en el cuadro del que se
+                     recortó—, así el calce sale exacto en cualquier pantalla sin
+                     una sola cuenta que mantener. El lienzo crece hasta tapar el
+                     panel y recorta por los costados: la figura está sobre el
+                     centro, el único lado que se puede perder sin perderla. */
+                  <div
+                    className="absolute inset-0 overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <div className="absolute top-1/2 left-1/2 aspect-[1620/911] w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/fondos/manteo.jpg"
+                        alt=""
+                        decoding="async"
+                        className="fondo-servicio absolute inset-0 h-full w-full object-cover"
+                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/fondos/manteo-figura.webp"
+                        alt=""
+                        decoding="async"
+                        style={{
+                          left: "40.988%",
+                          top: "11.416%",
+                          width: "18.21%",
+                        }}
+                        className="figura-servicio absolute"
+                      />
+                    </div>
+                  </div>
+                ) : portadas.length > 0 ? (
                   <MosaicoPortadas piezas={portadas} />
                 ) : (
                   <Image

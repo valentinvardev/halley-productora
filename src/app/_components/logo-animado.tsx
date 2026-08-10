@@ -52,8 +52,21 @@ const RECORRIDO_PARALLAX = 56;
  * El total es `(ARRANQUE - REMATE)` pantallas más el alto de la pieza, así que
  * una pieza más alta también estira el recorrido.
  */
-const ARRANQUE = 1.25;
-const REMATE = 0.3;
+const ARRANQUE = 1.2;
+const REMATE = 0.35;
+
+/**
+ * Cuánto se corre la pieza entera, hacia abajo, a lo largo del recorrido.
+ *
+ * Es la única forma de ganar lentitud sin agrandar nada. La pieza sólo se dibuja
+ * mientras está a la vista, y eso dura una pantalla más su propio alto: ése es el
+ * techo. Corriéndola hacia abajo a medida que se scrollea, la pieza se resiste a
+ * irse y el techo sube justo lo que se corre.
+ *
+ * Sale sólo cuando la pieza está fuera del flujo. En el flujo se llevaría por
+ * delante al texto de abajo, que está a cuarenta píxeles.
+ */
+const DERIVA = 240;
 
 /**
  * Cómo se reparte el scroll sobre el tiempo del video.
@@ -73,8 +86,8 @@ const REMATE = 0.3;
  * interpola derecho.
  */
 const REPARTO = [
-  [0, 0.1],
-  [0.85, 0.5],
+  [0, 0.13],
+  [0.88, 0.47],
   [1, 1],
 ] as const;
 
@@ -95,7 +108,7 @@ function momento(avance: number) {
  * los tirones. Persiguiendo el objetivo de a poco, el trazo avanza continuo
  * aunque el scroll llegue a los saltos.
  */
-const SUAVIDAD = 0.12;
+const SUAVIDAD = 0.07;
 
 export function LogoAnimado({ className = "" }: { className?: string }) {
   const marco = useRef<HTMLDivElement>(null);
@@ -118,20 +131,34 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     let avance = 0;
     /** Dónde está el video ahora; persigue a `avance` sin alcanzarlo de golpe. */
     let actual = 0;
+    /** Cuánto se le corrió a la pieza; hay que descontarlo al medirla. */
+    let corrida = 0;
+    /** Si está fuera del flujo puede correrse sin llevarse nada por delante. */
+    let suelta = false;
+
+    const ubicar = () => {
+      suelta = getComputedStyle(m).position === "absolute";
+    };
 
     const medir = () => {
       const caja = m.getBoundingClientRect();
       const ventana = window.innerHeight;
+      const recorrido = suelta ? DERIVA : 0;
 
       // El dibujo se reparte sobre el viaje de la pieza por la ventana, de abajo
       // hacia arriba: el tramo mide lo mismo sin importar cuánto mida la
       // sección. Se mide el borde de abajo contra el remate, así que una pieza
-      // más alta tarda más en cruzar y el dibujo sale más lento.
+      // más alta —o que se corra más— tarda más en cruzar y el dibujo sale más
+      // lento.
       const desde = ARRANQUE * ventana;
-      const hasta = REMATE * ventana - caja.height;
-      const crudo = (desde - caja.top) / (desde - hasta);
+      const hasta = REMATE * ventana - caja.height - recorrido;
+
+      // Se descuenta lo que ya se le corrió: si no, el corrimiento entraría en su
+      // propia medición y se perseguiría a sí mismo.
+      const crudo = (desde - (caja.top - corrida)) / (desde - hasta);
 
       avance = Math.min(Math.max(crudo, 0), 1);
+      corrida = (avance - 0.5) * recorrido;
     };
 
     const pintar = () => {
@@ -155,9 +182,13 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
         if (Math.abs(v.currentTime - t) > 0.005) v.currentTime = t;
       }
 
+      // Los dos corrimientos van sin suavizado: son desplazamientos, y
+      // arrastrarlos se sentiría como que la pieza flota despegada del papel.
+      // El de la pieza va en `transform` y el centrado de Tailwind en
+      // `translate`, que son propiedades distintas: se componen sin pisarse.
+      m.style.transform = corrida ? `translate3d(0, ${corrida}px, 0)` : "";
+
       if (capa.current) {
-        // El parallax sigue al scroll sin suavizado: es un desplazamiento, y
-        // arrastrarlo se sentiría como que la pieza flota despegada del papel.
         const corrimiento = (0.5 - avance) * RECORRIDO_PARALLAX;
         capa.current.style.transform = `translate3d(0, ${corrimiento}px, 0)`;
       }
@@ -168,16 +199,22 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       pedido ||= requestAnimationFrame(pintar);
     };
 
+    const alRedimensionar = () => {
+      ubicar();
+      alScrollear();
+    };
+
+    ubicar();
     medir();
     actual = avance;
     if (v.readyState >= 1) pintar();
     else v.addEventListener("loadedmetadata", pintar, { once: true });
 
     window.addEventListener("scroll", alScrollear, { passive: true });
-    window.addEventListener("resize", alScrollear);
+    window.addEventListener("resize", alRedimensionar);
     return () => {
       window.removeEventListener("scroll", alScrollear);
-      window.removeEventListener("resize", alScrollear);
+      window.removeEventListener("resize", alRedimensionar);
       if (pedido) cancelAnimationFrame(pedido);
     };
   }, []);
