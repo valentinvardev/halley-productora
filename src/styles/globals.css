@@ -567,7 +567,13 @@
     .plano-quince {
       animation: acercar linear both;
       animation-timeline: --tramo;
-      animation-range: cover 0% cover 100%;
+      /* Arranca al 20% y no al principio. El acercamiento abre huecos entre los
+         planos, y por esos huecos asoma el relleno del fondo, que es entorno
+         desenfocado. Cuanto menos avanzado esté el zoom mientras el panel se
+         mira, más chicos son los huecos. Con el panel clavado —del 38% al 62%
+         del recorrido, que es cuando se lo ve— el zoom pasa de ir del 38 al 62%
+         a ir del 23 al 52%. */
+      animation-range: cover 20% cover 100%;
     }
 
     /* Y el lienzo entero deriva un poco, que es lo que le saca lo mecánico al
@@ -576,7 +582,9 @@
     .lienzo-planos {
       animation: derivar-planos linear both;
       animation-timeline: --tramo;
-      animation-range: cover 0% cover 100%;
+      /* Arranca junto con los planos, para que las dos cosas se muevan a la vez
+         y no una antes que la otra. */
+      animation-range: cover 20% cover 100%;
     }
 
     /* El contenido del panel que se va se apaga antes de que lo tape el que
