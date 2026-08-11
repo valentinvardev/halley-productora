@@ -42,27 +42,28 @@ const RECORRIDO_PARALLAX = 56;
  * para darle recorrido al dibujo, y ese alto de más se veía como un hueco enorme
  * alrededor del texto.
  *
- * El trazo arranca con la pieza todavía abajo de la pantalla (`ARRANQUE` mide
- * en pantallas desde el borde de arriba) y termina cuando al borde de abajo de
- * la pieza le queda `REMATE` de pantalla por arriba. El remate no es cero para
- * que el logo terminado se quede a la vista en vez de completarse justo cuando
- * se va.
+ * El trazo arranca con la pieza `BAJO_EL_PLIEGUE` pantallas por debajo del borde
+ * de abajo —o sea, todavía sin verse— y termina cuando al borde de abajo de la
+ * pieza le queda `REMATE` de pantalla por arriba. El remate no es cero para que
+ * el logo terminado se quede a la vista en vez de completarse justo cuando se va.
  *
- * Que arranque casi media pantalla antes de asomar es a propósito, y es de donde
- * sale la lentitud. El techo lo pone la geometría: la pieza sólo se dibuja
- * mientras se la ve, y eso dura una pantalla más su propio alto. Contra ese techo
- * no hay reparto que alcance. Arrancando antes, el cometa entra en pantalla ya
- * volando —con un 18% del trazo puesto en escritorio, 41% en el teléfono, donde
- * la pieza es más chica— y el resto se reparte sobre un recorrido más largo.
+ * Arrancar antes de que se vea es de donde sale la lentitud, y no es un rodeo:
+ * el techo lo pone la geometría. La pieza sólo se dibuja mientras se la ve, y eso
+ * dura una pantalla más su propio alto. Contra ese techo no hay reparto que
+ * alcance. Arrancando antes, el cometa entra en pantalla ya volando y el resto se
+ * reparte sobre un recorrido más largo.
  *
  * El límite de cuánto antes lo pone el propio cometa: si arranca demasiado antes,
- * para cuando la pieza asoma el cometa ya pasó y sólo se ve dibujarse el barrilete.
- * Volando es cuando vale la pena mirarlo.
+ * para cuando la pieza asoma el cometa ya pasó y sólo se ve dibujarse el
+ * barrilete. Volando es cuando vale la pena mirarlo. A 0,6 pantallas el cometa
+ * asoma con un 39% del trazo puesto en escritorio y un 53% en el teléfono, donde
+ * la pieza es más chica: ahí ya está al filo.
  *
  * El total es `(ARRANQUE - REMATE)` pantallas más el alto de la pieza, así que
  * una pieza más alta también estira el recorrido.
  */
-const ARRANQUE = 1.4;
+const BAJO_EL_PLIEGUE = 0.6;
+const ARRANQUE = 1 + BAJO_EL_PLIEGUE;
 const REMATE = 0.376;
 
 /**
