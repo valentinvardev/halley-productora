@@ -312,7 +312,7 @@ function Concepto() {
             620 en el contenedor es la red, y ahora sí hace falta: la pieza se
             corre 240 a lo largo del recorrido, así que necesita 378 + 240 de alto
             para no desbordar. */}
-        <LogoAnimado className="w-[70%] max-w-[336px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(35vw_-_224px)] lg:max-w-[378px] lg:-translate-y-1/2 lg:opacity-70" />
+        <LogoAnimado className="w-[63%] max-w-[302px] opacity-80 lg:absolute lg:top-1/2 lg:left-[min(0px,calc(570px_-_50vw))] lg:w-[calc(31.5vw_-_202px)] lg:max-w-[340px] lg:-translate-y-1/2 lg:opacity-70" />
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">

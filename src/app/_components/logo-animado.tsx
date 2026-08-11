@@ -56,15 +56,21 @@ const RECORRIDO_PARALLAX = 56;
  * El límite de cuánto antes lo pone el propio cometa: si arranca demasiado antes,
  * para cuando la pieza asoma el cometa ya pasó y sólo se ve dibujarse el
  * barrilete. Volando es cuando vale la pena mirarlo. A 0,6 pantallas el cometa
- * asoma con un 39% del trazo puesto en escritorio y un 53% en el teléfono, donde
- * la pieza es más chica: ahí ya está al filo.
+ * asoma con la mitad del trazo puesto: ahí ya está al filo, y es el precio de
+ * arrancar tan abajo con la animación al ritmo actual.
+ *
+ * `REMATE` es también la perilla de la velocidad, y por eso está tan arriba: subir
+ * el remate acorta el recorrido sin mover el arranque, o sea que el mismo dibujo
+ * se resuelve en menos scroll. Como el recorrido también depende del alto de la
+ * pieza, cada vez que la pieza cambia de tamaño hay que recalcularlo si se quiere
+ * conservar el ritmo.
  *
  * El total es `(ARRANQUE - REMATE)` pantallas más el alto de la pieza, así que
  * una pieza más alta también estira el recorrido.
  */
 const BAJO_EL_PLIEGUE = 0.6;
 const ARRANQUE = 1 + BAJO_EL_PLIEGUE;
-const REMATE = 0.376;
+const REMATE = 0.583;
 
 /**
  * Cuánto se corre la pieza entera, hacia abajo, a lo largo del recorrido.
