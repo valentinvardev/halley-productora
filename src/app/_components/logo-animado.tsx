@@ -70,7 +70,7 @@ const RECORRIDO_PARALLAX = 56;
  */
 const BAJO_EL_PLIEGUE = 0.6;
 const ARRANQUE = 1 + BAJO_EL_PLIEGUE;
-const REMATE = 0.583;
+const REMATE = 0.507;
 
 /**
  * Cuánto se corre la pieza entera, hacia abajo, a lo largo del recorrido.
