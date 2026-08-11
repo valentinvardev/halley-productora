@@ -559,6 +559,26 @@
       animation-range: cover 0% cover 100%;
     }
 
+    /* Los planos del panel de quince: cada uno se acerca lo suyo. `--acerca` lo
+       trae cada plano en su style, así que una sola regla sirve para los cinco.
+       El punto desde el que crecen —el `transform-origin`— también viene de ahí:
+       es el mismo punto de la foto para todos, escrito en las coordenadas de
+       cada recorte. */
+    .plano-quince {
+      animation: acercar linear both;
+      animation-timeline: --tramo;
+      animation-range: cover 0% cover 100%;
+    }
+
+    /* Y el lienzo entero deriva un poco, que es lo que le saca lo mecánico al
+       acercamiento. Va en el lienzo y no en los planos a propósito: mueve a los
+       cinco juntos, así que no descubre ningún agujero. */
+    .lienzo-planos {
+      animation: derivar-planos linear both;
+      animation-timeline: --tramo;
+      animation-range: cover 0% cover 100%;
+    }
+
     /* El contenido del panel que se va se apaga antes de que lo tape el que
        viene: si no, se leen dos titulares encimados. */
     .contenido-servicio {
@@ -594,6 +614,26 @@
   }
   to {
     transform: translateY(-18%);
+  }
+}
+
+@keyframes acercar {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(var(--acerca, 1));
+  }
+}
+
+/* La deriva del lienzo se suma al centrado, que ya vive en `translate`: son
+   propiedades distintas y se componen sin pisarse. */
+@keyframes derivar-planos {
+  from {
+    transform: translateY(1.5%);
+  }
+  to {
+    transform: translateY(-1.5%);
   }
 }
 
