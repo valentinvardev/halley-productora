@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * El fondo de cada tipo de evento: una grilla de trabajos, no una sola foto.
@@ -24,6 +24,7 @@ export function MosaicoPortadas({
   // En un teléfono entran menos celdas: pedirle nueve fotos a una pantalla
   // angosta las deja del tamaño de una estampilla y no se ve nada.
   const [ancho, setAncho] = useState(false);
+  const grilla = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const consulta = window.matchMedia("(min-width: 768px)");
@@ -32,6 +33,34 @@ export function MosaicoPortadas({
     consulta.addEventListener("change", leer);
     return () => consulta.removeEventListener("change", leer);
   }, []);
+
+  /**
+   * Los videos de las celdas sólo corren mientras su panel está a la vista.
+   *
+   * Antes iban todos con `autoplay`: cuatro categorías por hasta ocho celdas son
+   * treinta y dos decodificadores de video andando a la vez, la mayoría en
+   * paneles que están a tres pantallas de distancia. En un teléfono eso es más
+   * de lo que hay.
+   */
+  useEffect(() => {
+    const g = grilla.current;
+    if (!g) return;
+
+    const videos = () => Array.from(g.querySelectorAll("video"));
+    const mirando = new IntersectionObserver(
+      ([entrada]) => {
+        if (!entrada) return;
+        for (const v of videos()) {
+          if (entrada.isIntersecting) void v.play().catch(() => undefined);
+          else v.pause();
+        }
+      },
+      { rootMargin: "10%" },
+    );
+
+    mirando.observe(g);
+    return () => mirando.disconnect();
+  }, [ancho, piezas]);
 
   if (piezas.length === 0) return null;
 
@@ -46,6 +75,7 @@ export function MosaicoPortadas({
 
   return (
     <div
+      ref={grilla}
       className="absolute inset-0 grid grid-cols-2 gap-px bg-gray-20 md:grid-cols-4"
       aria-hidden="true"
     >
@@ -56,8 +86,8 @@ export function MosaicoPortadas({
               src={p.url}
               muted
               loop
-              autoPlay
               playsInline
+              preload="none"
               disablePictureInPicture
               disableRemotePlayback
               className="h-full w-full object-cover"

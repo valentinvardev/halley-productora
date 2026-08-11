@@ -299,7 +299,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
             playsInline
             disablePictureInPicture
             disableRemotePlayback
-            preload="auto"
+            preload="metadata"
             aria-hidden="true"
             className="absolute top-[-80%] left-[-186.79%] h-[257.14%] w-[457.14%] max-w-none object-cover"
           />
