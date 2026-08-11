@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { api } from "~/trpc/react";
+import { derivar, LADO_MINIATURA, LADO_MOSTRAR } from "./derivar";
 
 /**
  * La cola de subida a S3, compartida por el resumen y la galería.
@@ -103,14 +104,36 @@ export function useCargaContenido(categoria: string, alCompletar: () => void) {
           const { item, file } = tareas[cursor++]!;
           try {
             parche(item.id, { estado: "subiendo", progreso: 0 });
-            const { url, key, tipo } = await firmar.mutateAsync({
+
+            // Se achica antes de firmar: la firma va atada al tipo de archivo, y
+            // el derivado sale WebP aunque haya entrado un JPEG.
+            const paraMostrar = await derivar(file, LADO_MOSTRAR);
+            const { url, key, tipo, mini } = await firmar.mutateAsync({
               categoria,
-              contentType: file.type,
+              contentType: paraMostrar.type,
             });
-            await subirConProgreso(url, file, (p) =>
+            await subirConProgreso(url, paraMostrar, (p) =>
               parche(item.id, { progreso: p }),
             );
-            await guardar.mutateAsync({ categoria, s3Key: key, tipo });
+
+            // La miniatura va después y sin progreso: pesa unas cuarenta veces
+            // menos que la otra, así que mostrarla en la barra sólo haría saltar
+            // el número al final. Si falla, la pieza igual queda: sin miniatura
+            // las grillas se caen al archivo grande, que es lo que hacían antes.
+            let s3KeyMini: string | null = null;
+            if (mini) {
+              try {
+                const chica = await derivar(file, LADO_MINIATURA);
+                if (chica !== file) {
+                  await subirConProgreso(mini.url, chica, () => undefined);
+                  s3KeyMini = mini.key;
+                }
+              } catch {
+                s3KeyMini = null;
+              }
+            }
+
+            await guardar.mutateAsync({ categoria, s3Key: key, s3KeyMini, tipo });
             parche(item.id, { estado: "listo", progreso: 100 });
             entroAlguna = true;
           } catch {

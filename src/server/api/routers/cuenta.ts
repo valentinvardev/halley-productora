@@ -289,6 +289,9 @@ export const cuentaRouter = createTRPCRouter({
                   nombre: f.nombre,
                   tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
                   url: `/api/galeria/${f.id}`,
+                  urlMini: f.s3KeyMini
+                    ? `/api/galeria/${f.id}?m=1`
+                    : `/api/galeria/${f.id}`,
                   descarga: `/api/galeria/${f.id}?descargar=1`,
                 }))
               : [],

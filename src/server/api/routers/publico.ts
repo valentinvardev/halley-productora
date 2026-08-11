@@ -100,6 +100,9 @@ export const publicoRouter = createTRPCRouter({
                   nombre: f.nombre,
                   tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
                   url: `/api/galeria/${f.id}?t=${input.token}`,
+                  urlMini: f.s3KeyMini
+                    ? `/api/galeria/${f.id}?m=1&t=${input.token}`
+                    : `/api/galeria/${f.id}?t=${input.token}`,
                   descarga: `/api/galeria/${f.id}?descargar=1&t=${input.token}`,
                 }))
               : [],

@@ -14,7 +14,7 @@ export const runtime = "nodejs";
  * de atrás se renueva sola en cada visita.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -24,7 +24,13 @@ export async function GET(
     return new NextResponse("No encontrado", { status: 404 });
   }
 
-  const url = await urlDeLectura(contenido.s3Key, 3600);
+  // `?m=1` pide la versión chica. Va como parámetro y no como ruta aparte
+  // porque así las dos URLs son la misma entrada de caché para el navegador
+  // salvo por ese parámetro, y el que pide decide cuál necesita.
+  const mini = new URL(req.url).searchParams.get("m") === "1";
+  const clave = (mini && contenido.s3KeyMini) || contenido.s3Key;
+
+  const url = await urlDeLectura(clave, 3600);
   if (!url) {
     return new NextResponse("Almacenamiento no disponible", { status: 503 });
   }

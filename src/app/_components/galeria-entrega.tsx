@@ -10,6 +10,8 @@ export type FotoEntrega = {
   nombre: string;
   tipo: "imagen" | "video";
   url: string;
+  /** La versión chica, para la grilla. Ver y descargar siguen usando `url`. */
+  urlMini: string;
   descarga: string;
 };
 
@@ -78,7 +80,7 @@ export function GaleriaEntrega({
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={f.url}
+                src={f.urlMini}
                 alt={f.nombre}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"

@@ -255,6 +255,9 @@ model FotoGaleria {
     galeria   Galeria @relation(fields: [galeriaId], references: [id], onDelete: Cascade)
 
     s3Key String @unique
+    /// Versión chica para la grilla del visor. El original queda intacto: es lo
+    /// que la familia se descarga.
+    s3KeyMini String?
     /// El nombre original, que es con el que se descarga.
     nombre String
     tipo   String @default("imagen")
@@ -483,6 +486,9 @@ model Contenido {
     id        String   @id @default(cuid())
     categoria String
     s3Key     String   @unique
+    /// Versión chica para las grillas. Opcional: las piezas subidas antes de que
+    /// existiera no la tienen, y ahí se cae a `s3Key`.
+    s3KeyMini String?
     tipo      String   @default("imagen")
     orden     Int      @default(0)
     creadoEn  DateTime @default(now())

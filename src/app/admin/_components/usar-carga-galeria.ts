@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { api } from "~/trpc/react";
+import { derivar, LADO_MINIATURA } from "./derivar";
 import type { ItemCarga } from "./usar-carga";
 
 /**
@@ -81,16 +82,35 @@ export function useCargaGaleria(galeriaId: string, alCompletar: () => void) {
           const { item, file } = tareas[cursor++]!;
           try {
             parche(item.id, { estado: "subiendo", progreso: 0 });
-            const { url, key, tipo } = await firmar.mutateAsync({
+            const { url, key, tipo, mini } = await firmar.mutateAsync({
               galeriaId,
               contentType: file.type,
             });
+            // El original sube tal cual: es lo que la familia se descarga, y
+            // achicarlo sería entregarle menos de lo que pagó.
             await subirConProgreso(url, file, (p) =>
               parche(item.id, { progreso: p }),
             );
+
+            // La miniatura va al lado, sólo para la grilla del visor. Si falla,
+            // la foto igual queda: sin miniatura la grilla se cae al original.
+            let s3KeyMini: string | null = null;
+            if (mini) {
+              try {
+                const chica = await derivar(file, LADO_MINIATURA);
+                if (chica !== file) {
+                  await subirConProgreso(mini.url, chica, () => undefined);
+                  s3KeyMini = mini.key;
+                }
+              } catch {
+                s3KeyMini = null;
+              }
+            }
+
             await guardar.mutateAsync({
               galeriaId,
               s3Key: key,
+              s3KeyMini,
               nombre: file.name,
               tipo,
             });

@@ -8,6 +8,12 @@ import { Reproductor } from "./reproductor";
 export type PiezaLightbox = {
   id: string;
   url: string;
+  /**
+   * La versión chica, para las grillas. El visor a pantalla completa usa `url`:
+   * ahí sí se mira la foto de verdad. Opcional porque las piezas viejas, subidas
+   * antes de que existieran las miniaturas, no la tienen.
+   */
+  urlMini?: string;
   tipo: "imagen" | "video";
 };
 

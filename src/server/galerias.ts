@@ -156,6 +156,8 @@ export async function fotosDeGaleria(galeriaId: string) {
     tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
     /** Ver en el navegador (firmada, con permiso). */
     url: `/api/galeria/${f.id}`,
+    /** Para la grilla: la versión chica si la tiene, el original si no. */
+    urlMini: f.s3KeyMini ? `/api/galeria/${f.id}?m=1` : `/api/galeria/${f.id}`,
     /** Bajar con el nombre original. */
     descarga: `/api/galeria/${f.id}?descargar=1`,
   }));
@@ -188,6 +190,9 @@ export async function fotosDeGaleriaNativa(galeria: Galeria) {
     nombre: f.nombre,
     tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
     url: `/api/galeria/${f.id}?g=${g}`,
+    urlMini: f.s3KeyMini
+      ? `/api/galeria/${f.id}?m=1&g=${g}`
+      : `/api/galeria/${f.id}?g=${g}`,
     descarga: `/api/galeria/${f.id}?descargar=1&g=${g}`,
   }));
 }

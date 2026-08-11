@@ -35,6 +35,10 @@ export async function contenidoDe(categoria: string) {
     // En la base es texto libre; acá vuelve al par que consume la UI.
     tipo: c.tipo === "video" ? ("video" as const) : ("imagen" as const),
     url: `/api/contenido/${c.id}`,
+    // Para las grillas, donde la pieza se dibuja del tamaño de una estampilla.
+    // Las que se subieron antes de que existieran las miniaturas no tienen, y
+    // ahí se cae al archivo grande: se ve igual, sólo que pesa lo que pesaba.
+    urlMini: c.s3KeyMini ? `/api/contenido/${c.id}?m=1` : `/api/contenido/${c.id}`,
   }));
 }
 

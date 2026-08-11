@@ -48,7 +48,13 @@ export async function GET(
   }
 
   const descargar = req.nextUrl.searchParams.has("descargar");
-  const url = await urlPrivada(foto.s3Key, {
+
+  // `?m=1` es la versión chica, la que pide la grilla. Nunca para descargar: lo
+  // que la familia se lleva es el original, siempre.
+  const mini = !descargar && req.nextUrl.searchParams.get("m") === "1";
+  const clave = (mini && foto.s3KeyMini) || foto.s3Key;
+
+  const url = await urlPrivada(clave, {
     descargar: descargar ? foto.nombre : undefined,
   });
   if (!url) return new NextResponse("Almacenamiento no disponible", { status: 503 });

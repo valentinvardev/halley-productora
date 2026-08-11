@@ -7,6 +7,17 @@ import { HERO, esCategoria, esSubible } from "~/app/_datos/categorias";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
 
+/**
+ * Todo lo que hay en S3 de una pieza.
+ *
+ * Desde que las imágenes se suben con miniatura, cada pieza puede ser dos
+ * objetos. Borrar sólo el grande dejaba la miniatura pagando espacio para
+ * siempre, sin nada que la nombre.
+ */
+function clavesDe(fila: { s3Key: string; s3KeyMini: string | null }) {
+  return fila.s3KeyMini ? [fila.s3Key, fila.s3KeyMini] : [fila.s3Key];
+}
+
 /** Sólo lo que sabemos servir y mostrar en la vitrina. */
 const TIPOS: Record<string, "imagen" | "video"> = {
   "image/jpeg": "imagen",
@@ -78,9 +89,22 @@ export const contenidoRouter = createTRPCRouter({
 
       // La key lleva la categoría y un id aleatorio: nunca dos archivos se
       // pisan, ni siquiera con el mismo nombre.
-      const key = `contenido/${input.categoria}/${randomUUID()}.${EXT[input.contentType]}`;
+      const base = `contenido/${input.categoria}/${randomUUID()}`;
+      const key = `${base}.${EXT[input.contentType]}`;
       const { url } = await urlDeSubida(key, input.contentType);
-      return { url, key, tipo };
+
+      // La miniatura cuelga del mismo id con otro sufijo, así se ve de un
+      // vistazo a qué pieza pertenece. Sólo para imágenes: sacarle una miniatura
+      // a un video en el navegador obliga a decodificarlo, que es justo lo que
+      // se está tratando de evitar.
+      let mini: { url: string; key: string } | null = null;
+      if (tipo === "imagen") {
+        const keyMini = `${base}-mini.webp`;
+        const firma = await urlDeSubida(keyMini, "image/webp");
+        mini = { url: firma.url, key: keyMini };
+      }
+
+      return { url, key, tipo, mini };
     }),
 
   /** Guarda la pieza una vez que el navegador terminó de subirla. */
@@ -89,6 +113,7 @@ export const contenidoRouter = createTRPCRouter({
       z.object({
         categoria: z.string(),
         s3Key: z.string(),
+        s3KeyMini: z.string().nullish(),
         tipo: z.enum(["imagen", "video"]),
       }),
     )
@@ -105,6 +130,7 @@ export const contenidoRouter = createTRPCRouter({
         data: {
           categoria: input.categoria,
           s3Key: input.s3Key,
+          s3KeyMini: input.s3KeyMini ?? null,
           tipo: input.tipo,
           orden: (ultimo?.orden ?? -1) + 1,
         },
@@ -122,7 +148,7 @@ export const contenidoRouter = createTRPCRouter({
 
       // Primero el objeto de S3; recién después la fila. Si fallara S3, la fila
       // queda y se puede reintentar en vez de dejar el archivo huérfano.
-      await borrarObjetos([contenido.s3Key]);
+      await borrarObjetos(clavesDe(contenido));
       await ctx.db.contenido.delete({ where: { id: input.id } });
       return { ok: true };
     }),
@@ -219,7 +245,7 @@ export const contenidoRouter = createTRPCRouter({
   quitarHero: adminProcedure.mutation(async ({ ctx }) => {
     const previas = await ctx.db.contenido.findMany({ where: { categoria: HERO } });
     if (previas.length === 0) return { ok: true };
-    await borrarObjetos(previas.map((p) => p.s3Key));
+    await borrarObjetos(previas.flatMap(clavesDe));
     await ctx.db.contenido.deleteMany({
       where: { id: { in: previas.map((p) => p.id) } },
     });
@@ -235,7 +261,7 @@ export const contenidoRouter = createTRPCRouter({
       });
       if (filas.length === 0) return { borrados: 0 };
 
-      await borrarObjetos(filas.map((f) => f.s3Key));
+      await borrarObjetos(filas.flatMap(clavesDe));
       const { count } = await ctx.db.contenido.deleteMany({
         where: { id: { in: filas.map((f) => f.id) } },
       });

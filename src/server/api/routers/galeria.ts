@@ -30,6 +30,11 @@ const EXT: Record<string, string> = {
   "video/webm": "webm",
 };
 
+/** El original y, si la tiene, su miniatura: las dos se borran juntas. */
+function clavesDeFoto(foto: { s3Key: string; s3KeyMini: string | null }) {
+  return foto.s3KeyMini ? [foto.s3Key, foto.s3KeyMini] : [foto.s3Key];
+}
+
 export const galeriaRouter = createTRPCRouter({
   /* ------------------------------------------------ galerías nativas (admin) */
 
@@ -115,7 +120,7 @@ export const galeriaRouter = createTRPCRouter({
       const fotos = await ctx.db.fotoGaleria.findMany({
         where: { galeriaId: input.id },
       });
-      if (fotos.length > 0) await borrarObjetos(fotos.map((f) => f.s3Key));
+      if (fotos.length > 0) await borrarObjetos(fotos.flatMap(clavesDeFoto));
       await ctx.db.galeria.delete({ where: { id: input.id } });
       return { ok: true };
     }),
@@ -165,9 +170,21 @@ export const galeriaRouter = createTRPCRouter({
       });
       if (!galeria) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const key = `galeria/${input.galeriaId}/${randomUUID()}.${EXT[input.contentType]}`;
+      const base = `galeria/${input.galeriaId}/${randomUUID()}`;
+      const key = `${base}.${EXT[input.contentType]}`;
       const { url } = await urlDeSubida(key, input.contentType);
-      return { url, key, tipo };
+
+      // Acá el original no se toca: es lo que la familia se descarga, y es todo
+      // el punto de la galería. La miniatura se suma al lado, sólo para que la
+      // grilla del visor no tenga que decodificar cien fotos de cámara.
+      let mini: { url: string; key: string } | null = null;
+      if (tipo === "imagen") {
+        const keyMini = `${base}-mini.webp`;
+        const firma = await urlDeSubida(keyMini, "image/webp");
+        mini = { url: firma.url, key: keyMini };
+      }
+
+      return { url, key, tipo, mini };
     }),
 
   /** Registra la foto una vez subida, guardando su nombre original. */
@@ -176,6 +193,7 @@ export const galeriaRouter = createTRPCRouter({
       z.object({
         galeriaId: z.string(),
         s3Key: z.string(),
+        s3KeyMini: z.string().nullish(),
         nombre: z.string(),
         tipo: z.enum(["imagen", "video"]),
       }),
@@ -189,6 +207,7 @@ export const galeriaRouter = createTRPCRouter({
         data: {
           galeriaId: input.galeriaId,
           s3Key: input.s3Key,
+          s3KeyMini: input.s3KeyMini ?? null,
           nombre: input.nombre.slice(0, 200),
           tipo: input.tipo,
           orden: (ultima?.orden ?? -1) + 1,
@@ -205,7 +224,7 @@ export const galeriaRouter = createTRPCRouter({
       });
       if (fotos.length === 0) return { borrados: 0 };
 
-      await borrarObjetos(fotos.map((f) => f.s3Key));
+      await borrarObjetos(fotos.flatMap(clavesDeFoto));
       const { count } = await ctx.db.fotoGaleria.deleteMany({
         where: { id: { in: fotos.map((f) => f.id) } },
       });

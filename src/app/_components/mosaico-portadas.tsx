@@ -19,7 +19,7 @@ const CELDAS_ANCHO = 8;
 export function MosaicoPortadas({
   piezas,
 }: {
-  piezas: { id: string; tipo: "imagen" | "video"; url: string }[];
+  piezas: { id: string; tipo: "imagen" | "video"; url: string; urlMini: string }[];
 }) {
   // En un teléfono entran menos celdas: pedirle nueve fotos a una pantalla
   // angosta las deja del tamaño de una estampilla y no se ve nada.
@@ -95,7 +95,7 @@ export function MosaicoPortadas({
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={p.url}
+              src={p.urlMini}
               alt=""
               loading={i < 4 ? "eager" : "lazy"}
               className="h-full w-full object-cover"
