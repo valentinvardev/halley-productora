@@ -6,12 +6,18 @@
  * distinta velocidad: los de adelante mucho, el salón del fondo casi nada. Ese
  * desfasaje entre velocidades es lo que el ojo lee como movimiento de cámara.
  *
- * Que se acerque y no que se desplace tampoco es un gusto. Los planos se
- * recortaron de una sola foto, así que detrás de cada uno no había nada. El
- * salón se reemplazó por un fondo rellenado —macizo, sin agujeros—, pero los
- * otros cuatro siguen siendo recortes: uno que se corre de lugar descubre el
- * hueco que dejó en su vecino. Uno que se agranda desde el mismo punto tapa
- * siempre más, nunca menos.
+ * Los planos se recortaron de una sola foto, así que detrás de cada uno no
+ * había nada, y el fondo quedaba con los huecos de todo lo que se le sacó
+ * adelante. Eso obliga a que el fondo sea macizo, y hay un motivo que no es
+ * obvio: al escalar, una silueta se aleja del punto de fuga por los dos lados a
+ * la vez. Tapa más por afuera —eso se ve venir— pero por adentro se corre y
+ * destapa. Justo el borde interno de las arañas es donde el hueco se abría.
+ *
+ * Así que abajo siempre tiene que haber salón. El que se usa no es el recorte
+ * original sino uno rellenado, y el relleno importa porque se ve: el primero,
+ * generado, dejaba nubes grises más grandes que las siluetas y eran exactamente
+ * lo que asomaba. El que quedó rellena los huecos con el entorno desenfocado,
+ * que es lo que ahí habría estado de verdad: fondo fuera de foco.
  *
  * Por eso todos crecen desde el mismo punto de fuga —la quinceañera— y no desde
  * su propio centro. Como cada archivo viene recortado a su caja, ese punto cae
@@ -32,12 +38,9 @@ const PROPORCION = "1620/1080";
  */
 const PLANOS = [
   {
-    // El salón no es el recorte original sino un fondo rellenado: el de la foto
-    // tenía los agujeros con la forma de todo lo que se le sacó adelante, y por
-    // más que los planos de adelante los tapen, cualquier borde que no calzara
-    // al píxel dejaba ver el vacío. Éste es macizo de punta a punta, así que
-    // debajo de los cinco planos siempre hay salón y nunca el papel de la
-    // página. Por eso también va a cuadro completo y no recortado.
+    // Macizo y a cuadro completo, por lo de arriba. Los huecos van rellenos con
+    // el propio entorno desenfocado y un punto más oscuro, así que lo que asoma
+    // entre los planos se lee como fondo fuera de foco y no como parche.
     archivo: "/fondos/quince-salon.webp",
     izq: "0%",
     arriba: "0%",
