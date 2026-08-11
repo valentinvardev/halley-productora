@@ -53,11 +53,13 @@ const RECORRIDO_PARALLAX = 0.14;
  *
  * Hay dos anclajes, y cuál se usa depende de dónde esté la pieza.
  *
- * En escritorio va al costado del texto, fuera del flujo, y arranca con el primer
- * píxel de scroll: el trazo se reparte entre el tope de la página y el momento en
- * que la sección queda en posición de lectura. Antes se anclaba a la ventana
- * igual que en el teléfono, y con eso el dibujo ya venía un 39% hecho antes de
- * que nadie tocara nada. Esa parte no la veía nadie.
+ * En escritorio va al costado del texto, fuera del flujo, y el trazo se reparte
+ * entre el primer píxel de scroll y el momento en que la sección termina de
+ * entrar en pantalla. Las dos puntas se miden contra el documento, así que no
+ * hay número que mantener: cambia el alto del hero o el del texto y el recorrido
+ * se acomoda. Antes se anclaba a la ventana igual que en el teléfono, y con eso
+ * el dibujo venía un 39% hecho antes de que nadie tocara nada y recién terminaba
+ * cuando la sección ya se estaba yendo.
  *
  * En el teléfono la pieza tiene su propia fila arriba del título, mucho más abajo
  * en la página. Ahí se sigue midiendo contra la ventana: el trazo arranca con la
@@ -182,30 +184,34 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       const ventana = window.innerHeight;
       const recorrido = suelta ? DERIVA : 0;
 
-      // El dibujo se reparte sobre el viaje de la pieza por la ventana, de abajo
-      // hacia arriba: el tramo mide lo mismo sin importar cuánto mida la
-      // sección. Se mide el borde de abajo contra el remate, así que una pieza
-      // más alta —o que se corra más— tarda más en cruzar y el dibujo sale más
-      // lento.
       // Se descuenta lo que ya se le corrió: si no, el corrimiento entraría en
       // su propia medición y se perseguiría a sí mismo.
       const arriba = caja.top - corrida;
 
-      // Suelta —o sea en escritorio, donde la pieza va al costado del texto— el
-      // trazo arranca con el primer píxel de scroll. El punto de partida es
-      // dónde queda la pieza con la página arriba de todo: `arriba + scrollY`.
-      // Esa suma no depende del scroll, así que se puede recalcular en cada
-      // cuadro sin realimentarse, y encima se acomoda sola si el hero cambia de
-      // alto.
-      //
-      // En el flujo —el teléfono, donde la pieza tiene su propia fila arriba del
-      // título— se sigue midiendo contra la ventana. Ahí la pieza está mucho más
-      // abajo en la página: anclarla al scroll le daría un recorrido larguísimo
-      // y el trazo terminaría antes de que se la vea.
-      const desde = suelta ? arriba + window.scrollY : ARRANQUE * ventana;
-      const hasta = REMATE * ventana - caja.height - recorrido;
-
-      const crudo = (desde - arriba) / Math.max(1, desde - hasta);
+      let crudo: number;
+      if (suelta) {
+        // Escritorio, con la pieza al costado del texto. El trazo va del primer
+        // píxel de scroll hasta que la sección termina de entrar en pantalla,
+        // que es el momento en que uno se pone a leerla: para entonces el logo
+        // ya tiene que estar dibujado.
+        //
+        // Las dos puntas se miden solas contra el documento, así que no hay
+        // números que mantener: si el hero cambia de alto o la sección de
+        // contenido, el recorrido se acomoda.
+        const seccion = m.parentElement?.getBoundingClientRect();
+        const total = seccion
+          ? seccion.bottom + window.scrollY - ventana
+          : ventana;
+        crudo = window.scrollY / Math.max(1, total);
+      } else {
+        // Teléfono, con la pieza en su propia fila arriba del título. Acá está
+        // mucho más abajo en la página: anclarla al scroll le daría un recorrido
+        // larguísimo y el trazo terminaría mucho antes de que se la vea. Se mide
+        // contra la ventana, que es lo que la trae a la vista.
+        const desde = ARRANQUE * ventana;
+        const hasta = REMATE * ventana - caja.height - recorrido;
+        crudo = (desde - arriba) / Math.max(1, desde - hasta);
+      }
 
       avance = Math.min(Math.max(crudo, 0), 1);
       corrida = (avance - 0.5) * recorrido;
