@@ -139,13 +139,22 @@ function momento(avance: number) {
 }
 
 /**
+ * Cuánto se estira el recorrido más allá de que la sección entre entera.
+ *
+ * Terminar justo cuando entra sale un poco seco: el trazo llega al final en el
+ * mismo momento en que uno baja la vista al texto. Un poco de más y el logo
+ * termina de dibujarse con la sección ya quieta delante.
+ */
+const HOLGURA = 1.15;
+
+/**
  * Cuánto se acerca el video a su objetivo en cada cuadro.
  *
  * Sin esto, cada golpe de rueda salta varios cuadros de una y el dibujo se ve a
  * los tirones. Persiguiendo el objetivo de a poco, el trazo avanza continuo
  * aunque el scroll llegue a los saltos.
  */
-const SUAVIDAD = 0.07;
+const SUAVIDAD = 0.055;
 
 export function LogoAnimado({ className = "" }: { className?: string }) {
   const marco = useRef<HTMLDivElement>(null);
@@ -199,10 +208,10 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
         // números que mantener: si el hero cambia de alto o la sección de
         // contenido, el recorrido se acomoda.
         const seccion = m.parentElement?.getBoundingClientRect();
-        const total = seccion
+        const entrada = seccion
           ? seccion.bottom + window.scrollY - ventana
           : ventana;
-        crudo = window.scrollY / Math.max(1, total);
+        crudo = window.scrollY / Math.max(1, entrada * HOLGURA);
       } else {
         // Teléfono, con la pieza en su propia fila arriba del título. Acá está
         // mucho más abajo en la página: anclarla al scroll le daría un recorrido

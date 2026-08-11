@@ -287,11 +287,21 @@ function Concepto() {
       <div className="relative mx-auto grid max-w-[1140px] gap-10 px-6 py-28 sm:px-10 sm:py-36 lg:min-h-[620px] lg:grid-cols-[1.05fr_1fr] lg:gap-x-16 lg:py-40 lg:pl-[290px]">
         {/* El cometa cambia de lugar según haya o no dónde ponerlo.
 
-            En pantalla grande sobra margen afuera de la columna de texto: ahí va
-            a la franja de la izquierda, fuera del flujo y centrado en el alto.
-            Mide ese margen más un ancho fijo, y a ese mismo ancho se corre el
-            texto; las dos cuentas son la misma, así que la pieza llega justo
-            hasta donde empieza la columna y no la pisa.
+            En pantalla grande sobra margen afuera de la columna de texto y ahí
+            va, fuera del flujo. El contenedor le reserva ese lugar corriendo el
+            texto 290 a la derecha, así que la pieza puede crecer y moverse sin
+            negociar con nada.
+
+            De izquierda arranca media franja adentro del margen: `285px - 25vw`
+            es la mitad de lo que sobra afuera de la columna, y el `min` con cero
+            evita que se salga por el borde en pantallas donde no sobra nada.
+
+            De alto no va centrada en el contenedor sino un poco más arriba. El
+            contenedor lo estira la columna de texto, que es más alta que el
+            titular, así que su centro cae por debajo del centro del título. Los
+            2,75rem son ese desfasaje. Es un número aproximado: si el titular
+            cambia de largo y pasa a ocupar otra cantidad de líneas, hay que
+            volver a mirarlo.
 
             En pantallas angostas ese margen no existe. Antes pasaba a ser marca
             de agua detrás del texto, que es ponerlo donde no hay lugar. Ahora
@@ -300,19 +310,16 @@ function Concepto() {
             mismo, sin un alto escrito en otro lado que haya que mantener igual
             al suyo.
 
-            El ancho en grande es siete décimos de la franja, que es el pedido de
-            achicarla un 30%: la franja sigue midiendo lo mismo —es la que le abre
-            lugar al texto— y la pieza ocupa menos de ella. Va con la cuenta ya
-            resuelta, `35vw - 224px` en vez de `(50vw - 320px) * 0,7`, porque
-            Tailwind no parsea el calc anidado y descarta la clase sin avisar.
+            El tope de 245 es por el alto, no por el ancho: la pieza es cuadrada,
+            así que ancho y alto son lo mismo, y fuera del flujo de pasarse se
+            metería en las secciones vecinas. El piso de 620 en el contenedor es
+            la red: la pieza se corre 240 a lo largo del recorrido, así que
+            necesita 245 + 240 de alto para no desbordar.
 
-            El tope de 378 es por el alto, no por el ancho: la pieza es cuadrada,
-            así que ancho y alto son lo mismo, y ahí va fuera del flujo —no empuja
-            nada, y de pasarse se metería en las secciones vecinas—. El piso de
-            620 en el contenedor es la red, y ahora sí hace falta: la pieza se
-            corre 240 a lo largo del recorrido, así que necesita 378 + 240 de alto
-            para no desbordar. */}
-        <LogoAnimado className="w-[45%] max-w-[218px] opacity-80 lg:absolute lg:top-1/2 lg:left-0 lg:w-[calc(22.7vw_-_146px)] lg:max-w-[245px] lg:-translate-y-1/2 lg:opacity-70" />
+            Los anchos van con la cuenta ya resuelta —`22,7vw - 146px` y no una
+            multiplicación anidada— porque Tailwind no parsea el calc anidado y
+            descarta la clase sin avisar. */}
+        <LogoAnimado className="w-[45%] max-w-[218px] opacity-80 lg:absolute lg:top-[calc(50%_-_2.75rem)] lg:left-[min(0px,calc(285px_-_25vw))] lg:w-[calc(22.7vw_-_146px)] lg:max-w-[245px] lg:-translate-y-1/2 lg:opacity-70" />
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
