@@ -323,44 +323,64 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     <div
       ref={marco}
       aria-hidden="true"
-      className={`cometa pointer-events-none relative aspect-square overflow-hidden ${className}`}
+      className={`cometa pointer-events-none relative aspect-square ${className}`}
     >
-      {/* La capa mide lo mismo que la caja. Antes se le daba alto de más para
-          que el parallax no descubriera un borde al correrse; ahora el video
-          asoma por los cuatro lados mucho más que ese corrimiento y alcanza. */}
-      <div ref={capa} className="absolute inset-0 will-change-transform">
-        {/* El recorte, en porcentajes de la caja.
-            Medido sobre todo lo que el video pinta alguna vez, el dibujo entra
-            en 210x224 de los 1280x720 del archivo. El recorte es el cuadrado de
-            280 con la esquina en (523, 224): deja unos treinta píxeles de aire
-            alrededor y nada más. Para que ese cuadrado llene la caja, el video
-            tiene que medir 1280/280 y 720/280 de ella —457,14% y 257,14%— y
-            correrse 523/280 y 224/280 —186,79% y 80%—. Como la caja es cuadrada,
-            los porcentajes de arriba y de la izquierda se resuelven contra el
-            mismo lado y la cuenta cierra sola.
-            `max-w-none` porque Tailwind le pone `max-width:100%` a `img` y
-            `video`, y sin sacarlo el recorte no se agranda nada. */}
-        {quieto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/marca/logo-animado.jpg"
-            alt="Halley Audiovisual"
-            className="absolute top-[-80%] left-[-186.79%] h-[257.14%] w-[457.14%] max-w-none object-cover"
-          />
-        ) : (
-          <video
-            ref={video}
-            src="/marca/logo-animado.mp4"
-            poster="/marca/logo-animado.jpg"
-            muted
-            playsInline
-            disablePictureInPicture
-            disableRemotePlayback
-            preload="metadata"
-            aria-hidden="true"
-            className="absolute top-[-80%] left-[-186.79%] h-[257.14%] w-[457.14%] max-w-none object-cover"
-          />
-        )}
+      {/* La ventana, más grande que la caja y desbordándola por los cuatro
+          lados. Es la que recorta, no la caja.
+
+          El motivo es el halo del cometa. El brillo llega bastante más lejos que
+          el trazo —a nivel 1 se extiende 64 píxeles a la izquierda y 42 arriba
+          de donde termina el dibujo—, y recortando al ras del dibujo se cortaba
+          de golpe. En claro ese corte es un escalón de cuatro niveles sobre
+          papel y no se ve; en oscuro la mezcla es `screen`, que levanta hasta
+          los valores más bajos, y el corte quedaba como un borde recto.
+
+          Recortar más lejos sin agrandar la caja es lo que hace la ventana: la
+          caja sigue midiendo lo que mide el logo —así el texto, el tamaño del
+          dibujo y las cuentas del scroll no se enteran— y lo que se ve de más
+          es sólo halo, que sobre cualquiera de los dos temas es transparente.
+
+          No se saca el recorte del todo porque entonces entraría el cuadro
+          entero, y el negro de un archivo a 0,019 bits por píxel trae bloques
+          que `screen` también levantaría. */}
+      <div className="absolute inset-[-28.5714%] overflow-hidden">
+        <div ref={capa} className="absolute inset-0 will-change-transform">
+          {/* El recorte, en porcentajes de la ventana.
+              El dibujo entra en 210x224 de los 1280x720 del archivo y el halo
+              llega hasta 459..775 por 182..531. El recorte es el cuadrado de 440
+              con la esquina en (443, 143): mismo centro que el dibujo, y contiene
+              el halo entero con margen de sobra para el corrimiento del parallax.
+              Para que ese cuadrado llene la ventana, el video mide 1280/440 y
+              720/440 de ella —290,91% y 163,64%— y se corre 443/440 y 143/440
+              —100,68% y 32,50%—. Como la ventana es cuadrada, los porcentajes de
+              arriba y de la izquierda se resuelven contra el mismo lado y la
+              cuenta cierra sola.
+              La escala no cambió al agrandar el recorte: la ventana creció en la
+              misma proporción, 440/280, que es de dónde sale el inset.
+              `max-w-none` porque Tailwind le pone `max-width:100%` a `img` y
+              `video`, y sin sacarlo el recorte no se agranda nada. */}
+          {quieto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/marca/logo-animado.jpg"
+              alt="Halley Audiovisual"
+              className="absolute top-[-32.50%] left-[-100.68%] h-[163.64%] w-[290.91%] max-w-none object-cover"
+            />
+          ) : (
+            <video
+              ref={video}
+              src="/marca/logo-animado.mp4"
+              poster="/marca/logo-animado.jpg"
+              muted
+              playsInline
+              disablePictureInPicture
+              disableRemotePlayback
+              preload="metadata"
+              aria-hidden="true"
+              className="absolute top-[-32.50%] left-[-100.68%] h-[163.64%] w-[290.91%] max-w-none object-cover"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
