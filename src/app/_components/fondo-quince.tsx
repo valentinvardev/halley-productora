@@ -6,12 +6,12 @@
  * distinta velocidad: los de adelante mucho, el salón del fondo casi nada. Ese
  * desfasaje entre velocidades es lo que el ojo lee como movimiento de cámara.
  *
- * Que se acerque y no que se desplace no es un gusto, es lo único que se puede.
- * Los planos se recortaron de una sola foto, así que detrás de cada uno no hay
- * nada: el salón tiene agujeros con la forma exacta de las arañas y los floreros.
- * Un plano que se corre de lugar descubre su propio agujero. Uno que se agranda
- * desde el mismo punto tapa siempre más, nunca menos, y los agujeros quedan
- * cubiertos pase lo que pase.
+ * Que se acerque y no que se desplace tampoco es un gusto. Los planos se
+ * recortaron de una sola foto, así que detrás de cada uno no había nada. El
+ * salón se reemplazó por un fondo rellenado —macizo, sin agujeros—, pero los
+ * otros cuatro siguen siendo recortes: uno que se corre de lugar descubre el
+ * hueco que dejó en su vecino. Uno que se agranda desde el mismo punto tapa
+ * siempre más, nunca menos.
  *
  * Por eso todos crecen desde el mismo punto de fuga —la quinceañera— y no desde
  * su propio centro. Como cada archivo viene recortado a su caja, ese punto cae
@@ -32,11 +32,17 @@ const PROPORCION = "1620/1080";
  */
 const PLANOS = [
   {
+    // El salón no es el recorte original sino un fondo rellenado: el de la foto
+    // tenía los agujeros con la forma de todo lo que se le sacó adelante, y por
+    // más que los planos de adelante los tapen, cualquier borde que no calzara
+    // al píxel dejaba ver el vacío. Éste es macizo de punta a punta, así que
+    // debajo de los cinco planos siempre hay salón y nunca el papel de la
+    // página. Por eso también va a cuadro completo y no recortado.
     archivo: "/fondos/quince-salon.webp",
     izq: "0%",
     arriba: "0%",
     ancho: "100%",
-    origen: "49.10% 83.72%",
+    origen: "49.10% 53.56%",
     acerca: 1.02,
   },
   {
