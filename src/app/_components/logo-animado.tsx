@@ -31,8 +31,17 @@ import { useEffect, useRef, useState } from "react";
  *   da sensación de profundidad sin mover nada de lugar.
  */
 
-/** Cuánto se corre la pieza respecto de la página, en píxeles. */
-const RECORRIDO_PARALLAX = 56;
+/**
+ * Cuánto se corre el video adentro de la caja, en fracción del alto de la caja.
+ *
+ * Va en fracción y no en píxeles, y eso importa. El recorte deja 28 píxeles de
+ * fuente de margen sobre el cometa; el corrimiento, si es fijo en píxeles de
+ * pantalla, vale cada vez más fuente cuanto más chica sea la caja. Con 56 px
+ * fijos, en un teléfono se comía 51 de esos 28 y le cortaba la punta al cometa.
+ * En fracción del alto se come siempre lo mismo: 0,14 son ±7% de la caja, ±20
+ * píxeles de fuente, y los 28 de margen alcanzan en cualquier tamaño.
+ */
+const RECORRIDO_PARALLAX = 0.14;
 
 /**
  * El tramo de scroll del dibujo, medido en pantallas y no en secciones.
@@ -42,10 +51,20 @@ const RECORRIDO_PARALLAX = 56;
  * para darle recorrido al dibujo, y ese alto de más se veía como un hueco enorme
  * alrededor del texto.
  *
- * El trazo arranca con la pieza `BAJO_EL_PLIEGUE` pantallas por debajo del borde
- * de abajo —o sea, todavía sin verse— y termina cuando al borde de abajo de la
- * pieza le queda `REMATE` de pantalla por arriba. El remate no es cero para que
- * el logo terminado se quede a la vista en vez de completarse justo cuando se va.
+ * Hay dos anclajes, y cuál se usa depende de dónde esté la pieza.
+ *
+ * En escritorio va al costado del texto, fuera del flujo, y arranca con el primer
+ * píxel de scroll: el trazo se reparte entre el tope de la página y el momento en
+ * que la sección queda en posición de lectura. Antes se anclaba a la ventana
+ * igual que en el teléfono, y con eso el dibujo ya venía un 39% hecho antes de
+ * que nadie tocara nada. Esa parte no la veía nadie.
+ *
+ * En el teléfono la pieza tiene su propia fila arriba del título, mucho más abajo
+ * en la página. Ahí se sigue midiendo contra la ventana: el trazo arranca con la
+ * pieza `BAJO_EL_PLIEGUE` pantallas por debajo del borde de abajo —o sea, todavía
+ * sin verse— y termina cuando al borde de abajo de la pieza le queda `REMATE` de
+ * pantalla por arriba. El remate no es cero para que el logo terminado se quede a
+ * la vista en vez de completarse justo cuando se va.
  *
  * Arrancar antes de que se vea es de donde sale la lentitud, y no es un rodeo:
  * el techo lo pone la geometría. La pieza sólo se dibuja mientras se la ve, y eso
@@ -56,8 +75,8 @@ const RECORRIDO_PARALLAX = 56;
  * El límite de cuánto antes lo pone el propio cometa: si arranca demasiado antes,
  * para cuando la pieza asoma el cometa ya pasó y sólo se ve dibujarse el
  * barrilete. Volando es cuando vale la pena mirarlo. A 0,6 pantallas el cometa
- * asoma con la mitad del trazo puesto: ahí ya está al filo, y es el precio de
- * arrancar tan abajo con la animación al ritmo actual.
+ * asoma con la mitad del trazo puesto: ahí ya está al filo. Eso vale para el
+ * teléfono, que es donde este anclaje sigue en uso.
  *
  * `REMATE` es también la perilla de la velocidad, y por eso está tan arriba: subir
  * el remate acorta el recorrido sin mover el arranque, o sea que el mismo dibujo
@@ -151,6 +170,8 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
     let corrida = 0;
     /** Si está fuera del flujo puede correrse sin llevarse nada por delante. */
     let suelta = false;
+    /** El alto de la caja: el corrimiento del video se mide contra él. */
+    let alto = 0;
 
     const ubicar = () => {
       suelta = getComputedStyle(m).position === "absolute";
@@ -166,15 +187,29 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       // sección. Se mide el borde de abajo contra el remate, así que una pieza
       // más alta —o que se corra más— tarda más en cruzar y el dibujo sale más
       // lento.
-      const desde = ARRANQUE * ventana;
+      // Se descuenta lo que ya se le corrió: si no, el corrimiento entraría en
+      // su propia medición y se perseguiría a sí mismo.
+      const arriba = caja.top - corrida;
+
+      // Suelta —o sea en escritorio, donde la pieza va al costado del texto— el
+      // trazo arranca con el primer píxel de scroll. El punto de partida es
+      // dónde queda la pieza con la página arriba de todo: `arriba + scrollY`.
+      // Esa suma no depende del scroll, así que se puede recalcular en cada
+      // cuadro sin realimentarse, y encima se acomoda sola si el hero cambia de
+      // alto.
+      //
+      // En el flujo —el teléfono, donde la pieza tiene su propia fila arriba del
+      // título— se sigue midiendo contra la ventana. Ahí la pieza está mucho más
+      // abajo en la página: anclarla al scroll le daría un recorrido larguísimo
+      // y el trazo terminaría antes de que se la vea.
+      const desde = suelta ? arriba + window.scrollY : ARRANQUE * ventana;
       const hasta = REMATE * ventana - caja.height - recorrido;
 
-      // Se descuenta lo que ya se le corrió: si no, el corrimiento entraría en su
-      // propia medición y se perseguiría a sí mismo.
-      const crudo = (desde - (caja.top - corrida)) / (desde - hasta);
+      const crudo = (desde - arriba) / Math.max(1, desde - hasta);
 
       avance = Math.min(Math.max(crudo, 0), 1);
       corrida = (avance - 0.5) * recorrido;
+      alto = caja.height;
     };
 
     const pintar = () => {
@@ -205,7 +240,7 @@ export function LogoAnimado({ className = "" }: { className?: string }) {
       m.style.transform = corrida ? `translate3d(0, ${corrida}px, 0)` : "";
 
       if (capa.current) {
-        const corrimiento = (0.5 - avance) * RECORRIDO_PARALLAX;
+        const corrimiento = (0.5 - avance) * RECORRIDO_PARALLAX * alto;
         capa.current.style.transform = `translate3d(0, ${corrimiento}px, 0)`;
       }
     };
