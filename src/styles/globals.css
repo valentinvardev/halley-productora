@@ -564,6 +564,18 @@
       animation-range: cover 20% cover 100%;
     }
 
+      /* El marco de bodas apagándose. Es la misma imagen otra vez con un filtro
+         de brillo: el filtro se rasteriza una sola vez y lo único que se anima es
+         la opacidad, que la resuelve el compositor. Sin `--acerca` a propósito —
+         este plano no se mueve, y que se quede quieto es justamente lo que hace
+         que se note el que sí se mueve. */
+      .plano-sombra {
+        filter: brightness(0.7) saturate(0.88);
+        animation: revelar linear both;
+        animation-timeline: --tramo;
+        animation-range: cover 20% cover 100%;
+      }
+
       /* La copia borrosa del fondo de egresados, que aparece encima de la
          nítida. Va atada al mismo tramo que el acercamiento: el desenfoque
          entra al ritmo en que los planos se separan, o sea junto con la
@@ -572,7 +584,7 @@
       .plano-difumina {
         animation:
           acercar linear both,
-          difuminar linear both;
+          revelar linear both;
         animation-timeline: --tramo, --tramo;
         animation-range: cover 20% cover 100%, cover 20% cover 100%;
       }
@@ -615,7 +627,7 @@
   }
 }
 
-@keyframes difuminar {
+@keyframes revelar {
   from {
     opacity: 0;
   }

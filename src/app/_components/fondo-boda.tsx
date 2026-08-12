@@ -1,27 +1,26 @@
 /**
- * El fondo del panel de bodas: subir por el pasillo.
+ * El fondo del panel de bodas: la iglesia trae el altar.
  *
- * La nave es una perspectiva de un solo punto y ese punto son los novios. La
- * animación avanza hacia ellos: los bancos y las columnas de los costados —el
- * primer plano— crecen mucho y se van de cuadro por los lados, mientras la nave
- * crece apenas. Ese desfasaje entre velocidades es lo que el ojo lee como cámara
- * avanzando, y acá es literalmente caminar hacia el altar.
+ * El marco no se mueve. Las columnas, el púlpito y los bancos con los invitados
+ * se quedan exactamente donde están, y lo que crece es la nave: la bóveda, el
+ * altar y los novios se acercan a través de ese marco quieto. Que una parte no
+ * se mueva es lo que hace que la otra se note; con todo moviéndose a la vez sólo
+ * había un zoom parejo, que es el efecto más genérico que existe.
  *
- * Son tres planos y el de atrás es la foto entera, no un recorte. Cuando un
- * plano se agranda, su borde interno se aleja del punto de fuga y descubre lo
- * que hay debajo; con recortes complementarios —lo que uno tapa, el otro no lo
- * tiene— ahí quedaría un vacío, y con la foto entera abajo siempre hay iglesia.
+ * Y es la única combinación que no puede duplicar nada, que fue el problema de
+ * las versiones anteriores. Los dos recortes son complementarios y juntos tapan
+ * el cuadro entero, así que: el frente, quieto, nunca descubre su propia copia
+ * del fondo; y la nave, al crecer, mete su borde por debajo del frente, que está
+ * encima y no se movió. No hay geometría posible donde algo asome dos veces.
  *
- * Pero la foto entera trae su propio problema: adentro están los mismos pilares
- * que se ven en el plano de adelante, así que al separarse se veían dos veces.
- * Por eso la nave va como plano intermedio y crece un poco más que el frente:
- * al agrandarse tapa los pilares de la foto de abajo antes de que asomen. Que
- * crezca más que algo que está delante suyo es raro de leer escrito, pero acá
- * el resultado es el correcto y la diferencia es de cuatro centésimas.
+ * Debajo va la foto entera, chica y desenfocada. No es un plano: es un seguro
+ * contra la costura de un píxel que podría quedar entre los dos recortes al
+ * arrancar. Por eso pesa dos kilobytes y no medio mega.
  *
- * Se probó antes con un cambio de foco —entrar enfocando los bancos y llevar el
- * foco al altar— y no funcionó: el desenfoque sin movimiento se lee como una
- * foto mal tomada, no como una decisión. El zoom dice lo mismo y se ve.
+ * El frente además se va apagando. Es la misma imagen otra vez, con un filtro de
+ * brillo y apareciendo por opacidad —el filtro se rasteriza una sola vez y lo
+ * único animado es la opacidad, que la resuelve el compositor—. No hace falta
+ * bajar otro archivo: el navegador ya lo tiene.
  */
 
 /** El cuadro del que salieron los dos planos. */
@@ -45,18 +44,15 @@ export function FondoBoda() {
         className="absolute top-1/2 left-1/2 w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2"
         style={{ aspectRatio: PROPORCION }}
       >
-        {/* La foto entera, atrás. Crece poco: es lo lejano. */}
+        {/* El seguro contra costuras. Nunca se ve. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/fondos/boda-fondo.webp"
           alt=""
           decoding="async"
-          className="plano-acerca absolute inset-0 h-full w-full"
-          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.045 }}
+          className="absolute inset-0 h-full w-full"
         />
-        {/* La nave: bóveda, altar y los novios. Va entre los dos, y crece lo
-            justo para taparle a la foto de abajo los pilares que comparte con el
-            plano de adelante. */}
+        {/* La nave: bóveda, altar y los novios. Es lo único que se mueve. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/fondos/boda-nave.webp"
@@ -68,19 +64,25 @@ export function FondoBoda() {
             top: "0%",
             width: "62.908%",
             transformOrigin: "50.31% 73.99%",
-            ["--acerca" as string]: 1.22,
+            ["--acerca" as string]: 1.18,
           }}
         />
 
-        {/* Los bancos y las columnas, recortados. Se van por los costados: es lo
-            que uno deja atrás al caminar. */}
+        {/* El marco: columnas, púlpito y bancos. Quieto. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/fondos/boda-frente.webp"
           alt=""
           decoding="async"
-          className="plano-acerca absolute inset-0 h-full w-full"
-          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.18 }}
+          className="absolute inset-0 h-full w-full"
+        />
+        {/* El mismo marco otra vez, apagado, apareciendo por opacidad. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/fondos/boda-frente.webp"
+          alt=""
+          decoding="async"
+          className="plano-sombra absolute inset-0 h-full w-full"
         />
       </div>
     </div>
