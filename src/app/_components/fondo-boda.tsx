@@ -7,12 +7,17 @@
  * crece apenas. Ese desfasaje entre velocidades es lo que el ojo lee como cámara
  * avanzando, y acá es literalmente caminar hacia el altar.
  *
- * Son dos planos, y el de atrás es la foto entera y no un recorte. Eso importa:
- * cuando el primer plano se agranda, su borde interno se aleja del punto de fuga
- * y descubre lo que hay debajo. Con un recorte complementario —lo que uno tapa,
- * el otro no lo tiene— ahí quedaría un vacío. Con la foto entera abajo siempre
- * hay iglesia, y como lo que asoma es la misma imagen a una escala casi igual,
- * no se lee ni como fantasma ni como costura.
+ * Son tres planos y el de atrás es la foto entera, no un recorte. Cuando un
+ * plano se agranda, su borde interno se aleja del punto de fuga y descubre lo
+ * que hay debajo; con recortes complementarios —lo que uno tapa, el otro no lo
+ * tiene— ahí quedaría un vacío, y con la foto entera abajo siempre hay iglesia.
+ *
+ * Pero la foto entera trae su propio problema: adentro están los mismos pilares
+ * que se ven en el plano de adelante, así que al separarse se veían dos veces.
+ * Por eso la nave va como plano intermedio y crece un poco más que el frente:
+ * al agrandarse tapa los pilares de la foto de abajo antes de que asomen. Que
+ * crezca más que algo que está delante suyo es raro de leer escrito, pero acá
+ * el resultado es el correcto y la diferencia es de cuatro centésimas.
  *
  * Se probó antes con un cambio de foco —entrar enfocando los bancos y llevar el
  * foco al altar— y no funcionó: el desenfoque sin movimiento se lee como una
@@ -49,15 +54,33 @@ export function FondoBoda() {
           className="plano-acerca absolute inset-0 h-full w-full"
           style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.045 }}
         />
-        {/* Los bancos y las columnas, recortados. Crecen cuatro veces más y se
-            van por los costados: es lo que uno deja atrás al caminar. */}
+        {/* La nave: bóveda, altar y los novios. Va entre los dos, y crece lo
+            justo para taparle a la foto de abajo los pilares que comparte con el
+            plano de adelante. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/fondos/boda-nave.webp"
+          alt=""
+          decoding="async"
+          className="plano-acerca absolute"
+          style={{
+            left: "18.546%",
+            top: "0%",
+            width: "62.908%",
+            transformOrigin: "50.31% 73.99%",
+            ["--acerca" as string]: 1.22,
+          }}
+        />
+
+        {/* Los bancos y las columnas, recortados. Se van por los costados: es lo
+            que uno deja atrás al caminar. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/fondos/boda-frente.webp"
           alt=""
           decoding="async"
           className="plano-acerca absolute inset-0 h-full w-full"
-          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.2 }}
+          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.18 }}
         />
       </div>
     </div>

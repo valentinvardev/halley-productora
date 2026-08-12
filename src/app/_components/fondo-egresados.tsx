@@ -10,12 +10,23 @@
  * quien mira. Uno camina hacia adelante y sus propias manos se quedan donde
  * estaban en el cuadro; lo que se agranda es aquello hacia lo que va.
  *
- * Además es lo único que se ve bien, y por un motivo concreto. Atrás va la foto
- * entera —como en bodas, para que al separarse los planos nunca quede un vacío—,
- * pero eso tiene una contra: lo que hay debajo de un recorte es ese mismo
- * recorte sin mover. Un plano ancho tapa su propia copia mientras se agranda; una
- * mano no, es fina y aislada, y a partir de cierto corrimiento se ve doble. A
- * 1,32 y a 1,15 la mano derecha salía duplicada. A 1,05 no.
+ * Además es lo único que se ve bien, y por un motivo que apareció probando. Atrás
+ * va la foto entera —como en bodas, para que al separarse los planos nunca quede
+ * un vacío—, pero eso tiene una contra: lo que hay debajo de un recorte es ese
+ * mismo recorte sin mover. Un plano ancho tapa su propia copia mientras se
+ * agranda; una mano no, es fina y aislada, y a partir de cierto corrimiento se ve
+ * doble. A 1,32 y a 1,15 la mano derecha salía duplicada. A 1,05 no.
+ *
+ * Con el curso pasa lo mismo y no se arregla agrandándolo. Su silueta tiene
+ * huecos —entre los brazos levantados, entre las cabezas— y al alejarse del
+ * punto de fuga esos huecos se abren y dejan ver la copia de abajo. Agrandarlo
+ * más los abre más: probado a 1,24 y la manga con la franja amarilla se veía dos
+ * veces.
+ *
+ * Lo que sí lo arregla es que el fondo vaya desenfocado. Lo que asoma por los
+ * huecos deja de leerse como una copia y pasa a leerse como lo que en la foto ya
+ * es: gente lejos, fuera de foco. Y encima cierra la profundidad que la toma ya
+ * tenía, porque las manos de adelante también vienen desenfocadas.
  */
 
 /** El cuadro del que salieron los tres planos. */
