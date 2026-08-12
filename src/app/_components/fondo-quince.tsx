@@ -100,7 +100,7 @@ export function FondoQuince() {
             src={p.archivo}
             alt=""
             decoding="async"
-            className="plano-quince absolute max-w-none"
+            className="plano-acerca absolute max-w-none"
             style={{
               left: p.izq,
               top: p.arriba,

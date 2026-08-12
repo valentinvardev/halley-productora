@@ -46,8 +46,8 @@ export function FondoBoda() {
           src="/fondos/boda-fondo.webp"
           alt=""
           decoding="async"
-          className="plano-boda-fondo absolute inset-0 h-full w-full"
-          style={{ transformOrigin: NOVIOS }}
+          className="plano-acerca absolute inset-0 h-full w-full"
+          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.045 }}
         />
         {/* Los bancos y las columnas, recortados. Crecen cuatro veces más y se
             van por los costados: es lo que uno deja atrás al caminar. */}
@@ -56,8 +56,8 @@ export function FondoBoda() {
           src="/fondos/boda-frente.webp"
           alt=""
           decoding="async"
-          className="plano-boda-frente absolute inset-0 h-full w-full"
-          style={{ transformOrigin: NOVIOS }}
+          className="plano-acerca absolute inset-0 h-full w-full"
+          style={{ transformOrigin: NOVIOS, ["--acerca" as string]: 1.2 }}
         />
       </div>
     </div>

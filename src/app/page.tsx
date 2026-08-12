@@ -12,6 +12,7 @@ import {
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
 import { FondoBoda } from "./_components/fondo-boda";
+import { FondoEgresados } from "./_components/fondo-egresados";
 import { FondoQuince } from "./_components/fondo-quince";
 import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
@@ -392,41 +393,7 @@ async function Servicios() {
             <div key={s.slug} className="tramo-servicio">
               <article className="panel-servicio aisla relative flex items-end">
                 {s.slug === "egresados" ? (
-                  /* Egresados va en dos capas: el manteo de fondo y el que está
-                     en el aire, recortado, subiendo mientras el campo se queda
-                     atrás. Las dos viven en un lienzo con la proporción exacta
-                     del archivo y la figura se ubica en porcentajes de ese
-                     lienzo —la misma posición que tenía en el cuadro del que se
-                     recortó—, así el calce sale exacto en cualquier pantalla sin
-                     una sola cuenta que mantener. El lienzo crece hasta tapar el
-                     panel y recorta por los costados: la figura está sobre el
-                     centro, el único lado que se puede perder sin perderla. */
-                  <div
-                    className="absolute inset-0 overflow-hidden"
-                    aria-hidden="true"
-                  >
-                    <div className="absolute top-1/2 left-1/2 aspect-[1620/911] w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/fondos/manteo.jpg"
-                        alt=""
-                        decoding="async"
-                        className="fondo-servicio absolute inset-0 h-full w-full object-cover"
-                      />
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/fondos/manteo-figura.webp"
-                        alt=""
-                        decoding="async"
-                        style={{
-                          left: "40.988%",
-                          top: "11.416%",
-                          width: "18.21%",
-                        }}
-                        className="figura-servicio absolute"
-                      />
-                    </div>
-                  </div>
+                  <FondoEgresados />
                 ) : s.slug === "bodas" ? (
                   <FondoBoda />
                 ) : s.slug === "quince" ? (

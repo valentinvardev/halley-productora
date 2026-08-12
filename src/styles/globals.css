@@ -546,33 +546,21 @@
       animation-range: cover 0% cover 100%;
     }
 
-    /* El del manteo, recortado sobre el fondo: sube mientras el campo baja. Es
-       el mismo mecanismo que el fondo, al revés y bastante más, así que las dos
-       capas se despegan de verdad en vez de insinuarlo.
+    /* Los planos que se acercan, en los tres paneles que los usan.
 
-       El 18% es del alto de la figura, no del panel: como la figura ocupa un 39%
-       del lienzo, se corre un 7% del lienzo. Y encima tiene un 11,4% de aire
-       —ahí arrancaba en la foto—, así que le sobra para no salirse por arriba. */
-    .figura-servicio {
-      animation: elevar linear both;
-      animation-timeline: --tramo;
-      animation-range: cover 0% cover 100%;
-    }
+       Cada plano trae su propio `--acerca` en el style, así que una sola regla
+       sirve para los diez que hay repartidos entre egresados, bodas y quince. El
+       punto desde el que crecen —el `transform-origin`— también viene de ahí: es
+       el mismo punto de la foto para todos los planos de un panel, escrito en
+       las coordenadas de cada recorte.
 
-    /* Los planos del panel de quince: cada uno se acerca lo suyo. `--acerca` lo
-       trae cada plano en su style, así que una sola regla sirve para los cinco.
-       El punto desde el que crecen —el `transform-origin`— también viene de ahí:
-       es el mismo punto de la foto para todos, escrito en las coordenadas de
-       cada recorte. */
-    .plano-quince {
+       Arranca al 20% del tramo y no al principio. Al separarse, los planos
+       muestran lo que tienen debajo, y cuanto menos avanzado esté el
+       acercamiento mientras el panel se mira, más discreto es. Con el panel
+       clavado —del 38% al 62% del recorrido— el zoom va del 23 al 52%. */
+    .plano-acerca {
       animation: acercar linear both;
       animation-timeline: --tramo;
-      /* Arranca al 20% y no al principio. El acercamiento abre huecos entre los
-         planos, y por esos huecos asoma el relleno del fondo, que es entorno
-         desenfocado. Cuanto menos avanzado esté el zoom mientras el panel se
-         mira, más chicos son los huecos. Con el panel clavado —del 38% al 62%
-         del recorrido, que es cuando se lo ve— el zoom pasa de ir del 38 al 62%
-         a ir del 23 al 52%. */
       animation-range: cover 20% cover 100%;
     }
 
@@ -584,24 +572,6 @@
       animation-timeline: --tramo;
       /* Arranca junto con los planos, para que las dos cosas se muevan a la vez
          y no una antes que la otra. */
-      animation-range: cover 20% cover 100%;
-    }
-
-    /* El panel de bodas: subir por el pasillo.
-
-       Los dos planos crecen desde los novios, el de adelante cuatro veces más
-       que el fondo. Ese desfasaje es el avance. Arranca al 20% del tramo por lo
-       mismo que en quince: cuanto menos avanzado esté el zoom mientras el panel
-       se mira, más discreta es la costura entre los planos. */
-    .plano-boda-fondo {
-      animation: acercar-boda-fondo linear both;
-      animation-timeline: --tramo;
-      animation-range: cover 20% cover 100%;
-    }
-
-    .plano-boda-frente {
-      animation: acercar-boda-frente linear both;
-      animation-timeline: --tramo;
       animation-range: cover 20% cover 100%;
     }
 
@@ -634,15 +604,6 @@
   }
 }
 
-@keyframes elevar {
-  from {
-    transform: translateY(18%);
-  }
-  to {
-    transform: translateY(-18%);
-  }
-}
-
 @keyframes acercar {
   from {
     transform: scale(1);
@@ -660,24 +621,6 @@
   }
   to {
     transform: translateY(-1.5%);
-  }
-}
-
-@keyframes acercar-boda-fondo {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.045);
-  }
-}
-
-@keyframes acercar-boda-frente {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.2);
   }
 }
 
