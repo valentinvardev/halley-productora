@@ -1,96 +1,63 @@
 /**
- * El fondo del panel de bodas: una foto que cambia de foco.
+ * El fondo del panel de bodas: subir por el pasillo.
  *
- * La nave de la iglesia es una perspectiva de un solo punto y ese punto son los
- * novios. La foto está entera nítida, como sale de un gran angular cerrado, y lo
- * que se hace acá es devolverle la profundidad de campo que no tuvo: se entra
- * con foco en los bancos —entre los invitados, que es donde uno está sentado— y
- * el foco viaja hasta el altar. Es el movimiento con el que se filma una boda, y
- * acá lo hace el scroll.
+ * La nave es una perspectiva de un solo punto y ese punto son los novios. La
+ * animación avanza hacia ellos: los bancos y las columnas de los costados —el
+ * primer plano— crecen mucho y se van de cuadro por los lados, mientras la nave
+ * crece apenas. Ese desfasaje entre velocidades es lo que el ojo lee como cámara
+ * avanzando, y acá es literalmente caminar hacia el altar.
  *
- * Se eligió esto y no un acercamiento como el de quince por dos motivos. Uno,
- * repetir el mismo recurso en dos paneles pegados se lee como plantilla. El
- * otro es material: acá hay dos planos y son complementarios —lo que uno tapa,
- * el otro no lo tiene—, así que si se movieran a distinta velocidad se abriría
- * un vacío entre ellos. El foco no mueve nada de lugar, así que ese problema no
- * existe.
+ * Son dos planos, y el de atrás es la foto entera y no un recorte. Eso importa:
+ * cuando el primer plano se agranda, su borde interno se aleja del punto de fuga
+ * y descubre lo que hay debajo. Con un recorte complementario —lo que uno tapa,
+ * el otro no lo tiene— ahí quedaría un vacío. Con la foto entera abajo siempre
+ * hay iglesia, y como lo que asoma es la misma imagen a una escala casi igual,
+ * no se lee ni como fantasma ni como costura.
  *
- * El acercamiento que sí hay es de la foto entera, los dos planos juntos: como
- * no hay velocidad relativa, tampoco hay vacío que se abra. Aporta la deriva sin
- * pedirle nada al recorte.
- *
- * El desenfoque no se calcula en vivo. `filter: blur()` obliga a redibujar en
- * cada cuadro y a pantalla completa eso se siente; en cambio una copia borrosa
- * encima que aparece por opacidad la resuelve el compositor sola. Y la copia
- * borrosa va a baja resolución a propósito: el desenfoque ya destruyó el
- * detalle, guardarlo grande sería pagar por píxeles que no dicen nada. Las dos
- * suaves pesan 11 KB cada una.
+ * Se probó antes con un cambio de foco —entrar enfocando los bancos y llevar el
+ * foco al altar— y no funcionó: el desenfoque sin movimiento se lee como una
+ * foto mal tomada, no como una decisión. El zoom dice lo mismo y se ve.
  */
 
 /** El cuadro del que salieron los dos planos. */
 const PROPORCION = "6465/3637";
 
 /**
- * Hacia dónde se acerca la cámara: los novios.
+ * Hacia dónde avanza la cámara: los novios.
  *
- * Es también el punto donde termina de resolver el foco, y no es casualidad —
- * en una toma así el punto de fuga de la arquitectura y el sujeto son el mismo.
+ * Los dos planos crecen desde este punto, no desde su propio centro. Es el punto
+ * de fuga de la arquitectura y el sujeto de la foto a la vez, que en una toma
+ * así son el mismo lugar.
  */
 const NOVIOS = "50.2% 74%";
-
-/** Dónde cae el recorte de la nave dentro del cuadro. */
-const NAVE = { left: "18.546%", top: "0%", width: "62.908%" };
 
 export function FondoBoda() {
   return (
     <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
       {/* El lienzo mantiene la proporción del cuadro y crece hasta tapar el
-          panel. Los dos planos se ubican en porcentajes de él, así que calzan
-          entre sí en cualquier tamaño. El acercamiento va acá, en el lienzo, no
-          en los planos: mueve a los dos juntos. */}
+          panel. El ancho mínimo acompaña al alto: 100svh por 1,7776 son 178svh. */}
       <div
-        className="lienzo-boda absolute top-1/2 left-1/2 w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2"
-        style={{ aspectRatio: PROPORCION, transformOrigin: NOVIOS }}
+        className="absolute top-1/2 left-1/2 w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2"
+        style={{ aspectRatio: PROPORCION }}
       >
-        {/* La nave: bóveda, altar y los novios. Va atrás. */}
+        {/* La foto entera, atrás. Crece poco: es lo lejano. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/fondos/boda-nave.webp"
+          src="/fondos/boda-fondo.webp"
           alt=""
           decoding="async"
-          className="absolute"
-          style={NAVE}
+          className="plano-boda-fondo absolute inset-0 h-full w-full"
+          style={{ transformOrigin: NOVIOS }}
         />
-        {/* Su copia borrosa arranca tapándola entera y se desvanece: eso es el
-            foco viajando hacia el altar. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/fondos/boda-nave-suave.webp"
-          alt=""
-          decoding="async"
-          className="boda-enfoca absolute"
-          style={NAVE}
-        />
-
-        {/* El frente: las columnas de los costados y los bancos con los
-            invitados. Va adelante y tapa lo que a la nave le falta. */}
+        {/* Los bancos y las columnas, recortados. Crecen cuatro veces más y se
+            van por los costados: es lo que uno deja atrás al caminar. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/fondos/boda-frente.webp"
           alt=""
           decoding="async"
-          className="absolute inset-0 h-full w-full"
-        />
-        {/* Al revés que la nave: entra nítido y termina borroso. La copia va
-            encima de la nítida, así que donde el desenfoque le comió el borde
-            —al difuminarse también se difumina el alfa— vuelve a asomar la
-            nítida de abajo en vez de quedar un vacío. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/fondos/boda-frente-suave.webp"
-          alt=""
-          decoding="async"
-          className="boda-desenfoca absolute inset-0 h-full w-full"
+          className="plano-boda-frente absolute inset-0 h-full w-full"
+          style={{ transformOrigin: NOVIOS }}
         />
       </div>
     </div>

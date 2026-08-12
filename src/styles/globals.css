@@ -587,31 +587,22 @@
       animation-range: cover 20% cover 100%;
     }
 
-    /* El panel de bodas: el foco viaja de los bancos al altar.
+    /* El panel de bodas: subir por el pasillo.
 
-       Las dos copias borrosas van encima de sus nítidas y lo único que se anima
-       es su opacidad, que es lo que el compositor resuelve sin redibujar. El
-       tramo del foco es más corto que el del acercamiento y cae donde el panel
-       está clavado: entra al 35% resuelto, termina de resolver antes de irse, y
-       queda un momento con todo nítido. */
-    .boda-enfoca {
-      animation: enfocar linear both;
+       Los dos planos crecen desde los novios, el de adelante cuatro veces más
+       que el fondo. Ese desfasaje es el avance. Arranca al 20% del tramo por lo
+       mismo que en quince: cuanto menos avanzado esté el zoom mientras el panel
+       se mira, más discreta es la costura entre los planos. */
+    .plano-boda-fondo {
+      animation: acercar-boda-fondo linear both;
       animation-timeline: --tramo;
-      animation-range: cover 28% cover 58%;
+      animation-range: cover 20% cover 100%;
     }
 
-    .boda-desenfoca {
-      animation: desenfocar linear both;
+    .plano-boda-frente {
+      animation: acercar-boda-frente linear both;
       animation-timeline: --tramo;
-      animation-range: cover 28% cover 58%;
-    }
-
-    /* El acercamiento va en el lienzo, o sea en los dos planos a la vez: sin
-       velocidad relativa no hay vacío que se abra entre ellos. */
-    .lienzo-boda {
-      animation: acercar-boda linear both;
-      animation-timeline: --tramo;
-      animation-range: cover 0% cover 100%;
+      animation-range: cover 20% cover 100%;
     }
 
     /* El contenido del panel que se va se apaga antes de que lo tape el que
@@ -672,30 +663,21 @@
   }
 }
 
-@keyframes enfocar {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes desenfocar {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes acercar-boda {
+@keyframes acercar-boda-fondo {
   from {
     transform: scale(1);
   }
   to {
-    transform: scale(1.07);
+    transform: scale(1.045);
+  }
+}
+
+@keyframes acercar-boda-frente {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.2);
   }
 }
 
