@@ -11,6 +11,7 @@ import {
   IconoWhatsApp,
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
+import { FondoBoda } from "./_components/fondo-boda";
 import { FondoQuince } from "./_components/fondo-quince";
 import { LogoAnimado } from "./_components/logo-animado";
 import { Logotipo } from "./_components/logotipo";
@@ -426,6 +427,8 @@ async function Servicios() {
                       />
                     </div>
                   </div>
+                ) : s.slug === "bodas" ? (
+                  <FondoBoda />
                 ) : s.slug === "quince" ? (
                   <FondoQuince />
                 ) : portadas.length > 0 ? (
