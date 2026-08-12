@@ -90,7 +90,7 @@ export function FondoQuince() {
           cada uno está ubicado en porcentajes del mismo cuadro. El ancho mínimo
           acompaña al alto del panel — 100svh por la proporción 1,5 son 150svh. */}
       <div
-        className="lienzo-planos absolute top-1/2 left-1/2 w-full min-w-[150svh] -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 w-full min-w-[max(150svh,45rem)] -translate-x-1/2 -translate-y-1/2"
         style={{ aspectRatio: PROPORCION }}
       >
         {PLANOS.map((p) => (

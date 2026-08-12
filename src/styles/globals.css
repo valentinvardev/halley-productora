@@ -564,17 +564,6 @@
       animation-range: cover 20% cover 100%;
     }
 
-    /* Y el lienzo entero deriva un poco, que es lo que le saca lo mecánico al
-       acercamiento. Va en el lienzo y no en los planos a propósito: mueve a los
-       cinco juntos, así que no descubre ningún agujero. */
-    .lienzo-planos {
-      animation: derivar-planos linear both;
-      animation-timeline: --tramo;
-      /* Arranca junto con los planos, para que las dos cosas se muevan a la vez
-         y no una antes que la otra. */
-      animation-range: cover 20% cover 100%;
-    }
-
     /* El contenido del panel que se va se apaga antes de que lo tape el que
        viene: si no, se leen dos titulares encimados. */
     .contenido-servicio {
@@ -610,17 +599,6 @@
   }
   to {
     transform: scale(var(--acerca, 1));
-  }
-}
-
-/* La deriva del lienzo se suma al centrado, que ya vive en `translate`: son
-   propiedades distintas y se componen sin pisarse. */
-@keyframes derivar-planos {
-  from {
-    transform: translateY(1.5%);
-  }
-  to {
-    transform: translateY(-1.5%);
   }
 }
 
