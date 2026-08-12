@@ -36,7 +36,7 @@
  * pantalla completa se siente; una copia borrosa encima que aparece por opacidad
  * la resuelve el compositor sola. La copia va a baja resolución a propósito: el
  * desenfoque ya destruyó el detalle, guardarlo grande sería pagar por píxeles que
- * no dicen nada. Pesa 12 KB contra los 124 de la nítida.
+ * no dicen nada: va a 420 de ancho y pesa 4 KB contra los 124 de la nítida.
  */
 
 /** El cuadro del que salieron los tres planos. */
