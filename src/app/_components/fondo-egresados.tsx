@@ -36,22 +36,26 @@
  * pantalla completa se siente; una copia borrosa encima que aparece por opacidad
  * la resuelve el compositor sola.
  *
- * La copia no sólo va desenfocada: también va más oscura, desaturada y con menos
- * contraste. Las tres cosas hacen lo mismo desde lados distintos —alejar—, y
- * juntas separan el fondo del recorte mucho más que el desenfoque solo. El
- * granate de las camperas queda contra un gris frío en vez de contra un fondo
- * cálido que le compite.
+ * La copia no sólo va desenfocada: va desaturada casi hasta el gris y después
+ * teñida de amarillo claro, con el brillo subido. El orden importa. Teñir sin
+ * desaturar primero daba un oliva sucio, porque el verde de la cancha domina el
+ * cuadro y al sacarle azul se va al lima. Llevado a gris antes, el tinte entra
+ * parejo y queda una bruma crema.
+ *
+ * Contra esa bruma clara y fría de detalle, el granate de las camperas y los
+ * tonos de piel del recorte saltan mucho más que contra la foto original, que es
+ * cálida y llena de cosas y les competía.
  *
  * Y como el filtro va horneado en la copia que aparece por opacidad, entra
  * progresivo sin costar una capa ni una animación más: es la misma que ya se
  * estaba revelando.
  *
- * El desenfoque es fuerte a propósito —setenta píxeles a pantalla completa— y no
- * lo justo para disimular. Cuanto más lejos queda el fondo, más se despega de él
- * el recorte nítido, y la duplicación deja de ser algo que se disimula para pasar
- * a ser algo que no se puede ver. El costo es que el fondo se vuelve una mancha
- * con apenas el rastro del balcón; a cambio el curso queda solo en el cuadro, que
- * es de lo que la foto habla.
+ * El desenfoque es fuerte a propósito —ciento ochenta píxeles a pantalla
+ * completa— y no lo justo para disimular. Cuanto más lejos queda el fondo, más se
+ * despega de él el recorte nítido, y la duplicación deja de ser algo que se
+ * disimula para pasar a ser algo que no se puede ver. Del fondo no queda ni el
+ * rastro del balcón; a cambio el curso queda solo en el cuadro, que es de lo que
+ * la foto habla.
  *
  * A ese desenfoque la copia puede ir muy chica sin que se note: va a 320 de ancho
  * y pesa poco más de un kilobyte, contra los 124 de la nítida.
