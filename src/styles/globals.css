@@ -564,6 +564,19 @@
       animation-range: cover 20% cover 100%;
     }
 
+      /* La copia borrosa del fondo de egresados, que aparece encima de la
+         nítida. Va atada al mismo tramo que el acercamiento: el desenfoque
+         entra al ritmo en que los planos se separan, o sea junto con la
+         duplicación que tapa. Se anima la opacidad y no un `filter`, que a
+         pantalla completa obligaría a redibujar en cada cuadro. */
+      .plano-difumina {
+        animation:
+          acercar linear both,
+          difuminar linear both;
+        animation-timeline: --tramo, --tramo;
+        animation-range: cover 20% cover 100%, cover 20% cover 100%;
+      }
+
     /* El contenido del panel que se va se apaga antes de que lo tape el que
        viene: si no, se leen dos titulares encimados. */
     .contenido-servicio {
@@ -599,6 +612,15 @@
   }
   to {
     transform: scale(var(--acerca, 1));
+  }
+}
+
+@keyframes difuminar {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

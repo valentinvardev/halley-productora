@@ -23,10 +23,20 @@
  * más los abre más: probado a 1,24 y la manga con la franja amarilla se veía dos
  * veces.
  *
- * Lo que sí lo arregla es que el fondo vaya desenfocado. Lo que asoma por los
+ * Lo que sí lo arregla es que el fondo se vaya de foco. Lo que asoma por los
  * huecos deja de leerse como una copia y pasa a leerse como lo que en la foto ya
  * es: gente lejos, fuera de foco. Y encima cierra la profundidad que la toma ya
  * tenía, porque las manos de adelante también vienen desenfocadas.
+ *
+ * Va progresivo y no fijo: el fondo arranca nítido —la foto se ve como es— y se
+ * difumina al mismo ritmo que los planos se separan, que es cuando la
+ * duplicación aparece. El desenfoque llega junto con el problema que tapa.
+ *
+ * No se calcula en vivo. `filter: blur()` obliga a redibujar en cada cuadro y a
+ * pantalla completa se siente; una copia borrosa encima que aparece por opacidad
+ * la resuelve el compositor sola. La copia va a baja resolución a propósito: el
+ * desenfoque ya destruyó el detalle, guardarlo grande sería pagar por píxeles que
+ * no dicen nada. Pesa 12 KB contra los 124 de la nítida.
  */
 
 /** El cuadro del que salieron los tres planos. */
@@ -48,6 +58,17 @@ const PLANOS = [
     ancho: "100%",
     origen: "52.59% 41.71%",
     acerca: 1.02,
+  },
+  {
+    // La misma foto borrosa, encima de la nítida y apareciendo por opacidad.
+    // Escala igual que ella para que no se despeguen entre sí.
+    archivo: "/fondos/egresados-fondo-suave.webp",
+    izq: "0%",
+    arriba: "0%",
+    ancho: "100%",
+    origen: "52.59% 41.71%",
+    acerca: 1.02,
+    difumina: true,
   },
   {
     archivo: "/fondos/egresados-grupo.webp",
@@ -84,7 +105,9 @@ export function FondoEgresados() {
             src={p.archivo}
             alt=""
             decoding="async"
-            className="plano-acerca absolute max-w-none"
+            className={`plano-acerca absolute max-w-none ${
+              p.difumina ? "plano-difumina" : ""
+            }`}
             style={{
               left: p.izq,
               top: p.arriba,
