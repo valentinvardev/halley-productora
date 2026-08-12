@@ -34,9 +34,17 @@
  *
  * No se calcula en vivo. `filter: blur()` obliga a redibujar en cada cuadro y a
  * pantalla completa se siente; una copia borrosa encima que aparece por opacidad
- * la resuelve el compositor sola. La copia va a baja resolución a propósito: el
- * desenfoque ya destruyó el detalle, guardarlo grande sería pagar por píxeles que
- * no dicen nada: va a 420 de ancho y pesa 4 KB contra los 124 de la nítida.
+ * la resuelve el compositor sola.
+ *
+ * El desenfoque es fuerte a propósito —setenta píxeles a pantalla completa— y no
+ * lo justo para disimular. Cuanto más lejos de foco queda el fondo, más se
+ * despega de él el recorte nítido, y la duplicación deja de ser algo que se
+ * disimula para pasar a ser algo que no se puede ver. El costo es que el fondo se
+ * vuelve una mancha cálida con apenas el rastro del balcón; a cambio el curso
+ * queda solo en el cuadro, que es de lo que la foto habla.
+ *
+ * A ese desenfoque la copia puede ir muy chica sin que se note: va a 320 de ancho
+ * y pesa poco más de un kilobyte, contra los 124 de la nítida.
  */
 
 /** El cuadro del que salieron los tres planos. */
