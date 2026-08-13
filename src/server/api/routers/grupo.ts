@@ -1,6 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { crearAlumno } from "~/server/alumnos";
+import { borrarObjetos } from "~/server/s3";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
   DIA_VENCIMIENTO,
@@ -302,11 +304,74 @@ export const grupoRouter = createTRPCRouter({
       return { ok: true };
     }),
 
+  /**
+   * Cuánto se lleva puesto borrar un grupo.
+   *
+   * Es para que el cartel de confirmación diga números y no una advertencia
+   * genérica: lo que frena a alguien de borrar lo que no quería es leer "23
+   * alumnos, 41 pagos", no leer "esta acción es irreversible".
+   */
+  loQueSeBorra: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const grupo = await ctx.db.grupo.findUnique({
+        where: { id: input.id },
+        include: {
+          _count: { select: { alumnos: true, galerias: true, avisos: true } },
+          alumnos: { select: { _count: { select: { pagos: true } } } },
+          galerias: { select: { _count: { select: { fotos: true } } } },
+        },
+      });
+      if (!grupo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const pagos = grupo.alumnos.reduce((t, a) => t + a._count.pagos, 0);
+      const fotos = grupo.galerias.reduce((t, g) => t + g._count.fotos, 0);
+      return {
+        alumnos: grupo._count.alumnos,
+        galerias: grupo._count.galerias,
+        avisos: grupo._count.avisos,
+        pagos,
+        fotos,
+      };
+    }),
+
+  /**
+   * Borra un grupo con todo lo que cuelga de él.
+   *
+   * Las filas se van solas: las relaciones están en cascada. Los archivos no.
+   * Antes esto borraba la fila y dejaba las fotos de las galerías y de los avisos
+   * en S3 para siempre, ocupando espacio sin una sola fila que las nombrara — o
+   * sea, imposibles de encontrar después. Se juntan las claves primero, se
+   * borran los objetos, y recién entonces la fila.
+   *
+   * Ese orden es a propósito: si S3 falla, el grupo sigue existiendo y se puede
+   * reintentar. Al revés quedarían los archivos huérfanos, que es el estado del
+   * que no se vuelve.
+   */
   eliminar: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const grupo = await ctx.db.grupo.findUnique({
+        where: { id: input.id },
+        include: {
+          galerias: { include: { fotos: true } },
+          avisos: { include: { fotos: true } },
+        },
+      });
+      if (!grupo) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const claves = [
+        ...grupo.galerias.flatMap((g) =>
+          g.fotos.flatMap((f) =>
+            f.s3KeyMini ? [f.s3Key, f.s3KeyMini] : [f.s3Key],
+          ),
+        ),
+        ...grupo.avisos.flatMap((a) => a.fotos.map((f) => f.s3Key)),
+      ];
+      if (claves.length > 0) await borrarObjetos(claves);
+
       await ctx.db.grupo.delete({ where: { id: input.id } });
-      return { ok: true };
+      return { ok: true, archivos: claves.length };
     }),
 
   /* --------------------------------------------------------------- galería */

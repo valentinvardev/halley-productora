@@ -140,7 +140,7 @@ export function Encabezado({
           </p>
         )}
       </div>
-      {acciones && <div className="flex gap-3">{acciones}</div>}
+      {acciones && <div className="flex flex-wrap gap-3">{acciones}</div>}
     </div>
   );
 }
@@ -185,12 +185,20 @@ export function Dato({
   icono?: ReactNode;
 }) {
   return (
-    <div className="min-w-[130px] flex-1 border-r border-b border-gray-20 px-4 py-3.5">
+    <div className="min-w-[170px] flex-1 border-r border-b border-gray-20 px-4 py-3.5">
       <div className="flex items-center gap-1.5 font-rotulo text-[11.5px] uppercase tracking-[0.08em] text-gray-45">
         {icono}
         {rotulo}
       </div>
-      <div className="mt-1 font-display text-[22px] leading-none">{valor}</div>
+      {/* Los montos de un plan entero llegan a trece caracteres —"$ 271.350.000"—
+          y a 22px eso mide más que la celda en un teléfono: se salía por el
+          costado. Baja de cuerpo en pantalla angosta, y la celda sube su mínimo
+          de 130 a 170, que es lo que necesita el peor caso; en un teléfono
+          siguen entrando dos por fila. `tabular-nums` es para que las cifras
+          midan todas igual y la tira no baile cuando cambian los números. */}
+      <div className="mt-1 font-display text-[17px] leading-none tabular-nums sm:text-[22px]">
+        {valor}
+      </div>
       {detalle && <div className="mt-1.5 nota text-[11.5px]">{detalle}</div>}
     </div>
   );

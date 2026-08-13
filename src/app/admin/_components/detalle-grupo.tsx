@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
@@ -11,6 +12,7 @@ import {
   IconoLista,
   IconoMas,
   IconoObjetivo,
+  IconoPapelera,
   IconoPuntos,
   IconoReloj,
   IconoSobre,
@@ -18,6 +20,7 @@ import {
   IconoTilde,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
+import { Modal } from "~/app/_components/modal";
 import {
   Boton,
   BotonTexto,
@@ -45,7 +48,10 @@ export function DetalleGrupo({ id }: { id: string }) {
     { refetchInterval: 2500 },
   );
 
+  const router = useRouter();
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Si el cartel de borrar está abierto. */
+  const [borrando, setBorrando] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   const refrescar = async (mensaje?: string) => {
@@ -56,6 +62,22 @@ export function DetalleGrupo({ id }: { id: string }) {
       setTimeout(() => setAviso(null), 4000);
     }
   };
+
+  // Se pide sólo con el cartel abierto: son cinco conteos que no hacen falta
+  // mientras nadie esté por borrar nada.
+  const { data: seBorra } = api.grupo.loQueSeBorra.useQuery(
+    { id },
+    { enabled: borrando },
+  );
+
+  const eliminar = api.grupo.eliminar.useMutation({
+    onSuccess: () => {
+      // Se vuelve al listado antes de invalidar: quedarse en el detalle de algo
+      // que ya no existe deja la pantalla en un error.
+      router.push("/admin");
+      void utils.grupo.listar.invalidate();
+    },
+  });
 
   const invitarTodos = api.alumno.invitarTodos.useMutation({
     onSuccess: (r) =>
@@ -101,6 +123,10 @@ export function DetalleGrupo({ id }: { id: string }) {
             >
               <IconoSobreReenvio />
               Recordar pendientes
+            </Boton>
+            <Boton variante="fantasma" onClick={() => setBorrando(true)}>
+              <IconoPapelera />
+              Eliminar evento
             </Boton>
           </>
         }
@@ -325,6 +351,56 @@ export function DetalleGrupo({ id }: { id: string }) {
         alCerrar={() => setGestionandoId(null)}
         alRefrescar={refrescar}
       />
+
+      {/* El cartel dice números y no una advertencia genérica. Lo que frena a
+          alguien de borrar lo que no quería es leer "23 alumnos, 41 pagos", no
+          leer que la acción es irreversible. */}
+      <Modal
+        abierto={borrando}
+        alCerrar={() => setBorrando(false)}
+        eyebrow="Eliminar"
+        titulo={grupo.nombre}
+      >
+        <p className="text-[14px] leading-relaxed text-gray-70">
+          Se borra el evento completo y no se puede deshacer. Con él se van:
+        </p>
+        <ul className="mt-4 space-y-1.5 text-[14px]">
+          {(
+            [
+              ["alumnos cargados", seBorra?.alumnos],
+              ["pagos registrados", seBorra?.pagos],
+              ["galerías", seBorra?.galerias],
+              ["fotos y videos entregados", seBorra?.fotos],
+              ["avisos enviados", seBorra?.avisos],
+            ] as const
+          ).map(([que, cuantos]) => (
+            <li key={que} className="flex justify-between gap-4">
+              <span className="text-gray-70">{que}</span>
+              <span className="font-display tabular-nums">
+                {cuantos ?? "—"}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="nota mt-4">
+          El historial de cobros de estas familias deja de existir. Si sólo
+          querés dejar de usarlo, alcanza con no invitarlo más.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Boton variante="fantasma" onClick={() => setBorrando(false)}>
+            Cancelar
+          </Boton>
+          <button
+            type="button"
+            onClick={() => eliminar.mutate({ id })}
+            disabled={eliminar.isPending}
+            className="inline-flex items-center gap-2 border border-marca bg-marca px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-paper transition-colors hover:bg-transparent hover:text-marca disabled:opacity-40"
+          >
+            <IconoPapelera />
+            {eliminar.isPending ? "Eliminando…" : "Eliminar evento"}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }
