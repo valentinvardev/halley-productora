@@ -506,193 +506,76 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Servicios: los paneles que se apilan.
+   Servicios: la grilla de tarjetas.
 
-   Cada categoría ocupa una pantalla entera y queda clavada mientras se
-   scrollea su tramo; la siguiente entra deslizándose por encima. El apilado es
-   `position: sticky` puro, sin JS y sin librería, así que funciona en todos
-   lados.
+   Antes cada categoría ocupaba una pantalla entera y quedaba clavada mientras se
+   scrolleaba su tramo. Cuatro pantallas para cuatro títulos era mucho pedirle al
+   que sólo quiere ver qué se hace, así que ahora son cuatro tarjetas: dos por
+   dos en escritorio, una columna en el teléfono.
 
-   El tramo tiene que ser más alto que el panel: un sticky del mismo alto que
-   su contenedor nunca llega a clavarse.
+   Con eso se va también el disparador. Las capas de cada foto se animaban contra
+   el scroll del tramo, y sin tramo no hay contra qué. Pasan a transiciones: el
+   estado final se declara bajo `:hover` y bajo `.a-la-vista`, y la propiedad
+   viaja sola de uno al otro.
+
+   Los dos selectores son el mismo efecto para dos formas de mirar. En escritorio
+   lo dispara el cursor; en un teléfono no hay cursor, así que lo dispara entrar
+   en pantalla, y de eso se encarga la tarjeta con un observador que sólo se arma
+   donde no hay con qué apuntar.
 --------------------------------------------------------------------------- */
-.tramo-servicio {
-  height: 160svh;
-  view-timeline-name: --tramo;
-  view-timeline-axis: block;
+.tarjeta-servicio {
+  /* Las fotos son claras y el texto va en blanco: sin un piso oscuro, el primer
+     cuadro antes de que cargue la imagen queda ilegible. */
+  background-color: #14140f;
 }
 
-.panel-servicio {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  min-height: 30rem;
-  overflow: clip;
+/* El estado de reposo va afuera del `prefers-reduced-motion`: es cómo se ve la
+   foto quieta, y tiene que valer igual para quien pidió menos movimiento. Lo que
+   queda adentro es sólo el movimiento — sin él, las capas se quedan acá para
+   siempre, que es exactamente lo que corresponde. */
+.plano-acerca,
+.fondo-servicio {
+  transform: translate(0, 0) scale(1);
 }
 
-/**
- * El parallax.
- *
- * El fondo se corre más lento que el panel mientras el tramo cruza la
- * pantalla. Va con animaciones atadas al scroll —sin escuchar eventos, sin
- * recalcular nada en cada cuadro— y por eso queda detrás de un `@supports`:
- * donde no esté, la imagen se queda quieta y no se rompe nada más.
- */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .fondo-servicio {
-      animation: deriva linear both;
-      animation-timeline: --tramo;
-      animation-range: cover 0% cover 100%;
-    }
+.plano-difumina,
+.plano-sombra {
+  opacity: 0;
+}
 
-    /* Los planos que se acercan, en los tres paneles que los usan.
-
-       Cada plano trae su propio `--acerca` en el style, así que una sola regla
-       sirve para los diez que hay repartidos entre egresados, bodas y quince. El
-       punto desde el que crecen —el `transform-origin`— también viene de ahí: es
-       el mismo punto de la foto para todos los planos de un panel, escrito en
-       las coordenadas de cada recorte.
-
-       Arranca al 20% del tramo y no al principio. Al separarse, los planos
-       muestran lo que tienen debajo, y cuanto menos avanzado esté el
-       acercamiento mientras el panel se mira, más discreto es. Con el panel
-       clavado —del 38% al 62% del recorrido— el zoom va del 23 al 52%. */
-    .plano-acerca {
-      animation: acercar linear both;
-      animation-timeline: --tramo;
-      animation-range: cover 20% cover 100%;
-    }
-
-      /* El marco de bodas apagándose. Es la misma imagen otra vez con un filtro
-         de brillo: el filtro se rasteriza una sola vez y lo único que se anima es
-         la opacidad, que la resuelve el compositor. Sin `--acerca` a propósito —
-         este plano no se mueve, y que se quede quieto es justamente lo que hace
-         que se note el que sí se mueve. */
-      .plano-sombra {
-        filter: brightness(0.7) saturate(0.88);
-        /* Lleva las dos animaciones porque el atajo `animation` pisa al de la
-           clase compartida: si sólo declarara la opacidad, esta copia dejaría de
-           crecer y se despegaría del marco que está apagando. */
-        animation:
-          acercar linear both,
-          revelar linear both;
-        animation-timeline: --tramo, --tramo;
-        animation-range: cover 20% cover 100%, cover 20% cover 100%;
-      }
-
-      /* La copia borrosa del fondo de egresados, que aparece encima de la
-         nítida. Va atada al mismo tramo que el acercamiento: el desenfoque
-         entra al ritmo en que los planos se separan, o sea junto con la
-         duplicación que tapa. Se anima la opacidad y no un `filter`, que a
-         pantalla completa obligaría a redibujar en cada cuadro. */
-            .plano-difumina {
-        animation:
-          acercar linear both,
-          revelar linear both;
-        animation-timeline: --tramo, --tramo;
-        /* Dos tramos distintos a propósito. El desenfoque arranca antes que el
-           acercamiento y termina mucho antes: si los dos corrieran juntos, a
-           mitad de camino habría media separación con medio desenfoque, y esa es
-           exactamente la ventana donde el recorte ya se corrió lo suficiente
-           para dejar ver su copia y el fondo todavía está casi nítido. Llegando
-           primero, el fondo ya es una mancha cuando la separación empieza a
-           notarse. */
-        animation-range: cover 20% cover 100%, cover 15% cover 50%;
-      }
-
-    /* El contenido del panel que se va se apaga antes de que lo tape el que
-       viene: si no, se leen dos titulares encimados. */
-    .contenido-servicio {
-      animation: despedir linear both;
-      animation-timeline: --tramo;
-      animation-range: exit 0% exit 70%;
-    }
+@media (prefers-reduced-motion: no-preference) {
+  /* La transición vive en el reposo y no en el estado final para que la vuelta
+     dure lo mismo que la ida: declarada sólo en `:hover`, al salir el cursor la
+     capa volvería de golpe. */
+  .plano-acerca,
+  .fondo-servicio {
+    transition: transform 1100ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
-}
 
-/* ---------------------------------------------------------------------------
-   El aviso de cobro del panel.
-
-   Entra desde la derecha y se queda. No se anima la salida: la lista se corta
-   sola cuando el temporizador vence, y encadenar una animación de salida obliga
-   a mantener vivo un elemento que ya no representa nada.
---------------------------------------------------------------------------- */
-.aviso-cobro {
-  animation: entrar-aviso 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes entrar-aviso {
-  from {
-    opacity: 0;
-    transform: translateX(1.25rem);
+  .plano-difumina,
+  .plano-sombra {
+    transition: opacity 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .aviso-cobro {
-    animation: none;
-  }
-}
-
-/* Sin scroll asistido entre categorías.
-   Se probó con paradas por tramo y `scroll-snap-stop: always`. Un gesto llevaba
-   a la categoría siguiente, que era la idea, pero el precio fue el scroll
-   entero: el gesto deja de responder a la mano y pasa a decidirlo el navegador,
-   y en el teléfono se sentía trabado. Encima el snap reacomoda el scroll por su
-   cuenta, y las capas de los paneles se animan atadas justamente al scroll: cada
-   reacomodo les daba un tirón.
-   El deslizamiento entre paneles ya lo dan el `sticky` y las animaciones del
-   tramo, y ése no le pelea a nadie. */
-
-@keyframes deriva {
-  from {
-    transform: translateY(-8%) scale(1.08);
-  }
-  to {
-    transform: translateY(8%) scale(1.08);
-  }
-}
-
-/* Los planos crecen, y opcionalmente suben mientras lo hacen.
-   El corrimiento va antes de la escala en la lista, así que se aplica después y
-   no queda multiplicado por ella: `--sube` es siempre el mismo porcentaje del
-   alto del plano, crezca lo que crezca. Por defecto es cero y el plano sólo
-   crece, que es lo que hacen casi todos. */
-@keyframes acercar {
-  from {
-    transform: translate(0, 0) scale(1);
-  }
-  to {
+  .tarjeta-servicio:hover .plano-acerca,
+  .tarjeta-servicio.a-la-vista .plano-acerca {
+    /* Cada plano trae su propio destino en variables: cuánto crece, y si además
+       sube o se corre. Las tres valen cero o uno por defecto, así que una sola
+       regla mueve los diez planos repartidos entre los tres paneles. */
     transform: translate(var(--corre, 0%), var(--sube, 0%))
       scale(var(--acerca, 1));
   }
-}
 
-@keyframes revelar {
-  from {
-    opacity: 0;
+  .tarjeta-servicio:hover .fondo-servicio,
+  .tarjeta-servicio.a-la-vista .fondo-servicio {
+    transform: scale(1.07);
   }
-  to {
+
+  .tarjeta-servicio:hover .plano-difumina,
+  .tarjeta-servicio.a-la-vista .plano-difumina,
+  .tarjeta-servicio:hover .plano-sombra,
+  .tarjeta-servicio.a-la-vista .plano-sombra {
     opacity: 1;
-  }
-}
-
-@keyframes despedir {
-  to {
-    opacity: 0;
-    transform: translateY(-2.5rem);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tramo-servicio {
-    height: auto;
-  }
-  .panel-servicio {
-    position: relative;
-    height: auto;
-    min-height: 0;
   }
 }
 

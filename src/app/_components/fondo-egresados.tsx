@@ -124,7 +124,7 @@ export function FondoEgresados() {
           panel. Mientras la conserve, los tres planos calzan entre sí solos:
           todos están ubicados en porcentajes del mismo cuadro. */}
       <div
-        className="absolute top-1/2 left-1/2 w-full min-w-[178svh] -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 w-full min-w-[max(89svh,26rem)] lg:min-w-[max(93svh,27rem)] -translate-x-1/2 -translate-y-1/2"
         style={{ aspectRatio: PROPORCION }}
       >
         {PLANOS.map((p) => (

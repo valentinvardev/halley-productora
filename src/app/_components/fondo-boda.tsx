@@ -48,10 +48,10 @@ export function FondoBoda() {
   return (
     <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
       {/* El lienzo mantiene la proporción del cuadro y crece hasta tapar el
-          panel. El ancho mínimo acompaña al alto: 100svh por 1,7776 son 178svh,
-          y el `max` cubre el `min-height` del panel en una ventana muy baja. */}
+          panel. El ancho mínimo acompaña al alto de la tarjeta:
+          50svh por la proporción 1,7776 son 89svh, y 52svh en escritorio son 93. */}
       <div
-        className="absolute top-1/2 left-1/2 w-full min-w-[max(178svh,53.3rem)] -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 w-full min-w-[max(89svh,26rem)] lg:min-w-[max(93svh,27rem)] -translate-x-1/2 -translate-y-1/2"
         style={{ aspectRatio: PROPORCION }}
       >
         {/* El seguro contra costuras. Nunca se ve. */}

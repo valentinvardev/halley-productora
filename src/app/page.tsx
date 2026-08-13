@@ -15,6 +15,7 @@ import { FondoBoda } from "./_components/fondo-boda";
 import { FondoEgresados } from "./_components/fondo-egresados";
 import { FondoQuince } from "./_components/fondo-quince";
 import { LogoAnimado } from "./_components/logo-animado";
+import { TarjetaServicio } from "./_components/tarjeta-servicio";
 import { Logotipo } from "./_components/logotipo";
 import { existeEnPublico } from "./_components/medio";
 import { NavPublica } from "./_components/nav-publica";
@@ -386,67 +387,69 @@ async function Servicios() {
         </h2>
       </div>
 
-      <div className="relative">
+      {/* Dos por dos en escritorio, una columna en el teléfono. La separación
+          es una línea de un píxel, como la grilla del mosaico: el fondo gris
+          asoma por el `gap` y no hace falta un borde por tarjeta. */}
+      <div className="grid gap-px border-y border-gray-20 bg-gray-20 lg:grid-cols-2">
         {SERVICIOS.map((s, i) => {
           const portadas = fondos[i] ?? [];
           return (
-            <div key={s.slug} className="tramo-servicio">
-              <article className="panel-servicio aisla relative flex items-end">
-                {s.slug === "egresados" ? (
-                  <FondoEgresados />
-                ) : s.slug === "bodas" ? (
-                  <FondoBoda />
-                ) : s.slug === "quince" ? (
-                  <FondoQuince />
-                ) : portadas.length > 0 ? (
-                  <MosaicoPortadas piezas={portadas} />
-                ) : (
-                  <Image
-                    src={`/servicios/${s.slug}-portada.jpg`}
-                    alt=""
-                    aria-hidden="true"
-                    fill
-                    sizes="100vw"
-                    priority={i === 0}
-                    className="fondo-servicio object-cover"
-                  />
-                )}
-                {/* Sombra al pie de la diapositiva: sostiene el texto por más
-                  clara que sea la foto de fondo. */}
-                <div
-                  className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgb(0_0_0/0.9)] via-[rgb(0_0_0/0.5)] to-transparent"
+            <TarjetaServicio
+              key={s.slug}
+              className="aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]"
+            >
+              {s.slug === "egresados" ? (
+                <FondoEgresados />
+              ) : s.slug === "bodas" ? (
+                <FondoBoda />
+              ) : s.slug === "quince" ? (
+                <FondoQuince />
+              ) : portadas.length > 0 ? (
+                <MosaicoPortadas piezas={portadas} />
+              ) : (
+                <Image
+                  src={`/servicios/${s.slug}-portada.jpg`}
+                  alt=""
                   aria-hidden="true"
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  priority={i === 0}
+                  className="fondo-servicio object-cover"
                 />
+              )}
 
-                <div className="contenido-servicio relative mx-auto w-full max-w-[1140px] px-6 pb-14 sm:px-10 sm:pb-20">
-                  <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] text-white/70">
-                    {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
-                  </p>
+              {/* Sombra al pie: sostiene el texto por más clara que sea la foto
+                  de fondo. */}
+              <div
+                className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[rgb(0_0_0/0.9)] via-[rgb(0_0_0/0.45)] to-transparent"
+                aria-hidden="true"
+              />
 
-                  {/* El mismo filtro negativo que el titular de la portada: sobre
+              <div className="relative w-full px-6 pb-8 sm:px-8 sm:pb-10">
+                <p className="font-rotulo text-[11.5px] tracking-[0.22em] text-white/70 uppercase">
+                  {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
+                </p>
+
+                {/* El mismo filtro negativo que el titular de la portada: sobre
                     una foto que todavía no existe, no hay color que sirva
                     siempre. */}
-                  <h3 className="negativo mt-3 font-titulo text-[clamp(2.6rem,min(9vw,13svh),7rem)] leading-[0.86] uppercase">
-                    {s.nombre}
-                  </h3>
+                <h3 className="negativo mt-2 font-titulo text-[clamp(2.1rem,5.2vw,3.4rem)] leading-[0.88] uppercase">
+                  {s.nombre}
+                </h3>
 
-                  <p className="mt-4 max-w-[46ch] text-[16px] leading-snug text-white">
-                    {s.linea}
-                  </p>
-                  <p className="mt-2.5 max-w-[54ch] text-[14px] leading-relaxed text-white/70">
-                    {s.detalle}
-                  </p>
+                <p className="mt-3 max-w-[42ch] text-[14.5px] leading-snug text-white">
+                  {s.linea}
+                </p>
 
-                  <Link
-                    href={`/servicios/${s.slug}`}
-                    className="mt-7 inline-flex items-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black"
-                  >
-                    Ver {s.nombre.toLowerCase()}
-                    <IconoFlecha />
-                  </Link>
-                </div>
-              </article>
-            </div>
+                <Link
+                  href={`/servicios/${s.slug}`}
+                  className="mt-5 inline-flex items-center gap-2 border border-white/70 px-[18px] py-[11px] font-rotulo text-[12px] tracking-[0.04em] text-white uppercase transition-colors hover:bg-white hover:text-black"
+                >
+                  Ver {s.nombre.toLowerCase()}
+                  <IconoFlecha />
+                </Link>
+              </div>
+            </TarjetaServicio>
           );
         })}
       </div>
