@@ -586,12 +586,19 @@
          entra al ritmo en que los planos se separan, o sea junto con la
          duplicación que tapa. Se anima la opacidad y no un `filter`, que a
          pantalla completa obligaría a redibujar en cada cuadro. */
-      .plano-difumina {
+            .plano-difumina {
         animation:
           acercar linear both,
           revelar linear both;
         animation-timeline: --tramo, --tramo;
-        animation-range: cover 20% cover 100%, cover 20% cover 100%;
+        /* Dos tramos distintos a propósito. El desenfoque arranca antes que el
+           acercamiento y termina mucho antes: si los dos corrieran juntos, a
+           mitad de camino habría media separación con medio desenfoque, y esa es
+           exactamente la ventana donde el recorte ya se corrió lo suficiente
+           para dejar ver su copia y el fondo todavía está casi nítido. Llegando
+           primero, el fondo ya es una mancha cuando la separación empieza a
+           notarse. */
+        animation-range: cover 20% cover 100%, cover 15% cover 50%;
       }
 
     /* El contenido del panel que se va se apaga antes de que lo tape el que
