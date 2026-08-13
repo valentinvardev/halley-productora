@@ -599,6 +599,30 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   El aviso de cobro del panel.
+
+   Entra desde la derecha y se queda. No se anima la salida: la lista se corta
+   sola cuando el temporizador vence, y encadenar una animación de salida obliga
+   a mantener vivo un elemento que ya no representa nada.
+--------------------------------------------------------------------------- */
+.aviso-cobro {
+  animation: entrar-aviso 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes entrar-aviso {
+  from {
+    opacity: 0;
+    transform: translateX(1.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-cobro {
+    animation: none;
+  }
+}
+
 /* Sin scroll asistido entre categorías.
    Se probó con paradas por tramo y `scroll-snap-stop: always`. Un gesto llevaba
    a la categoría siguiente, que era la idea, pero el precio fue el scroll

@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 
 import { IconoTilde } from "~/app/_components/iconos";
 import { Boton, Campo, Encabezado } from "~/app/_components/ui";
-import { CAMPOS_AJUSTE, type ClaveAjusteUI } from "~/app/_datos/ajustes";
+import {
+  CAMPOS_AJUSTE,
+  SONIDOS_PAGO,
+  type ClaveAjusteUI,
+} from "~/app/_datos/ajustes";
 import { api } from "~/trpc/react";
 import { EsqueletoAjustes } from "./esqueletos";
 
@@ -45,16 +49,19 @@ export function Ajustes() {
     );
   }
 
-  const cambio = CAMPOS_AJUSTE.some(
-    (c) => (valores[c.clave] ?? "") !== ((data?.[c.clave] as string) ?? ""),
+  const CLAVES = [...CAMPOS_AJUSTE.map((c) => c.clave), "sonidoPago"] as const;
+  const cambio = CLAVES.some(
+    (clave) => (valores[clave] ?? "") !== ((data?.[clave] as string) ?? ""),
   );
+
+  const sonido = valores.sonidoPago ?? "campana";
 
   return (
     <>
       <Encabezado
         eyebrow="Panel"
         titulo="Ajustes"
-        bajada="Los datos de contacto que aparecen en la web pública. El WhatsApp alimenta todos los botones de “pedir presupuesto”."
+        bajada="Los datos de contacto que aparecen en la web pública, y el sonido con el que el panel avisa que entró un pago."
       />
 
       <div className="max-w-[560px] border border-ink p-6">
@@ -71,6 +78,44 @@ export function Ajustes() {
               }
             />
           ))}
+          {/* El sonido del aviso de cobro. Va con el resto de lo que se cambia
+                sin deploy, y con un botón para escucharlo: elegir un sonido a
+                ciegas por su nombre no sirve de nada. */}
+          <div>
+            <label className="mb-1.5 block font-rotulo text-[11.5px] tracking-[0.08em] text-gray-70 uppercase">
+              Sonido al cobrar
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={sonido}
+                onChange={(e) =>
+                  setValores((v) => ({ ...v!, sonidoPago: e.target.value }))
+                }
+                className="min-w-[180px] flex-1 border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
+              >
+                {SONIDOS_PAGO.map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+              <Boton
+                variante="fantasma"
+                onClick={() => {
+                  if (sonido === "silencio") return;
+                  void new Audio(`/sonidos/${sonido}.mp3`)
+                    .play()
+                    .catch(() => undefined);
+                }}
+                disabled={sonido === "silencio"}
+              >
+                Probar
+              </Boton>
+            </div>
+            <p className="nota mt-1.5">
+              Suena en el panel cuando entra un pago, en la pantalla que sea.
+            </p>
+          </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -78,7 +123,7 @@ export function Ajustes() {
             onClick={() =>
               guardar.mutate(
                 Object.fromEntries(
-                  CAMPOS_AJUSTE.map((c) => [c.clave, valores[c.clave] ?? ""]),
+                  CLAVES.map((clave) => [clave, valores[clave] ?? ""]),
                 ) as Record<ClaveAjusteUI, string>,
               )
             }

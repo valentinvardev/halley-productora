@@ -26,6 +26,18 @@ export const AJUSTES = {
     ayuda: "La casilla que se muestra en la web.",
     porDefecto: "hola@halleyaudiovisual.com",
   },
+  /**
+   * Qué suena cuando entra un pago mientras el panel está abierto.
+   *
+   * Vive acá con el resto porque es lo mismo: un valor suelto que se cambia sin
+   * deploy. "silencio" apaga el sonido pero no el aviso en pantalla, que son dos
+   * molestias distintas y conviene poder elegirlas por separado.
+   */
+  sonidoPago: {
+    etiqueta: "Sonido al cobrar",
+    ayuda: "Suena en el panel cuando entra un pago.",
+    porDefecto: "campana",
+  },
 } as const;
 
 export type ClaveAjuste = keyof typeof AJUSTES;

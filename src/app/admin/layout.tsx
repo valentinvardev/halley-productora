@@ -11,8 +11,10 @@ import {
   IconoSobre,
 } from "~/app/_components/iconos";
 import { SidebarPanel } from "~/app/_components/sidebar-panel";
+import { contacto } from "~/server/ajustes";
 import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
 import { cerrarSesion } from "./acciones";
+import { AvisoCobros } from "./_components/aviso-cobros";
 import { Login } from "./_components/login";
 
 const ENLACES = [
@@ -64,6 +66,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const galleta = await cookies();
+  const ajustes = await contacto();
 
   if (!cookieValida(galleta.get(COOKIE_ADMIN)?.value)) {
     return <Login />;
@@ -99,6 +102,10 @@ export default async function AdminLayout({
         <main className="mx-auto max-w-[1080px] px-6 py-12 sm:px-8">
           {children}
         </main>
+
+        {/* Va en el layout y no en una pantalla: el aviso tiene que sonar se
+            esté donde se esté dentro del panel. */}
+        <AvisoCobros sonido={ajustes.sonidoPago} />
       </div>
     </div>
   );

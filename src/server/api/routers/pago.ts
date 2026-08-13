@@ -145,6 +145,39 @@ async function simularTransferencia(alumnoId: string, montoManual?: number) {
 }
 
 export const pagoRouter = createTRPCRouter({
+  /**
+   * Los pagos que entraron después de un momento dado.
+   *
+   * Es lo que hace que el aviso del panel sea en vivo. No hay websocket: el panel
+   * pregunta cada pocos segundos por lo que haya después de la última vez, que
+   * para este volumen alcanza de sobra y no agrega una pieza de infraestructura
+   * que después hay que mantener corriendo.
+   *
+   * Se limita a veinte por si el panel estuvo mucho rato sin preguntar —una
+   * pestaña dormida, la máquina suspendida—: mejor avisar de veinte y perder el
+   * resto que apilar doscientos carteles de golpe.
+   */
+  nuevosDesde: adminProcedure
+    .input(z.object({ desde: z.string().datetime() }))
+    .query(async ({ ctx, input }) => {
+      const pagos = await ctx.db.pago.findMany({
+        where: { recibidoEn: { gt: new Date(input.desde) } },
+        orderBy: { recibidoEn: "asc" },
+        take: 20,
+        include: {
+          alumno: { include: { grupo: { select: { nombre: true } } } },
+        },
+      });
+
+      return pagos.map((p) => ({
+        id: p.id,
+        monto: Number(p.monto),
+        alumno: p.alumno.nombre,
+        grupo: p.alumno.grupo.nombre,
+        recibidoEn: p.recibidoEn.toISOString(),
+      }));
+    }),
+
   /** Desde el panel: el admin fuerza el pago de un alumno. */
   simular: adminProcedure
     .input(

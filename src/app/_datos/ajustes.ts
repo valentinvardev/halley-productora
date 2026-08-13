@@ -28,4 +28,17 @@ export const CAMPOS_AJUSTE = [
   },
 ] as const;
 
+/**
+ * Los sonidos disponibles para el aviso de cobro.
+ *
+ * Son tres tonos sintetizados, no muestras grabadas: pesan entre cinco y doce
+ * kilobytes y no arrastran licencias.
+ */
+export const SONIDOS_PAGO = [
+  { valor: "campana", etiqueta: "Campana" },
+  { valor: "moneda", etiqueta: "Moneda" },
+  { valor: "pulso", etiqueta: "Pulso" },
+  { valor: "silencio", etiqueta: "Sin sonido" },
+] as const;
+
 export type ClaveAjusteUI = (typeof CAMPOS_AJUSTE)[number]["clave"];
