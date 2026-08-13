@@ -79,6 +79,12 @@ const PLANOS = [
     ancho: "97.963%",
     origen: "50.13% 56.66%",
     acerca: 1.22,
+    // Además de crecer, sube. Los floreros están abajo a la izquierda del punto
+    // de fuga, así que al agrandarse se corren hacia abajo y destapan por arriba
+    // el relleno que el salón tiene donde ellos estaban: una mancha oscura que
+    // se nota. Subiendo mientras crecen la vuelven a tapar. Va progresivo como
+    // el resto, así que al principio la foto está tal cual.
+    sube: "-6%",
   },
 ];
 
@@ -107,6 +113,7 @@ export function FondoQuince() {
               width: p.ancho,
               transformOrigin: p.origen,
               ["--acerca" as string]: p.acerca,
+              ...("sube" in p ? { ["--sube" as string]: p.sube } : {}),
             }}
           />
         ))}

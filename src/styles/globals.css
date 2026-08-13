@@ -654,12 +654,17 @@
   }
 }
 
+/* Los planos crecen, y opcionalmente suben mientras lo hacen.
+   El corrimiento va antes de la escala en la lista, así que se aplica después y
+   no queda multiplicado por ella: `--sube` es siempre el mismo porcentaje del
+   alto del plano, crezca lo que crezca. Por defecto es cero y el plano sólo
+   crece, que es lo que hacen casi todos. */
 @keyframes acercar {
   from {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
   to {
-    transform: scale(var(--acerca, 1));
+    transform: translateY(var(--sube, 0%)) scale(var(--acerca, 1));
   }
 }
 
