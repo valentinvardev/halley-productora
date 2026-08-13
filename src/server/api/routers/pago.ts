@@ -180,16 +180,16 @@ export const pagoRouter = createTRPCRouter({
   marcarCuotas: adminProcedure
     .input(
       z.object({
-        alcance: z.enum(["alumno", "grupo"]),
-        id: z.string(),
+        /** A quiénes. Vienen elegidos de una lista, no por alcance: marcar es
+            siempre para alguien en particular, aunque ese alguien sean todos. */
+        alumnoIds: z.array(z.string()).min(1).max(500),
         /** El número de cuota, o `null` para saldar todo lo que falte. */
         cuota: z.number().int().positive().nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const alumnos = await ctx.db.alumno.findMany({
-        where:
-          input.alcance === "alumno" ? { id: input.id } : { grupoId: input.id },
+        where: { id: { in: input.alumnoIds } },
         include: { pagos: true, grupo: { include: { cuotas: true } } },
       });
       if (alumnos.length === 0) throw new TRPCError({ code: "NOT_FOUND" });

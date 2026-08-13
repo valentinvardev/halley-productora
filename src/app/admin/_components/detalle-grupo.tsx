@@ -361,15 +361,20 @@ export function DetalleGrupo({ id }: { id: string }) {
       <GestionCuotas
         abierto={gestionandoCuotas}
         alCerrar={() => setGestionandoCuotas(false)}
-        grupoId={id}
         grupoNombre={grupo.nombre}
-        cuotas={grupo.cuotas.map((c) => ({
-          id: c.id,
-          numero: c.numero,
-          monto: Number(c.monto),
-          venceEl: String(c.venceEl),
+        totalCuotas={grupo.cuotas.length}
+        // Cada alumno viaja con su plan ya imputado, que es lo que le permite al
+        // modal mostrar cuánto debe cada uno y sumar el total exacto de lo que se
+        // va a registrar sin volver a preguntar.
+        alumnos={grupo.alumnos.map((a) => ({
+          id: a.id,
+          nombre: a.nombre,
+          deuda: a.plan.deuda,
+          cuotas: a.plan.cuotas.map((c) => ({
+            numero: c.numero,
+            saldo: c.saldo,
+          })),
         }))}
-        alumnos={grupo.alumnos.map((a) => ({ id: a.id, nombre: a.nombre }))}
         alRefrescar={refrescar}
       />
 
