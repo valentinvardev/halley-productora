@@ -661,10 +661,11 @@
    crece, que es lo que hacen casi todos. */
 @keyframes acercar {
   from {
-    transform: translateY(0) scale(1);
+    transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translateY(var(--sube, 0%)) scale(var(--acerca, 1));
+    transform: translate(var(--corre, 0%), var(--sube, 0%))
+      scale(var(--acerca, 1));
   }
 }
 

@@ -72,6 +72,21 @@ const PLANOS = [
     origen: "43.40% 43.67%",
     acerca: 1.16,
   },
+  // Las arañas y los floreros van partidos al medio, y cada mitad se acerca al
+  // centro mientras crece.
+  //
+  // Es una sola foto, pero los dos floreros están a lados opuestos del punto de
+  // fuga: al agrandarse, el de la izquierda se corre a la izquierda y el de la
+  // derecha a la derecha, y cada uno destapa por su lado interno el relleno que
+  // el salón tiene donde ellos estaban. Un corrimiento único no puede arreglar
+  // los dos —el que tapa uno destapa el otro—, así que se los trata por
+  // separado.
+  //
+  // El corte va justo al 50%, donde la capa está completamente vacía: se
+  // verificó columna por columna que ahí no hay un solo píxel opaco, así que no
+  // parte nada por la mitad. Y como las dos mitades comparten el mismo origen y
+  // la misma escala, siguen calzando entre sí: lo único que las separa es el
+  // acercamiento deliberado.
   {
     archivo: "/fondos/quince-lamparas.webp",
     izq: "0%",
@@ -79,12 +94,20 @@ const PLANOS = [
     ancho: "97.963%",
     origen: "50.13% 56.66%",
     acerca: 1.22,
-    // Además de crecer, sube. Los floreros están abajo a la izquierda del punto
-    // de fuga, así que al agrandarse se corren hacia abajo y destapan por arriba
-    // el relleno que el salón tiene donde ellos estaban: una mancha oscura que
-    // se nota. Subiendo mientras crecen la vuelven a tapar. Va progresivo como
-    // el resto, así que al principio la foto está tal cual.
     sube: "-6%",
+    recorte: "inset(0 50% 0 0)",
+    corre: "5%",
+  },
+  {
+    archivo: "/fondos/quince-lamparas.webp",
+    izq: "0%",
+    arriba: "0%",
+    ancho: "97.963%",
+    origen: "50.13% 56.66%",
+    acerca: 1.22,
+    sube: "-6%",
+    recorte: "inset(0 0 0 50%)",
+    corre: "-5%",
   },
 ];
 
@@ -102,7 +125,7 @@ export function FondoQuince() {
         {PLANOS.map((p) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            key={p.archivo}
+            key={p.archivo + (p.recorte ?? "")}
             src={p.archivo}
             alt=""
             decoding="async"
@@ -114,6 +137,8 @@ export function FondoQuince() {
               transformOrigin: p.origen,
               ["--acerca" as string]: p.acerca,
               ...("sube" in p ? { ["--sube" as string]: p.sube } : {}),
+              ...("corre" in p ? { ["--corre" as string]: p.corre } : {}),
+              ...("recorte" in p ? { clipPath: p.recorte } : {}),
             }}
           />
         ))}
