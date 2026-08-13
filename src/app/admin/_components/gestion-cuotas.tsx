@@ -38,6 +38,8 @@ export type AlumnoCuotas = {
   deuda: number;
   /** El plan imputado: cuánto falta de cada cuota, hoy, con la mora incluida. */
   cuotas: { numero: number; saldo: number }[];
+  /** Lo que se marcó a mano: es lo único que se puede deshacer. */
+  manual: { cantidad: number; total: number };
 };
 
 export function GestionCuotas({
@@ -65,6 +67,26 @@ export function GestionCuotas({
   const [cuota, setCuota] = useState<number | null>(null);
   const [confirmando, setConfirmando] = useState(false);
 
+  /** Marcar o deshacer. Son la misma pantalla porque comparten la selección. */
+  const [modo, setModo] = useState<"marcar" | "deshacer">("marcar");
+  /** Al deshacer: todos los marcados a mano, o sólo el último de cada uno. */
+  const [todosLosManuales, setTodosLosManuales] = useState(false);
+
+  const avisar = async (n: number, total: number, verbo: string) => {
+    setConfirmando(false);
+    await alRefrescar(
+      n === 0
+        ? "No había nada que hacer"
+        : `${n} pago${n === 1 ? "" : "s"} ${verbo} por ${pesos(total)}`,
+    );
+    alCerrar();
+  };
+
+  const deshacer = api.pago.desmarcarCuotas.useMutation({
+    onSuccess: (r) =>
+      avisar(r.borrados, r.total, "deshecho" + (r.borrados === 1 ? "" : "s")),
+  });
+
   const marcar = api.pago.marcarCuotas.useMutation({
     onSuccess: async (r) => {
       setConfirmando(false);
@@ -88,6 +110,18 @@ export function GestionCuotas({
     let cuantos = 0;
     for (const a of alumnos) {
       if (!elegidos.has(a.id)) continue;
+
+      if (modo === "deshacer") {
+        if (a.manual.cantidad === 0) continue;
+        // Con "el último" se saca uno solo por alumno; el monto exacto de ese
+        // pago no vino, así que se muestra el promedio y se aclara al confirmar.
+        cuantos += todosLosManuales ? a.manual.cantidad : 1;
+        total += todosLosManuales
+          ? a.manual.total
+          : a.manual.total / a.manual.cantidad;
+        continue;
+      }
+
       const monto =
         cuota === null
           ? a.deuda
@@ -98,7 +132,7 @@ export function GestionCuotas({
       }
     }
     return { total, cuantos };
-  }, [alumnos, elegidos, cuota]);
+  }, [alumnos, elegidos, cuota, modo, todosLosManuales]);
 
   const alternar = (id: string) =>
     setElegidos((s) => {
@@ -118,10 +152,32 @@ export function GestionCuotas({
         eyebrow={grupoNombre}
         titulo="Gestión de cuotas"
       >
-        <p className="text-[14px] leading-relaxed text-gray-70">
-          Elegí a quiénes y qué cuota. Se registra el pago que la salda, por lo
-          que falte hoy con la mora incluida — es para lo que se cobró por fuera
-          del sistema.
+        <div className="flex gap-2">
+          {(
+            [
+              ["marcar", "Marcar pagas"],
+              ["deshacer", "Deshacer"],
+            ] as const
+          ).map(([valor, texto]) => (
+            <button
+              key={valor}
+              type="button"
+              onClick={() => setModo(valor)}
+              className={`flex-1 border px-3.5 py-2 font-rotulo text-[11.5px] tracking-[0.06em] uppercase transition-colors ${
+                modo === valor
+                  ? "border-ink bg-ink text-paper"
+                  : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+              }`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-4 text-[14px] leading-relaxed text-gray-70">
+          {modo === "marcar"
+            ? "Elegí a quiénes y qué cuota. Se registra el pago que la salda, por lo que falte hoy con la mora incluida — es para lo que se cobró por fuera del sistema."
+            : "Saca los pagos que se marcaron a mano y las cuotas vuelven a figurar como estaban. Los que entraron por Talo o Mercado Pago no se tocan: esa plata entró de verdad."}
         </p>
 
         {!unico && (
@@ -163,12 +219,22 @@ export function GestionCuotas({
                   <span className="min-w-0 flex-1 truncate text-[13.5px]">
                     {a.nombre}
                   </span>
+                  {/* En cada modo importa un número distinto: para marcar,
+                      cuánto debe; para deshacer, cuánto se le marcó a mano. */}
                   <span
                     className={`shrink-0 font-display text-[13.5px] tabular-nums ${
-                      a.deuda > 0 ? "text-ink" : "text-gray-45"
+                      (modo === "marcar" ? a.deuda : a.manual.total) > 0
+                        ? "text-ink"
+                        : "text-gray-45"
                     }`}
                   >
-                    {a.deuda > 0 ? `debe ${pesos(a.deuda)}` : "al día"}
+                    {modo === "marcar"
+                      ? a.deuda > 0
+                        ? `debe ${pesos(a.deuda)}`
+                        : "al día"
+                      : a.manual.cantidad > 0
+                        ? `${a.manual.cantidad} a mano`
+                        : "sin marcas"}
                   </span>
                 </label>
               </li>
@@ -179,31 +245,46 @@ export function GestionCuotas({
         <div className="mt-5 grid gap-3">
           <label className="grid gap-1.5">
             <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-70 uppercase">
-              Qué se marca
+              {modo === "marcar" ? "Qué se marca" : "Qué se deshace"}
             </span>
-            <select
-              value={cuota === null ? "todas" : String(cuota)}
-              onChange={(e) =>
-                setCuota(
-                  e.target.value === "todas" ? null : Number(e.target.value),
-                )
-              }
-              className="w-full border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
-            >
-              <option value="todas">Todo lo que falte</option>
-              {Array.from({ length: totalCuotas }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  Cuota {n}
-                </option>
-              ))}
-            </select>
+            {modo === "marcar" ? (
+              <select
+                value={cuota === null ? "todas" : String(cuota)}
+                onChange={(e) =>
+                  setCuota(
+                    e.target.value === "todas" ? null : Number(e.target.value),
+                  )
+                }
+                className="w-full border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
+              >
+                <option value="todas">Todo lo que falte</option>
+                {Array.from({ length: totalCuotas }, (_, i) => i + 1).map(
+                  (n) => (
+                    <option key={n} value={n}>
+                      Cuota {n}
+                    </option>
+                  ),
+                )}
+              </select>
+            ) : (
+              <select
+                value={todosLosManuales ? "todos" : "ultimo"}
+                onChange={(e) =>
+                  setTodosLosManuales(e.target.value === "todos")
+                }
+                className="w-full border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
+              >
+                <option value="ultimo">El último marcado de cada uno</option>
+                <option value="todos">Todos los marcados a mano</option>
+              </select>
+            )}
           </label>
 
           {/* El total sale de los planes que ya vinieron imputados, así que es el
               monto exacto y no una estimación. */}
           <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-3.5 py-3">
             <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-45 uppercase">
-              Se va a registrar
+              {modo === "marcar" ? "Se va a registrar" : "Se va a deshacer"}
             </span>
             <span className="font-display text-[18px] tabular-nums">
               {previo.cuantos === 0
@@ -224,7 +305,7 @@ export function GestionCuotas({
             disabled={previo.cuantos === 0}
           >
             <IconoTilde />
-            Marcar como paga
+            {modo === "marcar" ? "Marcar como paga" : "Deshacer"}
           </Boton>
         </div>
       </Modal>
@@ -237,18 +318,36 @@ export function GestionCuotas({
         alCerrar={() => setConfirmando(false)}
         eyebrow={grupoNombre}
         titulo={
-          cuota === null
-            ? "Marcar todo lo que falte"
-            : `Marcar la cuota ${cuota}`
+          modo === "deshacer"
+            ? todosLosManuales
+              ? "Deshacer todo lo marcado a mano"
+              : "Deshacer el último marcado"
+            : cuota === null
+              ? "Marcar todo lo que falte"
+              : `Marcar la cuota ${cuota}`
         }
       >
         <p className="text-[14px] leading-relaxed text-gray-70">
-          Se registran{" "}
-          <strong className="text-ink">
-            {previo.cuantos} pago{previo.cuantos === 1 ? "" : "s"} por{" "}
-            {pesos(previo.total)}
-          </strong>
-          , con la mora incluida.
+          {modo === "marcar" ? (
+            <>
+              Se registran{" "}
+              <strong className="text-ink">
+                {previo.cuantos} pago{previo.cuantos === 1 ? "" : "s"} por{" "}
+                {pesos(previo.total)}
+              </strong>
+              , con la mora incluida.
+            </>
+          ) : (
+            <>
+              Se borran{" "}
+              <strong className="text-ink">
+                {previo.cuantos} pago{previo.cuantos === 1 ? "" : "s"} marcado
+                {previo.cuantos === 1 ? "" : "s"} a mano
+              </strong>{" "}
+              y esas cuotas vuelven a figurar impagas. Los que entraron por Talo
+              o Mercado Pago no se tocan.
+            </>
+          )}
         </p>
 
         {previo.cuantos > 1 && (
@@ -263,10 +362,21 @@ export function GestionCuotas({
             Cancelar
           </Boton>
           <Boton
-            onClick={() => marcar.mutate({ alumnoIds: [...elegidos], cuota })}
-            disabled={marcar.isPending}
+            onClick={() =>
+              modo === "marcar"
+                ? marcar.mutate({ alumnoIds: [...elegidos], cuota })
+                : deshacer.mutate({
+                    alumnoIds: [...elegidos],
+                    todos: todosLosManuales,
+                  })
+            }
+            disabled={marcar.isPending || deshacer.isPending}
           >
-            {marcar.isPending ? "Registrando…" : "Registrar"}
+            {marcar.isPending || deshacer.isPending
+              ? "Aplicando…"
+              : modo === "marcar"
+                ? "Registrar"
+                : "Deshacer"}
           </Boton>
         </div>
       </Modal>

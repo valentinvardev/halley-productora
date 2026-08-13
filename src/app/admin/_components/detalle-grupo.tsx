@@ -374,6 +374,18 @@ export function DetalleGrupo({ id }: { id: string }) {
             numero: c.numero,
             saldo: c.saldo,
           })),
+          // Los marcados a mano se reconocen por el prefijo de la referencia, y
+          // son los únicos que se pueden deshacer: un pago de Talo o de Mercado
+          // Pago entró de verdad y borrarlo dejaría al panel mintiendo.
+          manual: a.pagos
+            .filter((p) => p.refPago.startsWith("manual:"))
+            .reduce(
+              (t, p) => ({
+                cantidad: t.cantidad + 1,
+                total: t.total + p.monto,
+              }),
+              { cantidad: 0, total: 0 },
+            ),
         }))}
         alRefrescar={refrescar}
       />

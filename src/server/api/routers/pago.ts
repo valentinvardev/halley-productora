@@ -233,6 +233,58 @@ export const pagoRouter = createTRPCRouter({
       return { registrados, total };
     }),
 
+  /**
+   * Deshace lo que se marcó a mano.
+   *
+   * Sólo toca los pagos con referencia `manual:`. Un pago que vino de Talo o de
+   * Mercado Pago no se borra desde acá por más que el panel lo permitiera
+   * técnicamente: esa plata entró de verdad, la tiene el proveedor en su propio
+   * registro, y borrarla dejaría al sistema diciendo algo que el banco desmiente.
+   * Se puede deshacer lo que uno escribió, no lo que hizo el banco.
+   *
+   * Al no haber estado guardado, borrar el pago alcanza: la imputación se
+   * recalcula sola y las cuotas vuelven a figurar como estaban.
+   */
+  desmarcarCuotas: adminProcedure
+    .input(
+      z.object({
+        alumnoIds: z.array(z.string()).min(1).max(500),
+        /** Todos los marcados a mano, o sólo el último de cada uno. */
+        todos: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const manuales = await ctx.db.pago.findMany({
+        where: {
+          alumnoId: { in: input.alumnoIds },
+          refPago: { startsWith: "manual:" },
+        },
+        orderBy: { recibidoEn: "desc" },
+      });
+
+      // Con "el último" se toma uno por alumno: vienen ordenados de más nuevo a
+      // más viejo, así que el primero de cada uno es el suyo.
+      const vistos = new Set<string>();
+      const aBorrar = input.todos
+        ? manuales
+        : manuales.filter((p) => {
+            if (vistos.has(p.alumnoId)) return false;
+            vistos.add(p.alumnoId);
+            return true;
+          });
+
+      if (aBorrar.length === 0) return { borrados: 0, total: 0 };
+
+      await ctx.db.pago.deleteMany({
+        where: { id: { in: aBorrar.map((p) => p.id) } },
+      });
+
+      return {
+        borrados: aBorrar.length,
+        total: aBorrar.reduce((t, p) => t + Number(p.monto), 0),
+      };
+    }),
+
   nuevosDesde: adminProcedure
     .input(z.object({ desde: z.string().datetime() }))
     .query(async ({ ctx, input }) => {
