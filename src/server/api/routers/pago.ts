@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -157,6 +159,80 @@ export const pagoRouter = createTRPCRouter({
    * pestaña dormida, la máquina suspendida—: mejor avisar de veinte y perder el
    * resto que apilar doscientos carteles de golpe.
    */
+  /**
+   * Marca cuotas como pagas registrando el pago que las salda.
+   *
+   * Acá el estado de una cuota no se guarda: se deriva repartiendo lo pagado
+   * sobre el plan. Así que marcarla no puede ser una tilde —no hay dónde
+   * ponerla— y tiene que ser lo que de verdad la salda: un pago. Eso además es
+   * lo correcto, porque mantiene la regla de que el panel no pueda decir algo
+   * distinto de lo que dicen los pagos.
+   *
+   * El monto es lo que falta hoy, mora incluida, calculado con la misma
+   * imputación que usa todo lo demás. Por eso deja la deuda en cero exacto y no
+   * en "cero menos el recargo".
+   *
+   * La referencia lleva el prefijo `manual:`. Sirve para dos cosas: la columna es
+   * única, así que hace de llave de idempotencia como cualquier otro pago; y deja
+   * el registro distinguible para siempre de uno que vino de un proveedor, que es
+   * información que después no se puede reconstruir.
+   */
+  marcarCuotas: adminProcedure
+    .input(
+      z.object({
+        alcance: z.enum(["alumno", "grupo"]),
+        id: z.string(),
+        /** El número de cuota, o `null` para saldar todo lo que falte. */
+        cuota: z.number().int().positive().nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const alumnos = await ctx.db.alumno.findMany({
+        where:
+          input.alcance === "alumno" ? { id: input.id } : { grupoId: input.id },
+        include: { pagos: true, grupo: { include: { cuotas: true } } },
+      });
+      if (alumnos.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
+
+      let registrados = 0;
+      let total = 0;
+
+      for (const alumno of alumnos) {
+        const plan = imputarPagos(
+          alumno.grupo.cuotas,
+          sumarPagos(alumno.pagos),
+        );
+
+        // Sin cuota se salda todo lo que falte de una; con cuota, sólo esa. Las
+        // que ya están pagas no aportan saldo, así que quedan afuera solas.
+        const objetivo =
+          input.cuota === null
+            ? plan.cuotas.filter((c) => c.saldo > 0)
+            : plan.cuotas.filter(
+                (c) => c.numero === input.cuota && c.saldo > 0,
+              );
+
+        const monto = objetivo.reduce((t, c) => t + c.saldo, 0);
+        if (monto <= 0) continue;
+
+        await ctx.db.pago.create({
+          data: {
+            alumnoId: alumno.id,
+            // A la más vieja de las que se están saldando, que es la regla que
+            // sigue el resto del sistema.
+            cuotaId: objetivo[0]?.id ?? null,
+            monto,
+            refPago: `manual:${randomUUID()}`,
+          },
+        });
+
+        registrados += 1;
+        total += monto;
+      }
+
+      return { registrados, total };
+    }),
+
   nuevosDesde: adminProcedure
     .input(z.object({ desde: z.string().datetime() }))
     .query(async ({ ctx, input }) => {

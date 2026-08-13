@@ -20,6 +20,7 @@ import {
   IconoTilde,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
+import { ItemAccion, MenuAcciones } from "~/app/_components/menu-acciones";
 import { Modal } from "~/app/_components/modal";
 import {
   Boton,
@@ -39,6 +40,7 @@ import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
 import { EsqueletoDetalle } from "./esqueletos";
 import { AvisosGrupoAdmin } from "./avisos-grupo-admin";
 import { FotosGaleria } from "./fotos-galeria";
+import { GestionCuotas } from "./gestion-cuotas";
 
 export function DetalleGrupo({ id }: { id: string }) {
   const utils = api.useUtils();
@@ -52,6 +54,8 @@ export function DetalleGrupo({ id }: { id: string }) {
   const [aviso, setAviso] = useState<string | null>(null);
   /** Si el cartel de borrar está abierto. */
   const [borrando, setBorrando] = useState(false);
+  /** Si el modal de cuotas está abierto. */
+  const [gestionandoCuotas, setGestionandoCuotas] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   const refrescar = async (mensaje?: string) => {
@@ -107,28 +111,30 @@ export function DetalleGrupo({ id }: { id: string }) {
         eyebrow={`${grupo.colegio} · ${grupo.cuotas.length} cuotas`}
         titulo={grupo.nombre}
         acciones={
-          <>
-            <Boton
-              variante="fantasma"
+          <MenuAcciones>
+            <ItemAccion
               onClick={() => invitarTodos.mutate({ grupoId: id })}
               disabled={invitarTodos.isPending}
             >
               <IconoSobre />
               Invitar a todos
-            </Boton>
-            <Boton
-              variante="fantasma"
+            </ItemAccion>
+            <ItemAccion
               onClick={() => recordarPendientes.mutate({ grupoId: id })}
               disabled={recordarPendientes.isPending}
             >
               <IconoSobreReenvio />
               Recordar pendientes
-            </Boton>
-            <Boton variante="fantasma" onClick={() => setBorrando(true)}>
+            </ItemAccion>
+            <ItemAccion onClick={() => setGestionandoCuotas(true)}>
+              <IconoLista />
+              Gestión de cuotas
+            </ItemAccion>
+            <ItemAccion onClick={() => setBorrando(true)}>
               <IconoPapelera />
               Eliminar evento
-            </Boton>
-          </>
+            </ItemAccion>
+          </MenuAcciones>
         }
       />
 
@@ -349,6 +355,21 @@ export function DetalleGrupo({ id }: { id: string }) {
         alumno={gestionando}
         modoDemo={grupo.modoDemo}
         alCerrar={() => setGestionandoId(null)}
+        alRefrescar={refrescar}
+      />
+
+      <GestionCuotas
+        abierto={gestionandoCuotas}
+        alCerrar={() => setGestionandoCuotas(false)}
+        grupoId={id}
+        grupoNombre={grupo.nombre}
+        cuotas={grupo.cuotas.map((c) => ({
+          id: c.id,
+          numero: c.numero,
+          monto: Number(c.monto),
+          venceEl: String(c.venceEl),
+        }))}
+        alumnos={grupo.alumnos.map((a) => ({ id: a.id, nombre: a.nombre }))}
         alRefrescar={refrescar}
       />
 
