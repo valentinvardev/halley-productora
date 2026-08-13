@@ -571,9 +571,14 @@
          que se note el que sí se mueve. */
       .plano-sombra {
         filter: brightness(0.7) saturate(0.88);
-        animation: revelar linear both;
-        animation-timeline: --tramo;
-        animation-range: cover 20% cover 100%;
+        /* Lleva las dos animaciones porque el atajo `animation` pisa al de la
+           clase compartida: si sólo declarara la opacidad, esta copia dejaría de
+           crecer y se despegaría del marco que está apagando. */
+        animation:
+          acercar linear both,
+          revelar linear both;
+        animation-timeline: --tramo, --tramo;
+        animation-range: cover 20% cover 100%, cover 20% cover 100%;
       }
 
       /* La copia borrosa del fondo de egresados, que aparece encima de la

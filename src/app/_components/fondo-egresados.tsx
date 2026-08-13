@@ -97,16 +97,23 @@ const PLANOS = [
     izq: "0%",
     arriba: "3.732%",
     ancho: "87.407%",
-    origen: "60.17% 39.45%",
-    acerca: 1.14,
+    // Desde su propio centro y no desde el punto de fuga común. Creciendo en el
+    // lugar, el recorte tapa su propia copia del fondo en vez de correrse a un
+    // costado y dejarla asomar, que es lo que hacía que el brazo se viera doble.
+    origen: "50% 50%",
+    acerca: 1.16,
   },
   {
     archivo: "/fondos/egresados-manos.webp",
     izq: "5.864%",
     arriba: "12.294%",
     ancho: "93.765%",
+    // Éstas sí se van hacia afuera, desde la cara de la chica: son lo más cerca
+    // del lente y es lo que uno deja pasar al avanzar. Pueden hacerlo porque lo
+    // que descubren al correrse es el fondo desenfocado, donde su propia copia
+    // es una mancha suave y no una mano.
     origen: "49.84% 33.54%",
-    acerca: 1.05,
+    acerca: 1.3,
   },
 ];
 
