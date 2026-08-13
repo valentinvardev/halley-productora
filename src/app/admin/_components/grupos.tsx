@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
-import { IconoMas } from "~/app/_components/iconos";
+import {
+  IconoGrupos,
+  IconoMas,
+  IconoPerfil,
+} from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import {
   Boton,
@@ -362,8 +366,16 @@ export function Grupos() {
         acciones={
           modo === "" ? (
             <>
-              <Boton onClick={() => setModo("grupo")}>Nuevo grupo</Boton>
+              {/* Los íconos dicen la diferencia que el texto no: uno crea un
+                  curso entero y el otro un cliente solo. Cuatro cuadros contra
+                  una persona se lee de un vistazo, "grupo" contra "particular"
+                  hay que leerlo. */}
+              <Boton onClick={() => setModo("grupo")}>
+                <IconoGrupos />
+                Nuevo grupo
+              </Boton>
               <Boton variante="fantasma" onClick={() => setModo("particular")}>
+                <IconoPerfil />
                 Nuevo particular
               </Boton>
             </>
