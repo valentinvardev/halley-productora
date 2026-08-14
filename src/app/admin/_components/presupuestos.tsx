@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import {
   IconoAlerta,
   IconoBajar,
+  IconoCalculadora,
   IconoPapelera,
   IconoTilde,
   IconoWhatsApp,
@@ -16,6 +18,7 @@ import {
   Encabezado,
   Tag,
   Vacio,
+  botonFantasma,
 } from "~/app/_components/ui";
 import {
   EVENTOS,
@@ -50,8 +53,38 @@ export function Presupuestos() {
   );
 
   const refrescar = () => utils.presupuesto.listar.invalidate();
+
+  /**
+   * Marcar contactado se pinta antes de que el servidor conteste.
+   *
+   * Es un tilde, no una transferencia: la respuesta no aporta nada que no se
+   * sepa de antemano, y esperarla dejaba la insignia quieta medio segundo
+   * después del clic, el tiempo justo para que uno vuelva a apretar. Se cambia
+   * en la caché de una, y si el pedido falla se deja como estaba.
+   */
+  const claveLista = filtro ? { evento: filtro } : {};
   const marcar = api.presupuesto.marcarContactado.useMutation({
-    onSuccess: refrescar,
+    onMutate: async ({ id, contactado }) => {
+      // Sin esto, una consulta que ya estaba viajando podría llegar después y
+      // pisar el cambio con el estado viejo.
+      await utils.presupuesto.listar.cancel(claveLista);
+
+      const previo = utils.presupuesto.listar.getData(claveLista);
+      utils.presupuesto.listar.setData(claveLista, (filas) =>
+        filas?.map((f) =>
+          f.id === id
+            ? { ...f, contactadoEn: contactado ? new Date() : null }
+            : f,
+        ),
+      );
+      return { previo };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previo) utils.presupuesto.listar.setData(claveLista, ctx.previo);
+    },
+    // Se confirma contra el servidor igual, pero recién al final: para entonces
+    // la pantalla ya cambió y nadie ve el reemplazo.
+    onSettled: refrescar,
   });
   const borrar = api.presupuesto.eliminar.useMutation({
     onSuccess: async () => {
@@ -69,6 +102,12 @@ export function Presupuestos() {
         eyebrow="Simulador"
         titulo="Presupuestos"
         bajada="Lo que armó la gente en el simulador de la web. Todavía no son clientes: son consultas con precio puesto."
+        acciones={
+          <Link href="/admin/presupuestos/flujo" className={botonFantasma}>
+            <IconoCalculadora />
+            Flujo del presupuesto
+          </Link>
+        }
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-2">

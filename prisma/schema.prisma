@@ -546,6 +546,78 @@ model Presupuesto {
     @@index([evento])
 }
 
+/// Un ítem del catálogo del simulador: algo que se puede contratar.
+///
+/// Empezó como una constante en el código y se mudó acá porque un precio no es
+/// una decisión de programación: cambia por temporada, y pedir un deploy para
+/// tocarlo es garantizar que quede desactualizado.
+///
+/// Cada ítem pertenece a un solo evento, incluso los que existen en los dos. Se
+/// duplican a propósito: una cobertura de fotografía para una boda y para un
+/// quince son el mismo trabajo con distinta cantidad de horas, y compartir la
+/// fila obligaría a que compartan el precio. Editar dos veces es el costo de
+/// poder cobrarlos distinto.
+model ItemPresupuesto {
+    id String @id @default(cuid())
+
+    /// "quince" o "boda".
+    evento String
+    /// "momentos", "coberturas" o "complementos".
+    parte  String
+
+    /// El nombre corto con el que el ítem viaja en un presupuesto emitido.
+    ///
+    /// No es el id: los presupuestos guardan sus líneas con esta clave, así que
+    /// tiene que sobrevivir a que alguien renombre el ítem. Se deriva del
+    /// nombre la primera vez y después ya no cambia.
+    clave String
+
+    nombre String
+    texto  String
+    precio Decimal @db.Decimal(12, 2)
+
+    orden Int @default(0)
+    /// Apagado no se muestra en el simulador, pero no se borra: un ítem que se
+    /// deja de ofrecer una temporada sigue estando en los presupuestos viejos.
+    activo Boolean @default(true)
+
+    /// La foto que acompaña, si tiene. Apunta a una pieza de `Contenido` —la
+    /// misma tabla que la vitrina— para no tener dos sistemas de imágenes: así
+    /// se puede elegir algo ya subido o subir una nueva, y se sirve por la ruta
+    /// firmada que ya existe.
+    imagenId String?
+
+    locaciones LocacionPresupuesto[]
+
+    creadoEn DateTime @default(now())
+
+    @@unique([evento, clave])
+    @@index([evento, parte, orden])
+}
+
+/// Una variante de un ítem que cambia su precio: dónde se hace el book.
+///
+/// Es el único nivel extra de elección del catálogo y por eso es una tabla y no
+/// un campo: un ítem tiene ninguna o varias, y cada una suma sobre el precio
+/// base en vez de reemplazarlo.
+model LocacionPresupuesto {
+    id     String          @id @default(cuid())
+    itemId String
+    item   ItemPresupuesto @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+    clave  String
+    nombre String
+    texto  String
+    /// Lo que suma sobre el precio del ítem. La primera suele ser cero.
+    extra  Decimal @db.Decimal(12, 2)
+
+    orden    Int     @default(0)
+    imagenId String?
+
+    @@unique([itemId, clave])
+    @@index([itemId, orden])
+}
+
 enum ProveedorPago {
     TALO
     MERCADOPAGO

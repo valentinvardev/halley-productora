@@ -15,6 +15,7 @@ import {
   type Linea,
 } from "~/app/_datos/presupuesto";
 import { env } from "~/env";
+import { catalogoDe, parametrosPresupuesto } from "~/server/catalogo";
 import { createTRPCRouter, adminProcedure, publicProcedure } from "~/server/api/trpc";
 import { esperaRestante, registrarFallo, origenDe } from "~/server/limite-intentos";
 import { notificarPresupuesto } from "~/server/notificaciones";
@@ -143,7 +144,11 @@ export const presupuestoRouter = createTRPCRouter({
       }
 
       // Del cliente llegan ids; el precio sale del catálogo, siempre.
-      const lineas = lineasDe(input.evento, {
+      const [partes, parametros] = await Promise.all([
+        catalogoDe(input.evento),
+        parametrosPresupuesto(),
+      ]);
+      const lineas = lineasDe(partes, {
         items: input.items,
         locaciones: input.locaciones,
       });
@@ -155,7 +160,7 @@ export const presupuestoRouter = createTRPCRouter({
       }
 
       const plan = PLANES.find((p) => p.id === input.plan) ?? PLANES[1]!;
-      const cierre = cierreDe(totalDe(lineas), plan.id);
+      const cierre = cierreDe(totalDe(lineas), plan.id, parametros);
 
       // La fecha entra como texto local y se guarda al mediodía UTC: así no se
       // corre un día para ningún lado al mostrarla en Córdoba.

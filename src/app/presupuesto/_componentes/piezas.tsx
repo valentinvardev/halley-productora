@@ -8,7 +8,12 @@ import {
   IconoRegalo,
   IconoTilde,
 } from "~/app/_components/iconos";
-import { HALLEY_BOX, progresoBox, type Linea } from "~/app/_datos/presupuesto";
+import {
+  HALLEY_BOX,
+  progresoBox,
+  type Linea,
+  type Parametros,
+} from "~/app/_datos/presupuesto";
 import { pesos } from "~/lib/format";
 
 /**
@@ -91,6 +96,7 @@ export function Opcion({
   titulo,
   texto,
   precio,
+  imagen,
   children,
 }: {
   tipo: "una" | "varias";
@@ -100,6 +106,8 @@ export function Opcion({
   texto: string;
   /** Sin precio no se muestra la línea: sirve para las locaciones sin extra. */
   precio?: ReactNode;
+  /** La foto que cargó el panel, si el ítem tiene una. */
+  imagen?: string;
   /** Lo que se despliega adentro al elegirla — hoy, las locaciones del book. */
   children?: ReactNode;
 }) {
@@ -132,6 +140,20 @@ export function Opcion({
               <IconoTilde className="h-3 w-3" />
             ))}
         </span>
+
+        {/* La foto va chica y al costado, no de fondo: detrás del texto obliga
+            a poner un velo encima, y un velo sobre una foto de trabajo la
+            apaga justo donde tenía que convencer. */}
+        {imagen && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imagen}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="hidden h-[76px] w-[76px] shrink-0 border border-gray-20 object-cover sm:block"
+          />
+        )}
 
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -167,8 +189,14 @@ export function Opcion({
  *
  * No dice qué hay adentro. Una caja sorpresa enumerada es un combo.
  */
-export function BarraBox({ total }: { total: number }) {
-  const { falta, abierta, parte } = progresoBox(total);
+export function BarraBox({
+  total,
+  parametros,
+}: {
+  total: number;
+  parametros: Parametros;
+}) {
+  const { falta, abierta, parte } = progresoBox(total, parametros);
 
   return (
     <div className="border-b border-gray-20 px-4 py-2 sm:px-6">

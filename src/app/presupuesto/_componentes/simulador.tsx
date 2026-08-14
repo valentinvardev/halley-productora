@@ -12,11 +12,9 @@ import {
 } from "~/app/_components/iconos";
 import { Boton, Campo } from "~/app/_components/ui";
 import {
-  CATALOGO,
   EVENTOS,
   EVENTOS_ORDEN,
   PLANES,
-  PRECIOS_CONFIRMADOS,
   SELECCION_VACIA,
   cierreDe,
   depurar,
@@ -24,6 +22,8 @@ import {
   totalDe,
   type Evento,
   type Item,
+  type Parametros,
+  type Parte,
   type Seleccion,
 } from "~/app/_datos/presupuesto";
 import { pesos } from "~/lib/format";
@@ -90,9 +90,21 @@ export type Retomar = {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function Simulador({
+  catalogos,
+  parametros,
   inicial = null,
   retomar = null,
 }: {
+  /**
+   * Los dos catálogos, ya leídos de la base por el servidor.
+   *
+   * Vienen los dos y no sólo el del evento elegido porque el paso cero deja
+   * cambiar de idea, y pedirle otro al servidor en ese momento metería una
+   * espera en el medio de una decisión que dura un segundo. Son dos listas de
+   * texto: pesan nada.
+   */
+  catalogos: Record<Evento, Parte[]>;
+  parametros: Parametros;
   /** El evento con el que se entra, cuando se viene de una categoría. */
   inicial?: Evento | null;
   /** Un presupuesto ya emitido que se vuelve a abrir para modificarlo. */
@@ -125,13 +137,13 @@ export function Simulador({
 
   const arriba = useRef<HTMLDivElement>(null);
 
-  const partes = evento ? CATALOGO[evento] : [];
-  const lineas = useMemo(
-    () => (evento ? lineasDe(evento, sel) : []),
-    [evento, sel],
+  const partes = useMemo(
+    () => (evento ? catalogos[evento] : []),
+    [evento, catalogos],
   );
+  const lineas = useMemo(() => lineasDe(partes, sel), [partes, sel]);
   const total = totalDe(lineas);
-  const cierre = cierreDe(total, plan);
+  const cierre = cierreDe(total, plan, parametros);
 
   const generar = api.presupuesto.generar.useMutation({
     onSuccess: ({ codigo }) => {
@@ -171,7 +183,7 @@ export function Simulador({
     // son los mismos para los dos eventos, y sólo se caen los momentos que el
     // otro no tiene. Vaciar todo castigaría a quien se equivocó de tarjeta.
     setEvento(e);
-    setSel((s) => depurar(e, s));
+    setSel((s) => depurar(catalogos[e], s));
     irA(1);
   }
 
@@ -283,7 +295,11 @@ export function Simulador({
   if (!evento || paso === 0) {
     return (
       <div ref={arriba}>
-        <PasoEvento elegido={evento} alElegir={elegirEvento} />
+        <PasoEvento
+          elegido={evento}
+          alElegir={elegirEvento}
+          preciosConfirmados={parametros.preciosConfirmados}
+        />
       </div>
     );
   }
@@ -323,6 +339,7 @@ export function Simulador({
             sel={sel}
             alAlternar={alternar}
             alPonerLocacion={ponerLocacion}
+            preciosConfirmados={parametros.preciosConfirmados}
           />
         )}
 
@@ -344,6 +361,7 @@ export function Simulador({
             alElegir={setPlan}
             cierre={cierre}
             lineas={lineas}
+            parametros={parametros}
           />
         )}
       </div>
@@ -371,7 +389,7 @@ export function Simulador({
           </div>
         </div>
 
-        <BarraBox total={total} />
+        <BarraBox total={total} parametros={parametros} />
 
         <div className="mx-auto flex max-w-[1140px] items-center gap-4 px-6 py-3.5 sm:px-10">
           <div className="min-w-0 flex-1">
@@ -436,9 +454,11 @@ export function Simulador({
 function PasoEvento({
   elegido,
   alElegir,
+  preciosConfirmados,
 }: {
   elegido: Evento | null;
   alElegir: (e: Evento) => void;
+  preciosConfirmados: boolean;
 }) {
   return (
     <div className="mx-auto max-w-[1140px] px-6 py-16 sm:px-10 sm:py-24">
@@ -468,7 +488,7 @@ function PasoEvento({
         ))}
       </div>
 
-      {!PRECIOS_CONFIRMADOS && <AvisoReferencia className="mt-8" />}
+      {!preciosConfirmados && <AvisoReferencia className="mt-8" />}
     </div>
   );
 }
@@ -480,11 +500,13 @@ function PasoParte({
   sel,
   alAlternar,
   alPonerLocacion,
+  preciosConfirmados,
 }: {
-  parte: (typeof CATALOGO)[Evento][number];
+  parte: Parte;
   sel: Seleccion;
   alAlternar: (item: Item, multiple: boolean, idsDeLaParte: string[]) => void;
   alPonerLocacion: (itemId: string, locacionId: string) => void;
+  preciosConfirmados: boolean;
 }) {
   const ids = parte.items.map((i) => i.id);
 
@@ -511,6 +533,7 @@ function PasoParte({
               alElegir={() => alAlternar(item, parte.multiple, ids)}
               titulo={item.nombre}
               texto={item.texto}
+              imagen={item.imagen}
               precio={
                 item.locaciones ? `Desde ${pesos(item.precio)}` : pesos(item.precio)
               }
@@ -540,6 +563,16 @@ function PasoParte({
                               : "border-gray-20 hover:border-gray-45"
                           }`}
                         >
+                          {l.imagen && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={l.imagen}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="hidden h-11 w-11 shrink-0 border border-gray-20 object-cover sm:block"
+                            />
+                          )}
                           <span
                             aria-hidden="true"
                             className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
@@ -572,7 +605,7 @@ function PasoParte({
         })}
       </div>
 
-      {parte.id === "complementos" && !PRECIOS_CONFIRMADOS && (
+      {parte.id === "complementos" && !preciosConfirmados && (
         <AvisoReferencia className="mt-8" />
       )}
     </section>
@@ -679,11 +712,13 @@ function PasoPago({
   alElegir,
   cierre,
   lineas,
+  parametros,
 }: {
   plan: string;
   alElegir: (id: string) => void;
   cierre: ReturnType<typeof cierreDe>;
   lineas: ReturnType<typeof lineasDe>;
+  parametros: Parametros;
 }) {
   return (
     <section>
@@ -719,7 +754,7 @@ function PasoPago({
       <div className="grid gap-3" role="radiogroup" aria-label="Forma de pago">
         {PLANES.map((p) => {
           const elegido = p.id === plan;
-          const cuenta = cierreDe(cierre.total, p.id);
+          const cuenta = cierreDe(cierre.total, p.id, parametros);
           return (
             <Opcion
               key={p.id}
@@ -779,7 +814,7 @@ function PasoPago({
         </dl>
       </div>
 
-      {!PRECIOS_CONFIRMADOS && <AvisoReferencia className="mt-8" />}
+      {!parametros.preciosConfirmados && <AvisoReferencia className="mt-8" />}
     </section>
   );
 }

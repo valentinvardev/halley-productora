@@ -25,7 +25,17 @@ export function esCategoria(slug: string): slug is CategoriaSlug {
   return CATEGORIAS.some((c) => c.slug === slug);
 }
 
-/** Lo que se puede subir: las cuatro categorías y el hero. */
+/**
+ * Las fotos del catálogo del simulador de presupuesto.
+ *
+ * Tampoco es una categoría de la vitrina —no sale como panel ni tiene galería—
+ * pero guarda sus piezas en la misma tabla, y eso es lo que permite que el
+ * editor del catálogo ofrezca elegir una foto ya subida en vez de obligar a
+ * volver a subir la misma.
+ */
+export const PRESUPUESTO = "presupuesto";
+
+/** Lo que se puede subir: las cuatro categorías, el hero y el presupuesto. */
 export function esSubible(slug: string) {
-  return slug === HERO || esCategoria(slug);
+  return slug === HERO || slug === PRESUPUESTO || esCategoria(slug);
 }

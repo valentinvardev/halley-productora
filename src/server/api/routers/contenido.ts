@@ -149,7 +149,21 @@ export const contenidoRouter = createTRPCRouter({
       // Primero el objeto de S3; recién después la fila. Si fallara S3, la fila
       // queda y se puede reintentar en vez de dejar el archivo huérfano.
       await borrarObjetos(clavesDe(contenido));
-      await ctx.db.contenido.delete({ where: { id: input.id } });
+
+      // Y antes de borrar la fila, soltar a quien la esté usando de foto: el
+      // catálogo del simulador apunta a estas piezas por id, y una referencia
+      // muerta se ve como un cuadrito roto en la tarjeta.
+      await ctx.db.$transaction([
+        ctx.db.itemPresupuesto.updateMany({
+          where: { imagenId: input.id },
+          data: { imagenId: null },
+        }),
+        ctx.db.locacionPresupuesto.updateMany({
+          where: { imagenId: input.id },
+          data: { imagenId: null },
+        }),
+        ctx.db.contenido.delete({ where: { id: input.id } }),
+      ]);
       return { ok: true };
     }),
 

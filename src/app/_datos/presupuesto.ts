@@ -1,21 +1,19 @@
 /**
- * El catálogo del simulador de presupuesto.
+ * Las reglas del presupuesto: qué forma tiene un catálogo y cómo se suma.
  *
- * Todo lo que se puede contratar, cuánto sale y cómo se paga, en un solo lugar.
- * Es el gemelo de `servicios.ts`: allá vive lo que se cuenta, acá lo que se
- * cobra. Están separados porque cambian a distinto ritmo —la promesa de una
- * categoría dura años, un precio dura una temporada— y porque este archivo es
- * el único que hay que abrir para actualizar la lista.
+ * El catálogo en sí —los ítems, los textos, los precios— ya no vive acá: vive
+ * en la base y se edita desde el panel, porque un precio no es una decisión de
+ * programación. Lo que queda en este archivo son los tipos, la aritmética y el
+ * catálogo inicial con el que se siembra una base vacía.
  *
- * Corre en el cliente y en el servidor. El wizard suma en vivo mientras la
- * persona elige, y el servidor vuelve a sumar antes de guardar: el total que
- * llega por la red no se cree nunca, se recalcula. Por eso acá no hay nada que
- * dependa del navegador ni de la base.
+ * Todo esto es puro: corre igual en el navegador y en el servidor. El wizard
+ * suma en vivo mientras la persona elige y el servidor vuelve a sumar antes de
+ * guardar, con las mismas funciones y el mismo catálogo, así que los dos totales
+ * coinciden por construcción. El que llega por la red no se cree nunca.
  *
- * Los precios quedan congelados en el presupuesto emitido. Si mañana cambian
- * los números de este archivo, un presupuesto ya generado sigue diciendo lo que
- * decía el día que se emitió — que es lo que hace que el código de seguimiento
- * signifique algo.
+ * Los precios quedan congelados en el presupuesto emitido: si mañana cambian en
+ * el panel, uno ya generado sigue diciendo lo que decía el día que salió — que
+ * es lo que hace que el código de seguimiento signifique algo.
  */
 
 /* ------------------------------------------------------------------ eventos */
@@ -70,16 +68,35 @@ export function eventoDeServicio(slug: string): Evento | null {
 /* ------------------------------------------------------------------ precios */
 
 /**
- * Si los precios ya son los definitivos.
+ * Las perillas del flujo, que también se manejan desde el panel.
  *
- * Mientras esté en `false`, el simulador muestra los valores como referencia y
- * lo dice en pantalla. No es una decoración: un presupuesto que sale con
- * números provisorios sin avisar es una promesa que después hay que romper.
- *
- * Al cargar la lista real de Halley, esto pasa a `true` y el aviso desaparece
- * solo.
+ * Van juntas y viajan juntas: cualquier pantalla que muestre plata necesita las
+ * cuatro, y pasarlas de a una terminaba en funciones con cinco argumentos
+ * sueltos que era fácil cruzar.
  */
-export const PRECIOS_CONFIRMADOS = false;
+export type Parametros = {
+  /** Qué parte del total se pide de reserva. 0,2 es el veinte por ciento. */
+  reservaPorcentaje: number;
+  /** Y nunca menos que esto. */
+  reservaMinimo: number;
+  /** A partir de qué monto se desbloquea la Halley Box. */
+  boxUmbral: number;
+  /**
+   * Si los precios cargados ya son los definitivos.
+   *
+   * Mientras esté en `false`, el simulador muestra los valores como referencia
+   * y lo dice en pantalla. No es una decoración: un presupuesto que sale con
+   * números provisorios sin avisar es una promesa que después hay que romper.
+   */
+  preciosConfirmados: boolean;
+};
+
+export const PARAMETROS_POR_DEFECTO: Parametros = {
+  reservaPorcentaje: 0.2,
+  reservaMinimo: 250_000,
+  boxUmbral: 2_400_000,
+  preciosConfirmados: false,
+};
 
 /**
  * Si la Parte 1 admite combinar varias opciones o es una sola.
@@ -103,6 +120,12 @@ export type Locacion = {
   texto: string;
   /** Lo que suma sobre el precio base del ítem. El primero suele ser 0. */
   extra: number;
+  /**
+   * La foto, ya resuelta a una URL servible. El catálogo guarda el id de la
+   * pieza; acá llega el link, porque quien pinta la tarjeta no tiene por qué
+   * saber de dónde salen las imágenes.
+   */
+  imagen?: string;
 };
 
 export type Item = {
@@ -110,6 +133,8 @@ export type Item = {
   nombre: string;
   texto: string;
   precio: number;
+  /** La foto, ya resuelta a una URL servible. */
+  imagen?: string;
   /**
    * Sólo el book. Es el nivel extra de elección que ningún otro ítem tiene: se
    * resuelve mostrando las locaciones adentro de la tarjeta, y sólo cuando la
@@ -336,7 +361,15 @@ function partesDe(momentos: Item[], quePasa: string): Parte[] {
   ];
 }
 
-export const CATALOGO: Record<Evento, Parte[]> = {
+/**
+ * El catálogo con el que se siembra una base vacía.
+ *
+ * No es "el catálogo": es el punto de partida. Se copia a la base la primera vez
+ * y a partir de ahí manda la base. Está acá y no en un script de migración para
+ * que una instalación nueva arranque con algo que mostrar en vez de con una
+ * pantalla en blanco y un instructivo.
+ */
+export const CATALOGO_INICIAL: Record<Evento, Parte[]> = {
   quince: partesDe(
     MOMENTOS_QUINCE,
     "Elegí qué partes del día queremos registrar. Se pueden combinar, y cada una se cotiza aparte.",
@@ -347,9 +380,9 @@ export const CATALOGO: Record<Evento, Parte[]> = {
   ),
 };
 
-/** Un ítem por id, dentro de un evento. */
-export function itemDe(evento: Evento, id: string): Item | null {
-  for (const parte of CATALOGO[evento]) {
+/** Un ítem por id, dentro de un catálogo ya resuelto. */
+export function itemDe(partes: Parte[], id: string): Item | null {
+  for (const parte of partes) {
     const item = parte.items.find((i) => i.id === id);
     if (item) return item;
   }
@@ -389,11 +422,9 @@ export function seleccionDe(lineas: Linea[]): Seleccion {
   return { items: lineas.map((l) => l.id), locaciones };
 }
 
-/** Los ids de la selección que el catálogo de este evento todavía conoce. */
-export function depurar(evento: Evento, sel: Seleccion): Seleccion {
-  const validos = new Set(
-    CATALOGO[evento].flatMap((p) => p.items.map((i) => i.id)),
-  );
+/** Los ids de la selección que este catálogo todavía conoce. */
+export function depurar(partes: Parte[], sel: Seleccion): Seleccion {
+  const validos = new Set(partes.flatMap((p) => p.items.map((i) => i.id)));
   const items = sel.items.filter((id) => validos.has(id));
   const locaciones = Object.fromEntries(
     Object.entries(sel.locaciones).filter(([id]) => validos.has(id)),
@@ -425,11 +456,11 @@ export type Linea = {
  * tocando las tarjetas. Y un id que ya no existe en el catálogo desaparece solo
  * en vez de romper la suma.
  */
-export function lineasDe(evento: Evento, sel: Seleccion): Linea[] {
+export function lineasDe(partes: Parte[], sel: Seleccion): Linea[] {
   const elegidos = new Set(sel.items);
   const lineas: Linea[] = [];
 
-  for (const parte of CATALOGO[evento]) {
+  for (const parte of partes) {
     for (const item of parte.items) {
       if (!elegidos.has(item.id)) continue;
 
@@ -469,13 +500,14 @@ export function totalDe(lineas: Linea[]) {
  * Si Halley prefiere un número redondo y parejo, se cambia acá y en ningún otro
  * lado — el resto del sistema pregunta por esta función.
  */
-export const RESERVA = { porcentaje: 0.2, minimo: 250_000 };
-
-export function reservaDe(total: number) {
+export function reservaDe(total: number, p: Parametros) {
   if (total <= 0) return 0;
   // Nunca más que el total: en una contratación mínima, el piso podría
   // superarlo y quedaría un saldo negativo.
-  return Math.min(total, Math.max(RESERVA.minimo, Math.round(total * RESERVA.porcentaje)));
+  return Math.min(
+    total,
+    Math.max(p.reservaMinimo, Math.round(total * p.reservaPorcentaje)),
+  );
 }
 
 /* -------------------------------------------------------------- financiación */
@@ -546,9 +578,9 @@ export type Cierre = {
   aPagar: number;
 };
 
-export function cierreDe(total: number, planId: string): Cierre {
+export function cierreDe(total: number, planId: string, p: Parametros): Cierre {
   const plan = planDe(planId) ?? PLANES[1]!;
-  const reserva = reservaDe(total);
+  const reserva = reservaDe(total, p);
   const saldo = Math.max(0, total - reserva);
   const saldoFinanciado = Math.round(saldo * plan.coeficiente);
 
@@ -580,19 +612,19 @@ export function cierreDe(total: number, planId: string): Cierre {
  */
 export const HALLEY_BOX = {
   nombre: "Halley Box",
-  umbral: 2_400_000,
   teaser:
     "Una caja con regalos nuestros y de las marcas con las que trabajamos. No decimos qué trae.",
   desbloqueada: "Va con tu contratación. Te la entregamos el día del evento.",
 };
 
-export function progresoBox(total: number) {
-  const falta = Math.max(0, HALLEY_BOX.umbral - total);
+export function progresoBox(total: number, p: Parametros) {
+  const umbral = p.boxUmbral;
+  const falta = Math.max(0, umbral - total);
   return {
     falta,
     abierta: falta === 0,
     /** De 0 a 1, para la barra. */
-    parte: Math.min(1, HALLEY_BOX.umbral > 0 ? total / HALLEY_BOX.umbral : 1),
+    parte: Math.min(1, umbral > 0 ? total / umbral : 1),
   };
 }
 

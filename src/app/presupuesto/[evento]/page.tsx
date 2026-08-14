@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { EVENTOS, EVENTOS_ORDEN, esEvento } from "~/app/_datos/presupuesto";
+import { EVENTOS, esEvento } from "~/app/_datos/presupuesto";
+
+import { datosDelSimulador } from "~/server/catalogos";
 
 import { Simulador } from "../_componentes/simulador";
 
@@ -16,9 +18,8 @@ import { Simulador } from "../_componentes/simulador";
  * su propio título y su propia descripción: `/presupuesto/boda` es un destino
  * que se puede compartir y que Google puede indexar por separado.
  */
-export function generateStaticParams() {
-  return EVENTOS_ORDEN.map((evento) => ({ evento }));
-}
+/** El catálogo se lee en cada visita, así que la página no se pre-genera. */
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -43,5 +44,12 @@ export default async function PaginaPresupuestoEvento({
   const { evento } = await params;
   if (!esEvento(evento)) notFound();
 
-  return <Simulador inicial={evento} />;
+  const { catalogos, parametros } = await datosDelSimulador();
+  return (
+    <Simulador
+      catalogos={catalogos}
+      parametros={parametros}
+      inicial={evento}
+    />
+  );
 }

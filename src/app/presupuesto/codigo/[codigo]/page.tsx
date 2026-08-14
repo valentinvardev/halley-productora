@@ -15,7 +15,6 @@ import { botonFantasma, botonWhatsApp } from "~/app/_components/ui";
 import {
   EVENTOS,
   HALLEY_BOX,
-  PRECIOS_CONFIRMADOS,
   cierreDe,
   planDe,
   progresoBox,
@@ -23,6 +22,7 @@ import {
 } from "~/app/_datos/presupuesto";
 import { fecha, fechaLarga, pesos } from "~/lib/format";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
+import { datosDelSimulador } from "~/server/catalogos";
 import { api } from "~/trpc/server";
 
 import { AvisoReferencia, Simulador } from "../../_componentes/simulador";
@@ -68,8 +68,11 @@ export default async function PaginaCodigo({
   if (!p) notFound();
 
   if (editar !== undefined) {
+    const { catalogos, parametros } = await datosDelSimulador();
     return (
       <Simulador
+        catalogos={catalogos}
+        parametros={parametros}
         retomar={{
           codigo: p.codigo,
           evento: p.evento,
@@ -86,13 +89,16 @@ export default async function PaginaCodigo({
     );
   }
 
-  const datos = await contacto();
+  const [datos, { parametros }] = await Promise.all([
+    contacto(),
+    datosDelSimulador(),
+  ]);
   const evento = EVENTOS[p.evento];
   const plan = planDe(p.plan);
   // El cierre se recalcula del total guardado y no del catálogo de hoy: es lo
   // que hace que un presupuesto viejo siga diciendo lo que decía.
-  const cierre = cierreDe(p.total, p.plan);
-  const box = progresoBox(p.total);
+  const cierre = cierreDe(p.total, p.plan, parametros);
+  const box = progresoBox(p.total, parametros);
 
   // En la web el Instagram es un link; en papel una URL larga es ruido, así que
   // se imprime el usuario, que es lo que alguien tipea.
@@ -278,7 +284,7 @@ export default async function PaginaCodigo({
         </div>
       </div>
 
-      {!PRECIOS_CONFIRMADOS && (
+      {!parametros.preciosConfirmados && (
         <AvisoReferencia className="no-imprimir mt-6" />
       )}
 
@@ -302,7 +308,7 @@ export default async function PaginaCodigo({
         </div>
 
         <p className="max-w-[62ch] text-right text-[9.5px] leading-relaxed text-gray-45">
-          {PRECIOS_CONFIRMADOS
+          {parametros.preciosConfirmados
             ? "Los valores quedan congelados al abonar la reserva."
             : "Los valores son de referencia y se confirman al contactarte, y quedan congelados al abonar la reserva."}{" "}
           Este presupuesto no es una contratación. Guardá el código {p.codigo}:
