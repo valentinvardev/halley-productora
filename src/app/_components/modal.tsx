@@ -11,7 +11,28 @@ import { IconoCruz } from "./iconos";
  * que siempre se implementa mal a mano: el foco atrapado adentro, Escape para
  * cerrar, el resto de la página inerte para el lector de pantalla y la capa
  * superior sin pelear con z-index.
+ *
+ * Los dos detalles de abajo —el guardia del `onClose` y el contador del
+ * scroll— existen por lo mismo: que un modal se abra adentro de otro. Pasa en
+ * cuanto una pantalla necesita elegir algo sin perder lo que estaba editando, y
+ * los dos problemas que trae no se ven hasta que pasa.
  */
+
+/**
+ * Cuántos modales hay abiertos, en toda la página.
+ *
+ * El scroll del fondo es uno solo, así que quien lo bloquea y quien lo suelta
+ * también tienen que ser uno solo. La versión anterior guardaba el valor
+ * anterior en cada modal y lo restauraba al cerrarse, y con dos abiertos eso
+ * depende de que se cierren en el orden exacto en que se abrieron: cerrando al
+ * revés, el de afuera restauraba "hidden" —que era lo que había cuando él
+ * abrió— y la página quedaba sin scroll para siempre.
+ *
+ * Con un contador no hay orden que respetar: bloquea el primero que abre y
+ * suelta el último que cierra.
+ */
+let abiertos = 0;
+let overflowPrevio = "";
 export function Modal({
   abierto,
   alCerrar,
@@ -39,17 +60,32 @@ export function Modal({
   useEffect(() => {
     if (!abierto) return;
 
-    const previo = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (abiertos === 0) {
+      overflowPrevio = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    abiertos += 1;
+
     return () => {
-      document.body.style.overflow = previo;
+      abiertos -= 1;
+      if (abiertos === 0) document.body.style.overflow = overflowPrevio;
     };
   }, [abierto]);
 
   return (
     <dialog
       ref={ref}
-      onClose={alCerrar}
+      // El `close` de un `<dialog>` no burbujea en el navegador, pero React sí
+      // lo propaga por su propio árbol —hace lo mismo con `focus` y `blur`—, y
+      // eso con modales anidados es una trampa: al cerrar el de adentro, el
+      // evento subía y cerraba también a los de afuera. Se veía como que elegir
+      // una imagen descartaba la edición entera sin preguntar nada.
+      //
+      // El guardia es el mismo que el del clic: sólo me cierro si el evento es
+      // mío.
+      onClose={(e) => {
+        if (e.target === ref.current) alCerrar();
+      }}
       // En un dialog nativo, el clic en el fondo llega con el dialog como
       // target: es la forma de distinguirlo del clic adentro del contenido.
       onClick={(e) => {

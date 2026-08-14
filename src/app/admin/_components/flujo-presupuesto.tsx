@@ -66,8 +66,19 @@ type Locacion = Item["locaciones"][number];
 
 export function FlujoPresupuesto() {
   const [evento, setEvento] = useState<Evento>("boda");
+  /**
+   * Qué se está editando, por id y no por copia.
+   *
+   * Guardar el ítem entero acá lo congelaba en el estado que tenía al abrir el
+   * modal: agregarle una locación o ponerle una foto refrescaba la lista de
+   * atrás pero no lo que el modal estaba mostrando, y había que cerrarlo y
+   * volver a abrirlo para ver el cambio. Con el id, lo que se pinta sale
+   * siempre de la consulta.
+   *
+   * `id` en `null` es un ítem nuevo, que todavía no tiene de dónde salir.
+   */
   const [editando, setEditando] = useState<
-    { item: Item | null; parte: Grupo["parte"] } | null
+    { id: string | null; parte: Grupo["parte"] } | null
   >(null);
   const [aBorrar, setABorrar] = useState<Item | null>(null);
 
@@ -140,6 +151,14 @@ export function FlujoPresupuesto() {
     },
   });
 
+  /** El ítem que el modal está mostrando, tal como está ahora en la lista. */
+  const enEdicion =
+    (editando?.id &&
+      lista.data
+        ?.flatMap((g) => g.items)
+        .find((i) => i.id === editando.id)) ||
+    null;
+
   return (
     <>
       <div className="mb-6">
@@ -192,7 +211,7 @@ export function FlujoPresupuesto() {
               <Boton
                 variante="fantasma"
                 className="text-[11.5px]"
-                onClick={() => setEditando({ item: null, parte: g.parte })}
+                onClick={() => setEditando({ id: null, parte: g.parte })}
               >
                 <IconoMas />
                 Agregar
@@ -209,7 +228,7 @@ export function FlujoPresupuesto() {
                     item={item}
                     primero={i === 0}
                     ultimo={i === g.items.length - 1}
-                    alEditar={() => setEditando({ item, parte: g.parte })}
+                    alEditar={() => setEditando({ id: item.id, parte: g.parte })}
                     alBorrar={() => setABorrar(item)}
                     alActivar={(activo) =>
                       activar.mutate({ id: item.id, activo })
@@ -227,9 +246,13 @@ export function FlujoPresupuesto() {
 
       {editando && (
         <EditorItem
+          // El `key` es lo que hace que el formulario se rellene al abrir otro
+          // ítem: sin él, React reusa el componente y los campos se quedan con
+          // lo que tenía el anterior.
+          key={editando.id ?? "nuevo"}
           evento={evento}
           parte={editando.parte}
-          item={editando.item}
+          item={enEdicion}
           alCerrar={() => setEditando(null)}
           alGuardar={refrescar}
         />
