@@ -39,12 +39,21 @@ export function Modal({
   eyebrow,
   titulo,
   children,
+  ancho = "w-[min(560px,calc(100vw-2rem))]",
 }: {
   abierto: boolean;
   alCerrar: () => void;
   eyebrow?: string;
   titulo: string;
   children: ReactNode;
+  /**
+   * El ancho, para lo que no entra en la medida de siempre.
+   *
+   * Los 560 son para un formulario; un documento necesita el doble o se lee
+   * como una tira. Va como clase y no como número porque el que lo pide sabe
+   * contra qué tiene que caber.
+   */
+  ancho?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -91,7 +100,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) alCerrar();
       }}
-      className="capa capa-modal m-auto hidden max-h-[calc(100vh-2rem)] w-[min(560px,calc(100vw-2rem))] border border-ink bg-paper p-0 text-ink open:flex open:flex-col"
+      className={`capa capa-modal m-auto hidden max-h-[calc(100vh-2rem)] border border-ink bg-paper p-0 text-ink open:flex open:flex-col ${ancho}`}
     >
       <header className="flex shrink-0 items-start justify-between gap-4 border-b border-ink px-6 py-4">
         <div>

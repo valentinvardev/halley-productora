@@ -374,9 +374,12 @@
     overlay 0.26s allow-discrete;
 }
 
+/* Más desenfoque del que tenía: con cinco píxeles el panel de atrás seguía
+   siendo legible y competía con lo que hay adelante, que es justamente de lo
+   que uno está tratando de leer los números. */
 .capa[open]::backdrop {
-  background: rgb(10 10 10 / 0.55);
-  backdrop-filter: blur(5px);
+  background: rgb(10 10 10 / 0.62);
+  backdrop-filter: blur(12px);
 }
 
 @starting-style {
@@ -1221,6 +1224,89 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     transform: translateY(0);
     transition-delay: 90ms;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   La hoja mirada como documento.
+
+   La misma hoja del presupuesto, pero puesta en pantalla como va a salir
+   impresa: con el membrete y el pie que en la web están escondidos, y sin lo
+   que sólo tiene sentido en la web.
+
+   Lo hace invirtiendo las dos clases de siempre en vez de duplicar el markup.
+   `solo-imprimir` y `no-imprimir` ya dicen a qué mundo pertenece cada bloque;
+   acá se declara que este rincón de la pantalla es el mundo del papel.
+--------------------------------------------------------------------------- */
+/* Una hoja es blanca.
+
+   El documento no sigue el tema de quien lo mira: en modo oscuro, `.landing`
+   pone tinta clara sobre papel oscuro y acá eso daría texto blanco sobre una
+   hoja blanca. Es la misma decisión que toma el bloque de impresión, por el
+   mismo motivo — sólo que en pantalla los valores son los claros de la marca y
+   no el negro puro del papel. */
+.como-documento {
+  --color-paper: #ffffff;
+  --color-paper-dim: #f4f1ea;
+  --color-paper-dimmer: #e3dac9;
+  --color-lienzo: #ffffff;
+  --color-ink: #1c1c1c;
+  --color-gray-70: #4a4740;
+  --color-gray-45: #6f6a60;
+  --color-gray-20: rgb(28 28 28 / 0.16);
+
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* El logo, siempre el oscuro: acá abajo hay papel blanco pase lo que pase. */
+.como-documento .logo-claro {
+  opacity: 1;
+}
+
+.como-documento .logo-oscuro {
+  opacity: 0;
+}
+
+.como-documento .solo-imprimir {
+  display: block;
+}
+
+.como-documento .no-imprimir {
+  display: none !important;
+}
+
+.como-documento .membrete {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-ink);
+}
+
+.como-documento .membrete-datos {
+  text-align: right;
+}
+
+.como-documento .pie-hoja {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-gray-20);
+}
+
+/* Las dos columnas, sin esperar a `lg`: adentro de un modal el ancho de la
+   ventana no dice nada del ancho que tiene la hoja. */
+.como-documento .par {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+}
+
+.como-documento > * + * {
+  margin-top: 14px;
 }
 
 /* ---------------------------------------------------------------------------

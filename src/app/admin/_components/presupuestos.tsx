@@ -7,6 +7,7 @@ import {
   IconoAlerta,
   IconoBajar,
   IconoCalculadora,
+  IconoLista,
   IconoPapelera,
   IconoTilde,
   IconoWhatsApp,
@@ -29,6 +30,8 @@ import {
 import { fecha, fechaHora, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
+import { VerPresupuesto } from "./ver-presupuesto";
+
 /**
  * Los presupuestos que llegaron del simulador.
  *
@@ -46,6 +49,8 @@ export function Presupuestos() {
   const [aBorrar, setABorrar] = useState<{ id: string; codigo: string } | null>(
     null,
   );
+  /** El código que se está mirando en el visor, o `null`. */
+  const [viendo, setViendo] = useState<string | null>(null);
 
   const utils = api.useUtils();
   const lista = api.presupuesto.listar.useQuery(
@@ -148,6 +153,7 @@ export function Presupuestos() {
             <Fila
               key={p.id}
               p={p}
+              alVer={() => setViendo(p.codigo)}
               alMarcar={(contactado) =>
                 marcar.mutate({ id: p.id, contactado })
               }
@@ -156,6 +162,8 @@ export function Presupuestos() {
           ))}
         </div>
       )}
+
+      <VerPresupuesto codigo={viendo} alCerrar={() => setViendo(null)} />
 
       <Modal
         abierto={aBorrar !== null}
@@ -192,10 +200,12 @@ type Consulta = RouterOutputs["presupuesto"]["listar"][number];
 
 function Fila({
   p,
+  alVer,
   alMarcar,
   alBorrar,
 }: {
   p: Consulta;
+  alVer: () => void;
   alMarcar: (contactado: boolean) => void;
   alBorrar: () => void;
 }) {
@@ -306,14 +316,10 @@ function Fila({
               Escribirle
             </a>
 
-            <a
-              href={`/presupuesto/codigo/${encodeURIComponent(p.codigo)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-rotulo text-[11.5px] tracking-[0.05em] uppercase underline underline-offset-2 hover:text-gray-70"
-            >
+            <BotonTexto onClick={alVer}>
+              <IconoLista />
               Ver el presupuesto
-            </a>
+            </BotonTexto>
 
             <BotonTexto onClick={() => alMarcar(!contactado)}>
               <IconoTilde />
