@@ -26,11 +26,47 @@ const CADA = 8000;
 /** Cuánto queda cada cartel antes de irse solo. */
 const DURA = 9000;
 
+/**
+ * El evento del navegador con el que Ajustes pide una muestra.
+ *
+ * Va por `window` y no por contexto de React porque los dos lados viven en
+ * ramas distintas del árbol: el cartel cuelga del layout del panel y el botón
+ * está adentro de una página. Levantar un proveedor hasta el layout para que
+ * dos componentes que no se conocen se pasen un aviso suelto es más plomería de
+ * la que el problema pide.
+ *
+ * Y así la muestra es literalmente el aviso de verdad, en el mismo lugar y con
+ * el mismo sonido. Un preview que se dibuja aparte termina siendo un dibujo de
+ * lo que uno cree que hace el sistema.
+ */
+const PRUEBA = "halley:cobro-de-prueba";
+
+export function probarAvisoCobro() {
+  window.dispatchEvent(new Event(PRUEBA));
+}
+
+/** El pago inventado de la muestra. Se ve igual, pero dice que es de mentira. */
+const MUESTRA = {
+  monto: 45000,
+  alumno: "Lucía Bustos",
+  grupo: "Egresados 2027 — Colegio San Martín",
+};
+
+function sonar(sonido: string) {
+  if (sonido === "silencio") return;
+  // El navegador rechaza reproducir sin que el usuario haya interactuado con la
+  // página. No es un error que valga la pena mostrar: el cartel se ve igual,
+  // que es lo que importa.
+  void new Audio(`/sonidos/${sonido}.mp3`).play().catch(() => undefined);
+}
+
 type Cobro = {
   id: string;
   monto: number;
   alumno: string;
   grupo: string;
+  /** La muestra de Ajustes. Nunca puede parecer un cobro de verdad. */
+  prueba?: boolean;
 };
 
 export function AvisoCobros({ sonido }: { sonido: string }) {
@@ -57,15 +93,23 @@ export function AvisoCobros({ sonido }: { sonido: string }) {
     desde.current = data[data.length - 1]!.recibidoEn;
 
     setCola((previos) => [...previos, ...data]);
-
-    if (sonido !== "silencio") {
-      const audio = new Audio(`/sonidos/${sonido}.mp3`);
-      // El navegador rechaza reproducir sin que el usuario haya interactuado con
-      // la página. No es un error que valga la pena mostrar: el cartel se ve
-      // igual, que es lo que importa.
-      void audio.play().catch(() => undefined);
-    }
+    sonar(sonido);
   }, [data, sonido]);
+
+  // La muestra que dispara Ajustes: el mismo cartel, en el mismo rincón, con el
+  // sonido que está elegido en ese momento.
+  useEffect(() => {
+    function alProbar() {
+      setCola((c) => [
+        ...c,
+        { id: `prueba-${Date.now()}`, ...MUESTRA, prueba: true },
+      ]);
+      sonar(sonido);
+    }
+
+    window.addEventListener(PRUEBA, alProbar);
+    return () => window.removeEventListener(PRUEBA, alProbar);
+  }, [sonido]);
 
   // Cada cartel se va solo. El temporizador vive acá y no en el cartel para que
   // desmontarlo no deje uno colgado.
@@ -82,7 +126,7 @@ export function AvisoCobros({ sonido }: { sonido: string }) {
       // `aria-live` para que un lector de pantalla lo cante sin robarle el foco
       // a lo que se esté haciendo.
       aria-live="polite"
-      className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-2"
+      className="pointer-events-none fixed top-4 right-4 z-50 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-2"
     >
       {cola.map((c) => (
         <article
@@ -92,6 +136,13 @@ export function AvisoCobros({ sonido }: { sonido: string }) {
           <div className="flex items-center gap-1.5 font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
             <IconoBillete className="h-3.5 w-3.5" />
             Pago recibido
+            {/* Un cobro de mentira que se ve igual que uno de verdad es una
+                trampa esperando: la muestra lo dice en la cara. */}
+            {c.prueba && (
+              <span className="ml-auto border border-gray-45 px-1.5 py-0.5 text-[9.5px] tracking-[0.08em]">
+                Prueba
+              </span>
+            )}
           </div>
           <div className="mt-1 font-display text-[21px] leading-none tabular-nums">
             {pesos(c.monto)}

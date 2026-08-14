@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TRPCError } from "@trpc/server";
 
 import { Copiar } from "~/app/_components/copiar";
+import { Logotipo } from "~/app/_components/logotipo";
 import {
   IconoFlecha,
   IconoRegalo,
@@ -20,7 +21,7 @@ import {
   progresoBox,
   seleccionDe,
 } from "~/app/_datos/presupuesto";
-import { fecha, pesos } from "~/lib/format";
+import { fecha, fechaLarga, pesos } from "~/lib/format";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
 import { api } from "~/trpc/server";
 
@@ -93,6 +94,10 @@ export default async function PaginaCodigo({
   const cierre = cierreDe(p.total, p.plan);
   const box = progresoBox(p.total);
 
+  // En la web el Instagram es un link; en papel una URL larga es ruido, así que
+  // se imprime el usuario, que es lo que alguien tipea.
+  const instagram = `@${datos.instagram.replace(/\/+$/, "").split("/").pop() ?? ""}`;
+
   const mensaje = [
     `Hola Halley, armé un presupuesto para ${evento.posesivo}.`,
     `Código: ${p.codigo}`,
@@ -111,22 +116,57 @@ export default async function PaginaCodigo({
         </Link>
       </div>
 
+      {/* ------------------------------------------------------- membrete */}
+      {/* Sólo en papel. En pantalla el logo ya está en la barra de arriba y
+          repetirlo sería decir dos veces lo mismo; impreso, la barra no existe
+          y sin esto la hoja sale sin firma, como un remito. */}
+      <div className="solo-imprimir membrete">
+        <Logotipo variante="isologo" className="h-[17mm]" />
+
+        <div className="membrete-datos">
+          <p className="font-rotulo text-[10px] tracking-[0.24em] text-gray-45 uppercase">
+            Presupuesto
+          </p>
+          <p className="mt-1 font-mono text-[13px] tracking-[0.06em]">
+            {p.codigo}
+          </p>
+          <p className="mt-1 text-[10px] text-gray-45">
+            Emitido el {fechaLarga(p.creadoEn)}
+          </p>
+        </div>
+      </div>
+
       <header className="mt-10">
         <p className="font-rotulo text-[11.5px] tracking-[0.22em] text-gray-70 uppercase">
           {evento.nombre}
         </p>
-        <h1 className="mt-3 max-w-[20ch] font-titulo text-[clamp(2rem,6vw,3.6rem)] leading-[0.92] uppercase">
+
+        {/* En pantalla esto es una confirmación —acabás de apretar un botón y
+            hay que decirte que salió bien—. En papel no hay nada que confirmar:
+            el documento tiene que abrir diciendo de quién es y para qué día. */}
+        <h1 className="no-imprimir mt-3 max-w-[20ch] font-titulo text-[clamp(2rem,6vw,3.6rem)] leading-[0.92] uppercase">
           Presupuesto generado con éxito
         </h1>
-        <p className="mt-5 max-w-[52ch] text-[15px] leading-relaxed text-gray-70">
+        <p className="no-imprimir mt-5 max-w-[52ch] text-[15px] leading-relaxed text-gray-70">
           Ya podés abonar la reserva para bloquear la fecha y congelar el
           precio. Guardá el código: con él volvés a abrir este presupuesto y lo
           podés modificar cuando quieras.
         </p>
+
+        <div className="solo-imprimir">
+          <p className="font-titulo text-[26px] leading-[0.95] uppercase">
+            {p.nombre}
+          </p>
+          <p className="mt-1 text-[11.5px] text-gray-70">
+            {p.fechaEvento
+              ? `Para el ${fechaLarga(p.fechaEvento)}`
+              : "Fecha del evento a confirmar"}
+          </p>
+        </div>
       </header>
 
       {/* ------------------------------------------------------- el código */}
-      <div className="caja mt-9 border border-ink p-6 sm:p-7">
+      <div className="caja no-imprimir mt-9 border border-ink p-6 sm:p-7">
         <p className="font-rotulo text-[11px] tracking-[0.14em] text-gray-45 uppercase">
           Código de seguimiento
         </p>
@@ -179,7 +219,7 @@ export default async function PaginaCodigo({
           </div>
 
           {p.fechaEvento && (
-            <p className="nota mt-6 text-[13px]">
+            <p className="nota no-imprimir mt-6 text-[13px]">
               Fecha del evento: {fecha(p.fechaEvento)} — se puede cambiar.
             </p>
           )}
@@ -238,7 +278,37 @@ export default async function PaginaCodigo({
         </div>
       </div>
 
-      {!PRECIOS_CONFIRMADOS && <AvisoReferencia className="mt-6" />}
+      {!PRECIOS_CONFIRMADOS && (
+        <AvisoReferencia className="no-imprimir mt-6" />
+      )}
+
+      {/* ------------------------------------------------------ pie de hoja */}
+      {/* Lo que en pantalla está repartido —el aviso de que los precios son de
+          referencia, la nota de que esto no es una contratación, los datos de
+          contacto que viven en la barra— acá se junta en un pie, que es donde
+          un documento pone la letra chica. Sin esto la hoja termina en un
+          número y no dice ni de quién es ni a quién escribirle. */}
+      <div className="solo-imprimir pie-hoja">
+        <div>
+          <p className="font-rotulo text-[9.5px] tracking-[0.18em] uppercase">
+            Halley Audiovisual
+          </p>
+          <p className="mt-1 text-[9.5px] text-gray-45">
+            Córdoba, Argentina · {datos.mail}
+          </p>
+          <p className="text-[9.5px] text-gray-45">
+            WhatsApp {datos.whatsapp} · {instagram}
+          </p>
+        </div>
+
+        <p className="max-w-[62ch] text-right text-[9.5px] leading-relaxed text-gray-45">
+          {PRECIOS_CONFIRMADOS
+            ? "Los valores quedan congelados al abonar la reserva."
+            : "Los valores son de referencia y se confirman al contactarte, y quedan congelados al abonar la reserva."}{" "}
+          Este presupuesto no es una contratación. Guardá el código {p.codigo}:
+          con él lo volvemos a abrir y seguimos desde ahí.
+        </p>
+      </div>
 
       {/* ------------------------------------------------------- acciones */}
       <div className="no-imprimir mt-9 flex flex-wrap gap-3.5">

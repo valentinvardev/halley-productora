@@ -1,8 +1,13 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { IconoRegalo, IconoTilde } from "~/app/_components/iconos";
+import {
+  IconoAlerta,
+  IconoCruz,
+  IconoRegalo,
+  IconoTilde,
+} from "~/app/_components/iconos";
 import { HALLEY_BOX, progresoBox, type Linea } from "~/app/_datos/presupuesto";
 import { pesos } from "~/lib/format";
 
@@ -281,5 +286,71 @@ export function Cabecera({
         </p>
       )}
     </header>
+  );
+}
+
+/* ------------------------------------------------------------------- aviso */
+
+/**
+ * El reclamo de lo que falta, en una tarjeta que aparece sobre el pie.
+ *
+ * Antes era una franja que se insertaba adentro del pie, y eso tenía un
+ * problema de fondo: al aparecer empujaba los botones hacia abajo, justo en el
+ * momento en que la persona acababa de apretar uno. El dedo ya estaba ahí y el
+ * botón se le movía. Flotando encima no mueve nada.
+ *
+ * Se va solo a los cinco segundos. Un reclamo que se queda después de resuelto
+ * deja de leerse como una respuesta a lo que acabás de hacer y pasa a ser una
+ * advertencia permanente, que es lo que la gente aprende a ignorar.
+ *
+ * El texto se guarda aparte del que llega por props: mientras la tarjeta se va,
+ * el mensaje ya es `null`, y sin esa copia el cartel se vaciaría a mitad de la
+ * animación de salida y lo último que se vería sería una tarjeta en blanco.
+ */
+export function AvisoFlotante({
+  mensaje,
+  alCerrar,
+}: {
+  mensaje: string | null;
+  /** Tiene que ser estable: si cambia en cada pintado, el reloj se reinicia. */
+  alCerrar: () => void;
+}) {
+  const [ultimo, setUltimo] = useState<string | null>(mensaje);
+
+  useEffect(() => {
+    if (mensaje) setUltimo(mensaje);
+  }, [mensaje]);
+
+  useEffect(() => {
+    if (!mensaje) return;
+    const reloj = setTimeout(alCerrar, 5000);
+    return () => clearTimeout(reloj);
+  }, [mensaje, alCerrar]);
+
+  if (!ultimo) return null;
+
+  return (
+    <div
+      className="aviso-flotante"
+      data-visible={mensaje ? "si" : "no"}
+      // `status` y no `alert`: interrumpir lo que el lector de pantalla está
+      // diciendo, para algo que la persona provocó recién, molesta más de lo
+      // que ayuda.
+      role="status"
+      aria-live="polite"
+    >
+      <div className="aviso-tarjeta">
+        <IconoAlerta className="mt-px h-4 w-4 shrink-0" />
+        <p className="min-w-0 flex-1 text-[13px] leading-snug">{ultimo}</p>
+        <button
+          type="button"
+          onClick={alCerrar}
+          aria-label="Cerrar aviso"
+          className="-m-1 cursor-pointer p-1 text-gray-45 hover:text-ink"
+        >
+          <IconoCruz className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import {
   IconoAlerta,
+  IconoBajar,
   IconoPapelera,
   IconoTilde,
   IconoWhatsApp,
@@ -174,7 +175,15 @@ function Fila({
         onClick={() => setAbierto((v) => !v)}
         className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-left hover:bg-paper-dim"
       >
-        <Tag activo={!contactado}>{EVENTOS[p.evento].nombre}</Tag>
+        {/* El chevron dice que esto se abre. Sin él, una fila que reacciona al
+            clic pero no anuncia nada se descubre por accidente. */}
+        <IconoBajar
+          className={`h-3 w-3 shrink-0 text-gray-45 transition-transform duration-200 ${
+            abierto ? "" : "-rotate-90"
+          }`}
+        />
+
+        <Tag>{EVENTOS[p.evento].nombre}</Tag>
 
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px]">{p.nombre}</span>
@@ -182,6 +191,17 @@ function Fila({
             {p.codigo}
           </span>
         </span>
+
+        {/* La insignia marca la excepción, no la regla: al principio nadie está
+            contactado, así que lo que hay que poder ver de un vistazo es a
+            quién ya le escribiste. Marcar lo contrario pintaría la lista entera
+            y no diría nada. */}
+        {contactado && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 border border-ink bg-ink px-2 py-1 font-rotulo text-[10.5px] tracking-[0.06em] text-paper uppercase">
+            <IconoTilde className="h-3 w-3" />
+            Contactado
+          </span>
+        )}
 
         <span className="font-display text-[15px] tabular-nums">
           {pesos(p.total)}
@@ -192,8 +212,13 @@ function Fila({
         </span>
       </button>
 
-      {abierto && (
-        <div className="border-t border-gray-20 bg-paper-dim px-4 py-4">
+      <div
+        className={`despliegue ${abierto ? "border-t border-gray-20" : ""}`}
+        data-abierto={abierto ? "si" : "no"}
+        inert={!abierto}
+      >
+        <div className="bg-paper-dim">
+          <div className="px-4 py-4">
           <dl className="grid gap-x-6 gap-y-2 text-[13.5px] sm:grid-cols-2">
             <Dupla rotulo="Celular" valor={p.celular} />
             <Dupla rotulo="Email" valor={p.email} />
@@ -262,9 +287,10 @@ function Fila({
               <IconoPapelera />
               Borrar
             </BotonTexto>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

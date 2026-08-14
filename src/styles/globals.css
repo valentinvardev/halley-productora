@@ -1169,43 +1169,46 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
 }
 
 /* ---------------------------------------------------------------------------
-   El cajón del detalle.
+   Lo que se despliega.
 
    Abre y cierra con `grid-template-rows` de 0fr a 1fr, que es la única forma de
    animar hasta "el alto que tenga el contenido" sin medirlo con JavaScript. Con
    `height: auto` no hay transición —el navegador no sabe interpolar hacia un
-   valor que todavía no calculó— y con un alto fijo habría que adivinar cuántas
-   líneas tiene el presupuesto, que cambia con cada ítem que se agrega.
+   valor que todavía no calculó— y con un alto fijo habría que adivinar cuánto
+   mide adentro, que cambia con cada ítem.
 
    El contenido queda siempre en el DOM y sólo recortado. Eso es lo que hace que
    el cierre también se vea: desmontarlo al cerrar lo haría desaparecer de golpe
    y la animación sólo existiría al abrir.
+
+   Lo usan el detalle del pie del simulador y cada fila de la lista de
+   presupuestos del panel. Es el mismo gesto, así que es el mismo CSS.
 --------------------------------------------------------------------------- */
-.cajon-detalle {
+.despliegue {
   display: grid;
   grid-template-rows: 0fr;
 }
 
-.cajon-detalle[data-abierto="si"] {
+.despliegue[data-abierto="si"] {
   grid-template-rows: 1fr;
 }
 
 /* El hijo es lo que se recorta. `min-height: 0` es obligatorio: sin eso el
    contenido impone su alto mínimo a la fila y la grilla nunca llega a cero. */
-.cajon-detalle > * {
+.despliegue > * {
   overflow: hidden;
   min-height: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .cajon-detalle {
+  .despliegue {
     transition: grid-template-rows 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
   /* El contenido acompaña con opacidad y un empujón desde arriba, para que no
      se lea como una persiana sino como algo que aparece. Al cerrar se va antes
      de que termine de recogerse, que es lo que evita el amontonado del final. */
-  .cajon-detalle > * > * {
+  .despliegue > * > * {
     opacity: 0;
     transform: translateY(-6px);
     transition:
@@ -1213,10 +1216,116 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
       transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  .cajon-detalle[data-abierto="si"] > * > * {
+  .despliegue[data-abierto="si"] > * > * {
     opacity: 1;
     transform: translateY(0);
     transition-delay: 90ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   El aviso de cobro del panel.
+
+   Entra desde el borde derecho, que es de donde viene: aparecer en el lugar por
+   opacidad lo haría leer como algo que ya estaba y recién se encendió.
+
+   La clase existía en el componente desde el principio pero no tenía CSS
+   —el cartel aparecía de golpe—, así que esto es la animación que le faltaba.
+--------------------------------------------------------------------------- */
+.aviso-cobro {
+  animation: entra-aviso 380ms cubic-bezier(0.22, 1.2, 0.5, 1) both;
+}
+
+@keyframes entra-aviso {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-cobro {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   El aviso flotante del simulador.
+
+   Aparece sobre el pie cuando falta algo para seguir. Flota y no se inserta:
+   una franja adentro del pie empujaba los botones hacia abajo justo cuando la
+   persona acababa de apretar uno, y el botón se le movía debajo del dedo.
+
+   Entra desde abajo con un envión corto y una pizca de escala; sale por el
+   mismo camino, más rápido y sin rebote. La diferencia es deliberada: aparecer
+   tiene que llamar la atención, irse no.
+--------------------------------------------------------------------------- */
+.aviso-flotante {
+  position: absolute;
+  bottom: 100%;
+  right: 1.5rem;
+  left: 1.5rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+  /* La capa no intercepta clics; sólo la tarjeta. Si no, una banda invisible
+     del ancho de la pantalla se comería los toques de lo que hay detrás. */
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .aviso-flotante {
+    right: 2.5rem;
+    left: 2.5rem;
+  }
+}
+
+.aviso-tarjeta {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  max-width: 27rem;
+  border: 1px solid var(--color-ink);
+  background: var(--color-paper);
+  padding: 0.7rem 0.85rem;
+  /* La única sombra del sitio, y va acá por una razón: es lo único que tiene
+     que leerse como despegado de la página en vez de impreso sobre ella. */
+  box-shadow: 0 6px 22px rgb(0 0 0 / 0.16);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aviso-flotante {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    transition:
+      opacity 160ms ease,
+      transform 200ms cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  .aviso-flotante[data-visible="si"] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+      opacity 180ms ease,
+      /* Con un pelín de sobrepaso: es lo que hace que se lea como algo que
+         llegó y no como algo que estaba y se encendió. */
+        transform 340ms cubic-bezier(0.22, 1.28, 0.5, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-flotante {
+    opacity: 0;
+    transition: opacity 120ms linear;
+  }
+
+  .aviso-flotante[data-visible="si"] {
+    opacity: 1;
   }
 }
 
@@ -1225,29 +1334,49 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
 
    La usa el presupuesto emitido, donde "Descargar presupuesto" es `print()` y
    nada más: el diálogo de cualquier navegador —también el del teléfono— trae
-   "Guardar como PDF", así que lo que falta no es un generador sino sacar de la
-   hoja lo que sólo tenía sentido en pantalla.
+   "Guardar como PDF", así que lo que falta no es un generador sino una hoja.
+
+   Y hoja quiere decir hoja, no la pantalla con cosas apagadas. En papel no hay
+   barra con el logo, no hay botón para copiar el código y no hay nada que
+   confirmar —el "generado con éxito" contesta a un botón que acá no se apretó—.
+   Entonces el documento tiene su propio membrete, su propio título y su propio
+   pie, marcados `solo-imprimir`, y la pantalla se queda con lo suyo. Es el mismo
+   HTML porque los números tienen que ser los mismos; lo que cambia es lo que
+   rodea a los números.
+
+   El margen no va en `@page`.
+
+   Ésa fue la trampa: `@page { margin }` lo pisa el diálogo de impresión, así
+   que quien tuviera los márgenes en "Ninguno" —o el navegador que no lo
+   respete— se llevaba el texto pegado a los cuatro bordes. Acá `@page` va en
+   cero y el aire lo pone la hoja con su propio padding, que es contenido y no
+   se lo puede sacar nadie desde un menú.
 
    El texto se fuerza a negro sobre blanco y no se deja al tema: alguien con el
    modo oscuro puesto imprimiría una página negra, que además de ilegible se
-   come un cartucho.
+   come un cartucho. Por lo mismo el logo se fija en su versión oscura sobre
+   claro; el crema del negativo sobre papel blanco no existiría.
 
-   Y tiene que entrar en una carilla. Un PDF cuya segunda hoja trae tres
-   renglones y nada más es peor que apretar los espacios, así que acá se aprieta
-   el aire —márgenes, padding, interlínea— y nunca el cuerpo del texto, que
-   impreso se sigue teniendo que leer.
-
-   El caso contra el que está medido es el peor posible: el catálogo entero
-   contratado, quince líneas. Así queda en 265mm de los 297 del A4, o sea unos
-   30mm de sobra —cinco renglones más—. Si el catálogo crece bastante, hay que
-   volver a medir: imprimir con `size: 210mm 265mm` y ver si sigue dando una
-   sola página.
+   Tiene que entrar en una carilla. Está medido contra el peor caso posible —el
+   catálogo entero contratado, quince líneas—: si el catálogo crece bastante hay
+   que volver a mirarlo imprimiendo y contando páginas.
 --------------------------------------------------------------------------- */
+
+/* En pantalla no existe. Vive acá afuera del bloque `print` porque es una
+   utilidad de todos los días: `no-imprimir` es su espejo. */
+.solo-imprimir {
+  display: none;
+}
+
 @media print {
   .no-imprimir,
   header.sticky,
   dialog {
     display: none !important;
+  }
+
+  .solo-imprimir {
+    display: block;
   }
 
   html,
@@ -1264,15 +1393,32 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     --color-gray-20: #bbbbbb;
   }
 
-  /* El margen lo pone el papel, no el contenedor.
+  /* Lo que se dibuja con color se imprime con color. Sin esto los navegadores
+     descartan fondos y bordes claros "para ahorrar tinta", y las líneas de un
+     píxel que sostienen toda la grilla desaparecen. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
-     En pantalla la hoja trae aire arriba y abajo para despegarse de la barra;
-     al imprimir ese aire se sumaba al margen de la página y arriba quedaba una
-     banda vacía enorme mientras abajo el contenido se caía a la hoja dos. Acá
-     el espacio se decide en un solo lugar: `@page`. */
+  /* El logo, siempre el oscuro sobre blanco: en papel no hay tema. */
+  .logo-claro {
+    opacity: 1 !important;
+  }
+
+  .logo-oscuro {
+    opacity: 0 !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* El aire de la hoja, que es contenido y no configuración del diálogo. */
   .hoja {
-    padding: 0 !important;
     margin: 0 !important;
+    padding: 15mm 14mm !important;
     max-width: none !important;
   }
 
@@ -1281,25 +1427,28 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     margin-top: 10px !important;
   }
 
+  /* El membrete abre la hoja: arriba del todo y sin margen propio, porque el
+     de arriba ya lo puso el padding. */
+  .membrete {
+    display: flex !important;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 0 !important;
+    padding-bottom: 7px;
+    border-bottom: 1px solid #000000;
+  }
+
+  .membrete-datos {
+    text-align: right;
+  }
+
   .hoja header > * + * {
     margin-top: 5px !important;
   }
 
-  .hoja h1 {
-    font-size: 26px !important;
-    line-height: 0.95 !important;
-  }
-
   .hoja h2 {
     font-size: 16px !important;
-  }
-
-  /* La bajada explica algo que en papel ya no hace falta explicar tan grande:
-     baja de cuerpo y se ensancha, y de tres líneas pasa a dos. */
-  .hoja header p:last-of-type {
-    font-size: 12.5px !important;
-    line-height: 1.45 !important;
-    max-width: 78ch !important;
   }
 
   .hoja .caja {
@@ -1335,6 +1484,17 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     line-height: 1.25 !important;
   }
 
+  /* El pie: la letra chica y a quién escribirle. */
+  .pie-hoja {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 14px !important;
+    padding-top: 7px;
+    border-top: 1px solid #bbbbbb;
+  }
+
   /* Nada de esto se parte al medio: una tarjeta cortada entre dos hojas se lee
      como dos presupuestos distintos. */
   .hoja,
@@ -1342,10 +1502,5 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
   .hoja li,
   .no-cortar {
     break-inside: avoid;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 12mm 14mm;
   }
 }

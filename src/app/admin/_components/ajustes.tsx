@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { IconoTilde } from "~/app/_components/iconos";
+import { IconoCampana, IconoTilde } from "~/app/_components/iconos";
 import { Boton, Campo, Encabezado } from "~/app/_components/ui";
 import {
   CAMPOS_AJUSTE,
@@ -10,6 +10,7 @@ import {
   type ClaveAjusteUI,
 } from "~/app/_datos/ajustes";
 import { api } from "~/trpc/react";
+import { probarAvisoCobro } from "./aviso-cobros";
 import { EsqueletoAjustes } from "./esqueletos";
 
 /**
@@ -99,21 +100,17 @@ export function Ajustes() {
                   </option>
                 ))}
               </select>
-              <Boton
-                variante="fantasma"
-                onClick={() => {
-                  if (sonido === "silencio") return;
-                  void new Audio(`/sonidos/${sonido}.mp3`)
-                    .play()
-                    .catch(() => undefined);
-                }}
-                disabled={sonido === "silencio"}
-              >
+              {/* Ya no está deshabilitado en "silencio": probar ahora también
+                  muestra el cartel, y ver dónde aparece y qué dice es la mitad
+                  de lo que uno quiere saber antes de dejarlo andando. */}
+              <Boton variante="fantasma" onClick={probarAvisoCobro}>
+                <IconoCampana />
                 Probar
               </Boton>
             </div>
             <p className="nota mt-1.5">
               Suena en el panel cuando entra un pago, en la pantalla que sea.
+              Probar muestra el aviso de verdad, arriba a la derecha.
             </p>
           </div>
         </div>

@@ -19,6 +19,23 @@ export function fecha(d: Date | string) {
   return fechaFmt.format(new Date(d));
 }
 
+/**
+ * "22 de mayo de 2027". Va en el presupuesto impreso.
+ *
+ * En una tabla del panel la fecha corta gana —hay veinte y se comparan de un
+ * vistazo— pero en un documento que alguien imprime y guarda, 22/05/2027 se lee
+ * como un número de expediente y la fecha escrita se lee como una fecha.
+ */
+const fechaLargaFmt = new Intl.DateTimeFormat("es-AR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+export function fechaLarga(d: Date | string) {
+  return fechaLargaFmt.format(new Date(d));
+}
+
 const fechaHoraFmt = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
   month: "2-digit",

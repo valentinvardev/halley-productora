@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
 import {
@@ -29,7 +29,14 @@ import {
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
-import { BarraBox, Cabecera, Detalle, Opcion, Progreso } from "./piezas";
+import {
+  AvisoFlotante,
+  BarraBox,
+  Cabecera,
+  Detalle,
+  Opcion,
+  Progreso,
+} from "./piezas";
 
 /**
  * El simulador de presupuesto.
@@ -141,6 +148,18 @@ export function Simulador({
     setDetalleAbierto(false);
     setReclamo(null);
   }, [paso]);
+
+  // Lo que falta y lo que falló son, para quien mira, la misma cosa: "esto no
+  // salió". Van por el mismo cartel y sólo puede haber uno.
+  const aviso = reclamo ?? generar.error?.message ?? null;
+  // Depende de `reset` y no del objeto entero de la mutación: ése se recrea en
+  // cada pintado, y con él como dependencia el cierre cambiaría de identidad
+  // todo el tiempo y el reloj de los cinco segundos volvería a cero sin parar.
+  const reiniciar = generar.reset;
+  const cerrarAviso = useCallback(() => {
+    setReclamo(null);
+    reiniciar();
+  }, [reiniciar]);
 
   function irA(siguiente: number) {
     setPaso(siguiente);
@@ -331,13 +350,15 @@ export function Simulador({
 
       {/* ------------------------------------------------------------ pie */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink bg-paper">
+        <AvisoFlotante mensaje={aviso} alCerrar={cerrarAviso} />
+
         {/* Siempre montado y sólo recogido: si se desmontara al cerrar, el
             cierre no se vería —desaparecería de golpe— y la animación existiría
             nada más que al abrir. `inert` lo saca del tabulado y del lector de
             pantalla mientras está recogido, que es lo que ocultar significa
             para quien no lo está mirando. */}
         <div
-          className={`cajon-detalle ${detalleAbierto ? "border-b border-gray-20" : ""}`}
+          className={`despliegue ${detalleAbierto ? "border-b border-gray-20" : ""}`}
           data-abierto={detalleAbierto ? "si" : "no"}
           inert={!detalleAbierto}
         >
@@ -351,24 +372,6 @@ export function Simulador({
         </div>
 
         <BarraBox total={total} />
-
-        {reclamo && (
-          <div className="border-b border-gray-20 px-6 py-2 sm:px-10">
-            <p className="mx-auto flex max-w-[1140px] items-center gap-2 text-[13px] text-gray-70">
-              <IconoAlerta className="h-3.5 w-3.5 shrink-0" />
-              {reclamo}
-            </p>
-          </div>
-        )}
-
-        {generar.error && (
-          <div className="border-b border-gray-20 px-6 py-2 sm:px-10">
-            <p className="mx-auto flex max-w-[1140px] items-center gap-2 text-[13px] text-gray-70">
-              <IconoAlerta className="h-3.5 w-3.5 shrink-0" />
-              {generar.error.message}
-            </p>
-          </div>
-        )}
 
         <div className="mx-auto flex max-w-[1140px] items-center gap-4 px-6 py-3.5 sm:px-10">
           <div className="min-w-0 flex-1">
