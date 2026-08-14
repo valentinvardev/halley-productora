@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { FUENTES_MARCA } from "~/app/_components/fuentes";
 import {
+  IconoCalculadora,
   IconoFlecha,
   IconoInstagram,
   IconoSobre,
@@ -24,6 +25,7 @@ import {
   botonSolido,
   botonWhatsApp,
 } from "~/app/_components/ui";
+import { eventoDeServicio } from "~/app/_datos/presupuesto";
 import { SERVICIOS, consultaDe, servicioPorSlug } from "~/app/_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
 import { contenidoDe } from "~/server/contenido";
@@ -62,6 +64,9 @@ export default async function ServicioPage({
 
   const otros = SERVICIOS.filter((s) => s.slug !== servicio.slug);
   const consulta = consultaDe(servicio);
+  // Bodas y quince tienen catálogo de precios y por lo tanto simulador; marcas
+  // y egresados se cotizan hablando, y ahí el botón sería una promesa vacía.
+  const evento = eventoDeServicio(servicio.slug);
 
   // El material real que subió el admin. Si no hay, se cae a las muestras.
   const datos = await contacto();
@@ -105,6 +110,12 @@ export default async function ServicioPage({
 
             <div className="mt-9 flex flex-wrap gap-3.5">
               <BotonElegirFotos hayFotos={fotos.length > 0} />
+              {evento && (
+                <Link href={`/presupuesto/${evento}`} className={botonSolido}>
+                  <IconoCalculadora />
+                  Simular presupuesto
+                </Link>
+              )}
               <a href="#pedir" className={botonFantasma}>
                 <IconoFlecha />
                 Ver qué incluye
@@ -200,6 +211,12 @@ export default async function ServicioPage({
                 <IconoWhatsApp />
                 Pedir presupuesto
               </a>
+              {evento && (
+                <Link href={`/presupuesto/${evento}`} className={botonSolido}>
+                  <IconoCalculadora />
+                  Simularlo yo
+                </Link>
+              )}
               <a
                 href={`mailto:${datos.mail}?subject=${encodeURIComponent(consulta)}`}
                 className={botonFantasma}

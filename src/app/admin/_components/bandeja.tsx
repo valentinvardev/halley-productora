@@ -15,6 +15,7 @@ const ROTULO = {
   CONFIRMACION_PADRE: "Confirmación",
   AVISO_ADMIN: "Aviso a Halley",
   RECORDATORIO: "Recordatorio",
+  PRESUPUESTO: "Presupuesto",
 } as const;
 
 export function Bandeja() {

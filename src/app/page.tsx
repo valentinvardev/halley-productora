@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FUENTES_MARCA } from "./_components/fuentes";
 import {
   IconoBajar,
+  IconoCalculadora,
   IconoFlecha,
   IconoInstagram,
   IconoSobre,
@@ -22,6 +23,7 @@ import { NavPublica } from "./_components/nav-publica";
 import { heroAleatorio, muestraDe } from "~/server/contenido";
 import { MosaicoPortadas } from "./_components/mosaico-portadas";
 import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
+import { eventoDeServicio } from "./_datos/presupuesto";
 import { SERVICIOS } from "./_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
 
@@ -239,6 +241,14 @@ function Hero({
 const botonSobreVideoFantasma =
   "inline-flex items-center justify-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
 
+/* Los dos botones al pie de cada tarjeta de servicio. Van sobre foto, así que
+   el color no lo decide el tema: blanco siempre, y el segundo con el borde más
+   apagado para que se lea cuál es la acción principal. */
+const botonSobreFoto =
+  "inline-flex items-center gap-2 border border-white/70 px-[18px] py-[11px] font-rotulo text-[12px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
+const botonSobreFotoTenue =
+  "inline-flex items-center gap-2 border border-white/35 px-[18px] py-[11px] font-rotulo text-[12px] uppercase tracking-[0.04em] text-white/85 transition-colors hover:border-white hover:bg-white hover:text-black";
+
 /**
  * La estela del cometa, cuando todavía no hay video de portada.
  *
@@ -393,6 +403,9 @@ async function Servicios() {
       <div className="grid gap-px border-y border-gray-20 bg-gray-20 lg:grid-cols-2">
         {SERVICIOS.map((s, i) => {
           const portadas = fondos[i] ?? [];
+          // Sólo bodas y quince tienen catálogo de precios; las otras dos
+          // categorías se cotizan hablando, y la función lo sabe por las dos.
+          const evento = eventoDeServicio(s.slug);
           return (
             <TarjetaServicio
               key={s.slug}
@@ -441,13 +454,29 @@ async function Servicios() {
                   {s.linea}
                 </p>
 
-                <Link
-                  href={`/servicios/${s.slug}`}
-                  className="mt-5 inline-flex items-center gap-2 border border-white/70 px-[18px] py-[11px] font-rotulo text-[12px] tracking-[0.04em] text-white uppercase transition-colors hover:bg-white hover:text-black"
-                >
-                  Ver {s.nombre.toLowerCase()}
-                  <IconoFlecha />
-                </Link>
+                {/* Dos puertas donde las hay: mirar trabajo y armar el precio.
+                    El simulador va segundo y en fantasma —no compite con la
+                    categoría— pero va en la tarjeta y no escondido adentro:
+                    quien quiere saber cuánto sale lo quiere saber acá. */}
+                <div className="mt-5 flex flex-wrap gap-2.5">
+                  <Link
+                    href={`/servicios/${s.slug}`}
+                    className={botonSobreFoto}
+                  >
+                    Ver {s.nombre.toLowerCase()}
+                    <IconoFlecha />
+                  </Link>
+
+                  {evento && (
+                    <Link
+                      href={`/presupuesto/${evento}`}
+                      className={botonSobreFotoTenue}
+                    >
+                      <IconoCalculadora className="h-3.5 w-3.5" />
+                      Simular presupuesto
+                    </Link>
+                  )}
+                </div>
               </div>
             </TarjetaServicio>
           );

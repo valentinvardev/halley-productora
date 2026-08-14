@@ -396,6 +396,46 @@ export function IconoLista(props: Props) {
   );
 }
 
+/** La Halley Box: una caja con su moño. */
+export function IconoRegalo(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="1.5" y="6.5" width="13" height="8" />
+      <path d="M1.5 6.5 L14.5 6.5" />
+      <path d="M8 6.5 L8 14.5" />
+      <path d="M8 6.5 C 8 4, 6.8 1.5, 5 1.5 A 2.2 2.2 0 0 0 5 6.5 Z" />
+      <path d="M8 6.5 C 8 4, 9.2 1.5, 11 1.5 A 2.2 2.2 0 0 1 11 6.5 Z" />
+    </Svg>
+  );
+}
+
+/** Guardar el presupuesto: la flecha que baja al piso. */
+export function IconoDescargar(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M8 1.5 L8 10.5" />
+      <path d="M4 7 L8 11 L12 7" />
+      <path d="M2 14 L14 14" />
+    </Svg>
+  );
+}
+
+/** Calculadora: el simulador de presupuesto. */
+export function IconoCalculadora(props: Props) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="1.5" width="10" height="13" />
+      <rect x="5" y="3.5" width="6" height="2.5" />
+      <path d="M5.5 8.75 L6.5 8.75" />
+      <path d="M7.5 8.75 L8.5 8.75" />
+      <path d="M9.5 8.75 L10.5 8.75" />
+      <path d="M5.5 11.75 L6.5 11.75" />
+      <path d="M7.5 11.75 L8.5 11.75" />
+      <path d="M9.5 11.75 L10.5 11.75" />
+    </Svg>
+  );
+}
+
 /**
  * Mercado Pago, en monocromo.
  *

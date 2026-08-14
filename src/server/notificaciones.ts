@@ -1,3 +1,4 @@
+import type { TipoNotificacion } from "../../generated/prisma";
 import { env } from "~/env";
 import { fecha, pesos } from "~/lib/format";
 import { linkAlumno, linkRegistroAlumno } from "./dominio";
@@ -20,12 +21,9 @@ type Grupo = { id: string; nombre: string; colegio: string; slug: string };
 
 async function entregar(
   data: {
-    tipo:
-      | "INVITACION"
-      | "ACCESO"
-      | "CONFIRMACION_PADRE"
-      | "AVISO_ADMIN"
-      | "RECORDATORIO";
+    // El enum de la base y no una copia escrita a mano: la copia se olvida de
+    // crecer cuando aparece un tipo nuevo, y el error sale lejos de acá.
+    tipo: TipoNotificacion;
     destinatario: string;
     asunto: string;
     cuerpo: string;
@@ -272,6 +270,74 @@ export async function notificarRecordatorio(
       },
       boton: { texto: "Pagar la cuota", url: linkAlumno(alumno.token) },
       nota: "Si ya transferiste, ignorá este mensaje.",
+      responder: true,
+    }),
+  );
+}
+
+/**
+ * La copia del presupuesto armado en el simulador.
+ *
+ * Va a alguien que todavía no es cliente: no hay alumno ni grupo del que
+ * colgarla, así que es la única notificación que queda suelta en la bandeja. Se
+ * manda sólo si lo pidió — el toggle del paso de contacto — y lo que lleva es el
+ * código y el link, no el detalle completo: el detalle está del otro lado del
+ * link, donde además se puede reeditar.
+ */
+export async function notificarPresupuesto({
+  email,
+  nombre,
+  evento,
+  codigo,
+  total,
+  reserva,
+  url,
+}: {
+  email: string;
+  nombre: string;
+  /** Cómo se lo nombra: "tu boda", "tu quince". */
+  evento: string;
+  codigo: string;
+  total: number;
+  reserva: number;
+  url: string;
+}) {
+  const primerNombre = nombre.trim().split(/\s+/)[0] ?? "";
+
+  return entregar(
+    {
+      tipo: "PRESUPUESTO",
+      destinatario: email,
+      asunto: `Tu presupuesto — ${codigo}`,
+      cuerpo: [
+        `Hola${primerNombre ? ` ${primerNombre}` : ""},`,
+        "",
+        `Este es el presupuesto que armaste para ${evento}.`,
+        "",
+        `Código: ${codigo}`,
+        `Total: ${pesos(total)}`,
+        `Reserva para congelar el precio: ${pesos(reserva)}`,
+        "",
+        `Verlo o modificarlo: ${url}`,
+        "",
+        "El presupuesto queda guardado con ese código. Los valores se congelan al abonar la reserva.",
+        ...firma,
+      ].join("\n"),
+    },
+    plantillaEmail({
+      preheader: `Tu presupuesto para ${evento}, con el código ${codigo}.`,
+      titulo: "Tu presupuesto",
+      saludo: `Hola${primerNombre ? ` ${primerNombre}` : ""},`,
+      parrafos: [
+        `Este es el presupuesto que armaste para ${evento}. Queda guardado con el código ${codigo}: con él lo podés volver a abrir, modificarlo o pasárnoslo por WhatsApp.`,
+      ],
+      destacado: {
+        rotulo: "Total",
+        valor: pesos(total),
+        pie: `Reserva para congelar el precio: ${pesos(reserva)}`,
+      },
+      boton: { texto: "Ver mi presupuesto", url },
+      nota: "Los valores quedan congelados al abonar la reserva. Si tenés dudas, respondé este correo.",
       responder: true,
     }),
   );

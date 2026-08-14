@@ -4,6 +4,7 @@ import { Barra } from "~/app/_components/barra";
 import { itemCajon } from "~/app/_components/cajon";
 import {
   IconoBillete,
+  IconoCalculadora,
   IconoCandado,
   IconoEngranaje,
   IconoGrupos,
@@ -20,6 +21,7 @@ import { Login } from "./_components/login";
 const ENLACES = [
   { href: "/admin", texto: "Grupos" },
   { href: "/admin/transacciones", texto: "Transacciones" },
+  { href: "/admin/presupuestos", texto: "Presupuestos" },
   { href: "/admin/notificaciones", texto: "Bandeja" },
   { href: "/admin/contenidos", texto: "Contenidos" },
   { href: "/admin/galerias", texto: "Galerías" },
@@ -34,6 +36,11 @@ const ENLACES_CON_ICONO = [
     href: "/admin/transacciones",
     texto: "Transacciones",
     icono: <IconoBillete />,
+  },
+  {
+    href: "/admin/presupuestos",
+    texto: "Presupuestos",
+    icono: <IconoCalculadora />,
   },
   { href: "/admin/notificaciones", texto: "Bandeja", icono: <IconoSobre /> },
   { href: "/admin/contenidos", texto: "Contenidos", icono: <IconoImagen /> },

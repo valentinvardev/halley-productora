@@ -1167,3 +1167,48 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Impresión.
+
+   La usa el presupuesto emitido, donde "Descargar presupuesto" es `print()` y
+   nada más: el diálogo de cualquier navegador —también el del teléfono— trae
+   "Guardar como PDF", así que lo único que falta es sacar de la hoja lo que
+   sólo tenía sentido en pantalla.
+
+   El texto se fuerza a negro sobre blanco y no se deja al tema: alguien con el
+   modo oscuro puesto imprimiría una página negra, que además de ilegible se
+   come un cartucho.
+--------------------------------------------------------------------------- */
+@media print {
+  .no-imprimir,
+  header.sticky,
+  dialog {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .landing {
+    background: #ffffff !important;
+    --color-paper: #ffffff;
+    --color-paper-dim: #ffffff;
+    --color-paper-dimmer: #ffffff;
+    --color-lienzo: #ffffff;
+    --color-ink: #000000;
+    --color-gray-70: #333333;
+    --color-gray-45: #555555;
+    --color-gray-20: #bbbbbb;
+  }
+
+  /* Una tarjeta partida entre dos hojas se lee como dos presupuestos. */
+  section,
+  li,
+  .no-cortar {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

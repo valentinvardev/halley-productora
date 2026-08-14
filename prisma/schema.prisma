@@ -496,6 +496,56 @@ model Contenido {
     @@index([categoria, orden])
 }
 
+/// Un presupuesto armado desde el simulador público.
+///
+/// No es un cobro ni un grupo: es lo que hay *antes* de que exista un cliente.
+/// Alguien entró a la web, eligió qué quiere para su boda o su quince y dejó sus
+/// datos. Por eso no cuelga de `Grupo` ni de `Cuenta` — todavía no hay ninguna
+/// de las dos, y si el evento se cierra el grupo se crea aparte.
+///
+/// Las líneas van en `items` como JSON y con el precio adentro, y eso es
+/// deliberado: el presupuesto tiene que seguir diciendo lo que decía el día que
+/// se emitió aunque el catálogo cambie de precios al día siguiente. Es lo que
+/// hace que "la reserva congela el precio" sea verdad y no una frase.
+model Presupuesto {
+    id     String @id @default(cuid())
+    /// El que se le pasa al cliente: Q-PEREZ-2026-4F2A. Se dicta por teléfono,
+    /// así que el alfabeto del hash no tiene caracteres ambiguos.
+    codigo String @unique
+
+    /// "quince" o "boda".
+    evento String
+
+    /// Las líneas congeladas: `[{ id, nombre, detalle?, precio }]`.
+    items Json
+
+    total           Decimal @db.Decimal(12, 2)
+    reserva         Decimal @db.Decimal(12, 2)
+    /// El saldo con el descuento o el interés del plan ya aplicados.
+    saldoFinanciado Decimal @db.Decimal(12, 2)
+    /// El id del plan elegido: "unico", "3", "6", "9".
+    plan            String
+
+    nombre      String
+    celular     String
+    email       String
+    /// Pidió copia por mail y novedades por WhatsApp.
+    quiereCopia Boolean @default(false)
+
+    /// La fecha del evento. Aproximada: se aclara que puede no estar cerrada.
+    fechaEvento DateTime?
+
+    /// Se marca cuando Halley lo contactó, para que la lista del panel no
+    /// obligue a acordarse de a quién ya se le escribió.
+    contactadoEn DateTime?
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    @@index([creadoEn])
+    @@index([evento])
+}
+
 enum ProveedorPago {
     TALO
     MERCADOPAGO
@@ -518,4 +568,7 @@ enum TipoNotificacion {
     CONFIRMACION_PADRE
     AVISO_ADMIN
     RECORDATORIO
+    /// La copia del presupuesto armado en el simulador. Va a alguien que
+    /// todavía no es cliente, así que no cuelga de ningún alumno ni grupo.
+    PRESUPUESTO
 }

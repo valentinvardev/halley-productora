@@ -18,6 +18,7 @@ export const TIPOS_MUESTRA = [
   { valor: "CONFIRMACION_PADRE", etiqueta: "Confirmación de pago" },
   { valor: "RECORDATORIO", etiqueta: "Recordatorio" },
   { valor: "AVISO_ADMIN", etiqueta: "Aviso a Halley" },
+  { valor: "PRESUPUESTO", etiqueta: "Copia de presupuesto" },
 ] as const;
 
 export type TipoMuestra = (typeof TIPOS_MUESTRA)[number]["valor"];
@@ -128,6 +129,36 @@ export function muestraEmail(tipo: TipoMuestra): {
             valor: "$ 45.000",
             pie: "Saldo del plan: $ 225.000",
           },
+        }),
+      };
+
+    case "PRESUPUESTO":
+      return {
+        asunto: "[PRUEBA] Tu presupuesto — B-BUSTOS-2026-4F2A",
+        texto: `Este es el presupuesto que armaste para tu boda.
+
+Código: B-BUSTOS-2026-4F2A
+Total: $ 2.850.000
+
+${APP}/presupuesto/codigo/B-BUSTOS-2026-4F2A`,
+        html: plantillaEmail({
+          preheader: "Tu presupuesto para tu boda, con el código B-BUSTOS-2026-4F2A.",
+          titulo: "Tu presupuesto",
+          saludo: "Hola Lucía,",
+          parrafos: [
+            "Este es el presupuesto que armaste para tu boda. Queda guardado con el código B-BUSTOS-2026-4F2A: con él lo podés volver a abrir, modificarlo o pasárnoslo por WhatsApp.",
+          ],
+          destacado: {
+            rotulo: "Total",
+            valor: "$ 2.850.000",
+            pie: "Reserva para congelar el precio: $ 570.000",
+          },
+          boton: {
+            texto: "Ver mi presupuesto",
+            url: `${APP}/presupuesto/codigo/B-BUSTOS-2026-4F2A`,
+          },
+          nota: "Los valores quedan congelados al abonar la reserva. Si tenés dudas, respondé este correo.",
+          responder: true,
         }),
       };
   }
