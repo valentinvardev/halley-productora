@@ -331,13 +331,24 @@ export function Simulador({
 
       {/* ------------------------------------------------------------ pie */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink bg-paper">
-        {detalleAbierto && (
-          <div className="max-h-[46svh] overflow-y-auto border-b border-gray-20 px-6 py-5 sm:px-10">
-            <div className="mx-auto max-w-[1140px]">
-              <Detalle lineas={lineas} total={total} />
+        {/* Siempre montado y sólo recogido: si se desmontara al cerrar, el
+            cierre no se vería —desaparecería de golpe— y la animación existiría
+            nada más que al abrir. `inert` lo saca del tabulado y del lector de
+            pantalla mientras está recogido, que es lo que ocultar significa
+            para quien no lo está mirando. */}
+        <div
+          className={`cajon-detalle ${detalleAbierto ? "border-b border-gray-20" : ""}`}
+          data-abierto={detalleAbierto ? "si" : "no"}
+          inert={!detalleAbierto}
+        >
+          <div>
+            <div className="max-h-[46svh] overflow-y-auto px-6 py-5 sm:px-10">
+              <div className="mx-auto max-w-[1140px]">
+                <Detalle lineas={lineas} total={total} />
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
         <BarraBox total={total} />
 
@@ -374,7 +385,7 @@ export function Simulador({
                 }`}
               />
             </button>
-            <div className="mt-0.5 font-display text-[clamp(1.25rem,4vw,1.6rem)] leading-none tabular-nums">
+            <div className="mt-0.5 text-[clamp(1.25rem,4vw,1.6rem)] leading-none font-medium tabular-nums">
               {pesos(total)}
             </div>
           </div>
@@ -539,7 +550,7 @@ function PasoParte({
                           <span className="min-w-0 flex-1">
                             <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                               <span className="text-[14px]">{l.nombre}</span>
-                              <span className="font-display text-[13px] tabular-nums whitespace-nowrap text-gray-45">
+                              <span className="text-[13px] tabular-nums whitespace-nowrap text-gray-45">
                                 {l.extra === 0 ? "Sin cargo" : `+ ${pesos(l.extra)}`}
                               </span>
                             </span>
@@ -692,7 +703,7 @@ function PasoPago({
               total.
             </p>
           </div>
-          <p className="font-display text-[clamp(1.6rem,5vw,2.2rem)] leading-none tabular-nums">
+          <p className="text-[clamp(1.6rem,5vw,2.2rem)] leading-none font-medium tabular-nums">
             {pesos(cierre.reserva)}
           </p>
         </div>
@@ -758,7 +769,7 @@ function PasoPago({
             <dt className="font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
               Total a pagar
             </dt>
-            <dd className="font-display text-[19px] tabular-nums">
+            <dd className="text-[19px] font-medium tabular-nums">
               {pesos(cierre.aPagar)}
             </dd>
           </div>
@@ -786,7 +797,7 @@ function Renglon({
       }`}
     >
       <dt>{rotulo}</dt>
-      <dd className="font-display tabular-nums">{valor}</dd>
+      <dd className="tabular-nums">{valor}</dd>
     </div>
   );
 }

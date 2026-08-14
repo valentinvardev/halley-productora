@@ -100,7 +100,7 @@ export default async function PaginaCodigo({
   ].join("\n");
 
   return (
-    <div className="mx-auto max-w-[1140px] px-6 py-14 sm:px-10 sm:py-20">
+    <div className="hoja mx-auto max-w-[1140px] px-6 py-14 sm:px-10 sm:py-20">
       <div className="no-imprimir">
         <Link
           href="/#servicios"
@@ -126,7 +126,7 @@ export default async function PaginaCodigo({
       </header>
 
       {/* ------------------------------------------------------- el código */}
-      <div className="mt-9 border border-ink p-6 sm:p-7">
+      <div className="caja mt-9 border border-ink p-6 sm:p-7">
         <p className="font-rotulo text-[11px] tracking-[0.14em] text-gray-45 uppercase">
           Código de seguimiento
         </p>
@@ -141,9 +141,9 @@ export default async function PaginaCodigo({
       </div>
 
       {/* ------------------------------------------------------ la tarjeta */}
-      <div className="mt-6 grid gap-px border border-gray-20 bg-gray-20 lg:grid-cols-[1.25fr_1fr]">
+      <div className="par mt-6 grid gap-px border border-gray-20 bg-gray-20 lg:grid-cols-[1.25fr_1fr]">
         {/* El detalle: qué se contrató. */}
-        <div className="bg-paper p-6 sm:p-8">
+        <div className="caja bg-paper p-6 sm:p-8">
           <h2 className="font-titulo text-[clamp(1.4rem,3vw,1.9rem)] leading-tight uppercase">
             Qué incluye
           </h2>
@@ -162,7 +162,7 @@ export default async function PaginaCodigo({
                     </span>
                   )}
                 </span>
-                <span className="font-display text-[14px] tabular-nums whitespace-nowrap">
+                <span className="text-[14px] tabular-nums whitespace-nowrap">
                   {pesos(l.precio)}
                 </span>
               </li>
@@ -173,7 +173,7 @@ export default async function PaginaCodigo({
             <span className="font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
               Total
             </span>
-            <span className="font-display text-[22px] tabular-nums">
+            <span className="text-[22px] font-medium tabular-nums">
               {pesos(p.total)}
             </span>
           </div>
@@ -186,7 +186,7 @@ export default async function PaginaCodigo({
         </div>
 
         {/* La plata: cómo se paga. */}
-        <div className="bg-paper-dim p-6 sm:p-8">
+        <div className="caja bg-paper-dim p-6 sm:p-8">
           <h2 className="font-titulo text-[clamp(1.4rem,3vw,1.9rem)] leading-tight uppercase">
             Cómo se paga
           </h2>
@@ -195,7 +195,7 @@ export default async function PaginaCodigo({
             <p className="font-rotulo text-[11px] tracking-[0.12em] text-gray-45 uppercase">
               Reserva
             </p>
-            <p className="mt-1 font-display text-[clamp(1.7rem,5vw,2.3rem)] leading-none tabular-nums">
+            <p className="mt-1 text-[clamp(1.7rem,5vw,2.3rem)] leading-none font-medium tabular-nums">
               {pesos(p.reserva)}
             </p>
             <p className="mt-2 max-w-[36ch] text-[13px] leading-relaxed text-gray-70">
@@ -207,7 +207,7 @@ export default async function PaginaCodigo({
             <p className="font-rotulo text-[11px] tracking-[0.12em] text-gray-45 uppercase">
               Saldo restante
             </p>
-            <p className="mt-1 font-display text-[clamp(1.4rem,4vw,1.9rem)] leading-none tabular-nums">
+            <p className="mt-1 text-[clamp(1.4rem,4vw,1.9rem)] leading-none font-medium tabular-nums">
               {cierre.cuotas === 1
                 ? pesos(cierre.saldoFinanciado)
                 : `${cierre.cuotas} × ${pesos(cierre.porCuota)}`}
@@ -221,7 +221,7 @@ export default async function PaginaCodigo({
             <span className="font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
               Total a pagar
             </span>
-            <span className="font-display text-[19px] tabular-nums">
+            <span className="text-[19px] font-medium tabular-nums">
               {pesos(cierre.aPagar)}
             </span>
           </div>

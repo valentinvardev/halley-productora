@@ -241,13 +241,17 @@ function Hero({
 const botonSobreVideoFantasma =
   "inline-flex items-center justify-center gap-2 border border-white/70 px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
 
-/* Los dos botones al pie de cada tarjeta de servicio. Van sobre foto, así que
-   el color no lo decide el tema: blanco siempre, y el segundo con el borde más
-   apagado para que se lea cuál es la acción principal. */
-const botonSobreFoto =
-  "inline-flex items-center gap-2 border border-white/70 px-[18px] py-[11px] font-rotulo text-[12px] uppercase tracking-[0.04em] text-white transition-colors hover:bg-white hover:text-black";
-const botonSobreFotoTenue =
-  "inline-flex items-center gap-2 border border-white/35 px-[18px] py-[11px] font-rotulo text-[12px] uppercase tracking-[0.04em] text-white/85 transition-colors hover:border-white hover:bg-white hover:text-black";
+/* Los dos botones al pie de cada tarjeta de servicio.
+
+   Sobre foto el tema no decide nada: el fondo es oscuro siempre y el par es
+   blanco contra blanco. Comparten caja —mismo alto, mismo borde, mismo
+   cuerpo— y se diferencian sólo por el relleno: uno es el contorno y el otro
+   está lleno. Al hover intercambian, así que la tarjeta nunca tiene dos
+   botones pintados igual. */
+const botonSobreFotoBase =
+  "inline-flex items-center gap-2 border border-white px-[18px] py-[11px] font-rotulo text-[12px] uppercase tracking-[0.04em] transition-colors";
+const botonSobreFoto = `${botonSobreFotoBase} text-white hover:bg-white hover:text-black`;
+const botonSobreFotoSolido = `${botonSobreFotoBase} bg-white text-black hover:bg-transparent hover:text-white`;
 
 /**
  * La estela del cometa, cuando todavía no hay video de portada.
@@ -443,10 +447,13 @@ async function Servicios() {
                   {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
                 </p>
 
-                {/* El mismo filtro negativo que el titular de la portada: sobre
-                    una foto que todavía no existe, no hay color que sirva
-                    siempre. */}
-                <h3 className="negativo mt-2 font-titulo text-[clamp(2.1rem,5.2vw,3.4rem)] leading-[0.88] uppercase">
+                {/* Blanco liso, sin el filtro negativo del titular del hero.
+                    Allá tiene sentido: el video cambia todo el tiempo y no hay
+                    color de texto que sirva siempre. Acá la foto está quieta y
+                    hay una sombra al pie que ya garantiza el contraste, así que
+                    lo único que aportaba `difference` era invertir el título en
+                    los tramos claros y hacerlo leer como un error de render. */}
+                <h3 className="mt-2 font-titulo text-[clamp(2.1rem,5.2vw,3.4rem)] leading-[0.88] text-white uppercase">
                   {s.nombre}
                 </h3>
 
@@ -455,9 +462,11 @@ async function Servicios() {
                 </p>
 
                 {/* Dos puertas donde las hay: mirar trabajo y armar el precio.
-                    El simulador va segundo y en fantasma —no compite con la
-                    categoría— pero va en la tarjeta y no escondido adentro:
-                    quien quiere saber cuánto sale lo quiere saber acá. */}
+                    Van al mismo peso y no una apagada detrás de la otra. Con
+                    tres intensidades de blanco sobre la misma foto —el título,
+                    un botón fuerte y uno tenue— la tarjeta se leía como si el
+                    segundo botón estuviera deshabilitado. Acá son dos caminos
+                    distintos, no uno principal y su nota al pie. */}
                 <div className="mt-5 flex flex-wrap gap-2.5">
                   <Link
                     href={`/servicios/${s.slug}`}
@@ -470,7 +479,7 @@ async function Servicios() {
                   {evento && (
                     <Link
                       href={`/presupuesto/${evento}`}
-                      className={botonSobreFotoTenue}
+                      className={botonSobreFotoSolido}
                     >
                       <IconoCalculadora className="h-3.5 w-3.5" />
                       Simular presupuesto

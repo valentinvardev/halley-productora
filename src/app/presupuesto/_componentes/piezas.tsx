@@ -134,7 +134,7 @@ export function Opcion({
               {titulo}
             </span>
             {precio !== undefined && (
-              <span className="font-display text-[15px] tabular-nums whitespace-nowrap">
+              <span className="text-[15px] tabular-nums whitespace-nowrap">
                 {precio}
               </span>
             )}
@@ -236,7 +236,7 @@ export function Detalle({
                 </span>
               )}
             </span>
-            <span className="font-display text-[14px] tabular-nums whitespace-nowrap">
+            <span className="text-[14px] tabular-nums whitespace-nowrap">
               {pesos(l.precio)}
             </span>
           </li>
@@ -247,7 +247,7 @@ export function Detalle({
         <span className="font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
           Total
         </span>
-        <span className="font-display text-[19px] tabular-nums">
+        <span className="text-[19px] font-medium tabular-nums">
           {pesos(total)}
         </span>
       </div>

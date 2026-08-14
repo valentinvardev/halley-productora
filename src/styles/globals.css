@@ -1169,16 +1169,79 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
 }
 
 /* ---------------------------------------------------------------------------
+   El cajón del detalle.
+
+   Abre y cierra con `grid-template-rows` de 0fr a 1fr, que es la única forma de
+   animar hasta "el alto que tenga el contenido" sin medirlo con JavaScript. Con
+   `height: auto` no hay transición —el navegador no sabe interpolar hacia un
+   valor que todavía no calculó— y con un alto fijo habría que adivinar cuántas
+   líneas tiene el presupuesto, que cambia con cada ítem que se agrega.
+
+   El contenido queda siempre en el DOM y sólo recortado. Eso es lo que hace que
+   el cierre también se vea: desmontarlo al cerrar lo haría desaparecer de golpe
+   y la animación sólo existiría al abrir.
+--------------------------------------------------------------------------- */
+.cajon-detalle {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+
+.cajon-detalle[data-abierto="si"] {
+  grid-template-rows: 1fr;
+}
+
+/* El hijo es lo que se recorta. `min-height: 0` es obligatorio: sin eso el
+   contenido impone su alto mínimo a la fila y la grilla nunca llega a cero. */
+.cajon-detalle > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cajon-detalle {
+    transition: grid-template-rows 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* El contenido acompaña con opacidad y un empujón desde arriba, para que no
+     se lea como una persiana sino como algo que aparece. Al cerrar se va antes
+     de que termine de recogerse, que es lo que evita el amontonado del final. */
+  .cajon-detalle > * > * {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+      opacity 200ms ease,
+      transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .cajon-detalle[data-abierto="si"] > * > * {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 90ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Impresión.
 
    La usa el presupuesto emitido, donde "Descargar presupuesto" es `print()` y
    nada más: el diálogo de cualquier navegador —también el del teléfono— trae
-   "Guardar como PDF", así que lo único que falta es sacar de la hoja lo que
-   sólo tenía sentido en pantalla.
+   "Guardar como PDF", así que lo que falta no es un generador sino sacar de la
+   hoja lo que sólo tenía sentido en pantalla.
 
    El texto se fuerza a negro sobre blanco y no se deja al tema: alguien con el
    modo oscuro puesto imprimiría una página negra, que además de ilegible se
    come un cartucho.
+
+   Y tiene que entrar en una carilla. Un PDF cuya segunda hoja trae tres
+   renglones y nada más es peor que apretar los espacios, así que acá se aprieta
+   el aire —márgenes, padding, interlínea— y nunca el cuerpo del texto, que
+   impreso se sigue teniendo que leer.
+
+   El caso contra el que está medido es el peor posible: el catálogo entero
+   contratado, quince líneas. Así queda en 265mm de los 297 del A4, o sea unos
+   30mm de sobra —cinco renglones más—. Si el catálogo crece bastante, hay que
+   volver a medir: imprimir con `size: 210mm 265mm` y ver si sigue dando una
+   sola página.
 --------------------------------------------------------------------------- */
 @media print {
   .no-imprimir,
@@ -1201,14 +1264,88 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     --color-gray-20: #bbbbbb;
   }
 
-  /* Una tarjeta partida entre dos hojas se lee como dos presupuestos. */
-  section,
-  li,
+  /* El margen lo pone el papel, no el contenedor.
+
+     En pantalla la hoja trae aire arriba y abajo para despegarse de la barra;
+     al imprimir ese aire se sumaba al margen de la página y arriba quedaba una
+     banda vacía enorme mientras abajo el contenido se caía a la hoja dos. Acá
+     el espacio se decide en un solo lugar: `@page`. */
+  .hoja {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  /* La separación entre bloques, pareja y en un solo renglón de CSS. */
+  .hoja > * + * {
+    margin-top: 10px !important;
+  }
+
+  .hoja header > * + * {
+    margin-top: 5px !important;
+  }
+
+  .hoja h1 {
+    font-size: 26px !important;
+    line-height: 0.95 !important;
+  }
+
+  .hoja h2 {
+    font-size: 16px !important;
+  }
+
+  /* La bajada explica algo que en papel ya no hace falta explicar tan grande:
+     baja de cuerpo y se ensancha, y de tres líneas pasa a dos. */
+  .hoja header p:last-of-type {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    max-width: 78ch !important;
+  }
+
+  .hoja .caja {
+    padding: 11px 13px !important;
+  }
+
+  .hoja .caja > * + * {
+    margin-top: 9px !important;
+  }
+
+  /* Los bloques que se separan con una línea arriba llevan además su propio
+     respiro; sin esto la línea queda pegada al texto anterior. */
+  .hoja .caja > [class*="border-t"] {
+    padding-top: 8px !important;
+  }
+
+  /* Las dos columnas van lado a lado sí o sí: apiladas no entran, y el papel
+     tiene el ancho que en el teléfono no había. */
+  .hoja .par {
+    display: grid !important;
+    grid-template-columns: 1.25fr 1fr !important;
+  }
+
+  /* La lista de ítems es lo único que crece con el presupuesto, así que es de
+     donde hay que sacar el espacio: quince renglones apretados tres píxeles
+     cada uno son casi dos centímetros. */
+  .hoja ul li {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+
+  .hoja ul li span {
+    line-height: 1.25 !important;
+  }
+
+  /* Nada de esto se parte al medio: una tarjeta cortada entre dos hojas se lee
+     como dos presupuestos distintos. */
+  .hoja,
+  .hoja section,
+  .hoja li,
   .no-cortar {
     break-inside: avoid;
   }
 
   @page {
-    margin: 14mm;
+    size: A4 portrait;
+    margin: 12mm 14mm;
   }
 }
