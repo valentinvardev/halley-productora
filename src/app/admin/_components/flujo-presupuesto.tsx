@@ -95,7 +95,44 @@ export function FlujoPresupuesto() {
     onSettled: refrescar,
   });
 
-  const mover = api.catalogo.moverItem.useMutation({ onSuccess: refrescar });
+  /**
+   * Subir y bajar también se pinta antes de que el servidor conteste.
+   *
+   * El movimiento es el que uno acaba de pedir con la flecha: no hay nada que
+   * el servidor pueda decir que cambie el resultado, sólo puede confirmarlo. Y
+   * reordenar es de las cosas que se hacen de a varios clics seguidos —subir
+   * tres lugares son tres— así que esperar la respuesta entre uno y otro es
+   * exactamente donde más se siente.
+   *
+   * La lista ya viene ordenada, así que el intercambio en la caché es el mismo
+   * que hace el servidor con los `orden`: cambiar de lugar al ítem con su
+   * vecino dentro de su parte.
+   */
+  const mover = api.catalogo.moverItem.useMutation({
+    onMutate: async ({ id, direccion }) => {
+      await utils.catalogo.listar.cancel({ evento });
+      const previo = utils.catalogo.listar.getData({ evento });
+
+      utils.catalogo.listar.setData({ evento }, (gs) =>
+        gs?.map((g) => {
+          const i = g.items.findIndex((it) => it.id === id);
+          if (i === -1) return g;
+
+          const j = direccion === "sube" ? i - 1 : i + 1;
+          if (j < 0 || j >= g.items.length) return g;
+
+          const items = [...g.items];
+          [items[i], items[j]] = [items[j]!, items[i]!];
+          return { ...g, items };
+        }),
+      );
+      return { previo };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previo) utils.catalogo.listar.setData({ evento }, ctx.previo);
+    },
+    onSettled: refrescar,
+  });
   const borrar = api.catalogo.eliminarItem.useMutation({
     onSuccess: async () => {
       setABorrar(null);
@@ -129,7 +166,7 @@ export function FlujoPresupuesto() {
             key={e}
             type="button"
             onClick={() => setEvento(e)}
-            className={`border px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase transition-colors ${
+            className={`cursor-pointer border px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase transition-colors ${
               evento === e
                 ? "border-ink bg-ink text-paper"
                 : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
@@ -265,7 +302,7 @@ function Fila({
           onClick={() => alMover("sube")}
           disabled={primero}
           aria-label="Subir"
-          className="px-1 text-gray-45 hover:text-ink disabled:opacity-25"
+          className="cursor-pointer px-1 text-gray-45 hover:text-ink disabled:cursor-default disabled:opacity-25"
         >
           <IconoBajar className="h-3 w-3 rotate-180" />
         </button>
@@ -274,7 +311,7 @@ function Fila({
           onClick={() => alMover("baja")}
           disabled={ultimo}
           aria-label="Bajar"
-          className="px-1 text-gray-45 hover:text-ink disabled:opacity-25"
+          className="cursor-pointer px-1 text-gray-45 hover:text-ink disabled:cursor-default disabled:opacity-25"
         >
           <IconoBajar className="h-3 w-3" />
         </button>
@@ -296,7 +333,7 @@ function Fila({
       <button
         type="button"
         onClick={alEditar}
-        className="min-w-0 flex-1 text-left"
+        className="min-w-0 flex-1 cursor-pointer text-left"
       >
         <span className={`block text-[14px] ${item.activo ? "" : "line-through"}`}>
           {item.nombre}
@@ -533,7 +570,7 @@ function Locaciones({
               <button
                 type="button"
                 onClick={() => setAbriendo(l)}
-                className="min-w-0 flex-1 text-left text-[13.5px]"
+                className="min-w-0 flex-1 cursor-pointer text-left text-[13.5px]"
               >
                 {l.nombre}
               </button>

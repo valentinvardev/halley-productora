@@ -5,8 +5,17 @@ import type { ComponentProps, ReactNode } from "react";
    sin sombras. Los botones invierten ink/paper al hover, como un negativo.
 ------------------------------------------------------------------------- */
 
+/**
+ * La mano va en la base y no repetida en cada botón.
+ *
+ * Un `<button>` nativo trae `cursor: default`, que es lo mismo que el texto de
+ * al lado: nada dice que se pueda apretar hasta que uno lo apreta. El codebase
+ * ya venía agregando `cursor-pointer` suelto donde molestaba —el cierre del
+ * modal, las tarjetas del simulador— y eso deja mitad de los botones con mano y
+ * mitad sin. Acá se decide una vez.
+ */
 export const botonBase =
-  "inline-flex items-center justify-center gap-2 border border-ink px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex cursor-pointer items-center justify-center gap-2 border border-ink px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40";
 
 export const botonSolido = `${botonBase} bg-ink text-paper hover:bg-paper hover:text-ink`;
 export const botonFantasma = `${botonBase} bg-transparent text-ink hover:bg-ink hover:text-paper`;
@@ -23,7 +32,7 @@ export const botonFantasma = `${botonBase} bg-transparent text-ink hover:bg-ink 
  * que se escriba después.
  */
 export const botonWhatsApp =
-  "inline-flex items-center justify-center gap-2 border border-[#0b7c3e] bg-[#0b7c3e] px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors duration-150 hover:border-[#095f30] hover:bg-[#095f30]";
+  "inline-flex cursor-pointer items-center justify-center gap-2 border border-[#0b7c3e] bg-[#0b7c3e] px-[22px] py-[13px] font-rotulo text-[13px] uppercase tracking-[0.04em] text-white transition-colors duration-150 hover:border-[#095f30] hover:bg-[#095f30]";
 
 export function Boton({
   variante = "solido",

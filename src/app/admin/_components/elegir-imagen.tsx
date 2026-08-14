@@ -149,7 +149,7 @@ export function ElegirImagen({
               key={c ?? "todas"}
               type="button"
               onClick={() => setFiltro(c)}
-              className={`border px-2.5 py-1.5 font-rotulo text-[10.5px] tracking-[0.06em] uppercase transition-colors ${
+              className={`cursor-pointer border px-2.5 py-1.5 font-rotulo text-[10.5px] tracking-[0.06em] uppercase transition-colors ${
                 filtro === c
                   ? "border-ink bg-ink text-paper"
                   : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
@@ -181,7 +181,7 @@ export function ElegirImagen({
                     alElegir(i.id);
                     alCerrar();
                   }}
-                  className={`relative aspect-square border transition-colors ${
+                  className={`relative aspect-square cursor-pointer border transition-colors ${
                     puesta
                       ? "border-ink"
                       : "border-gray-20 hover:border-gray-45"
@@ -231,7 +231,7 @@ export function BotonImagen({
       type="button"
       onClick={onClick}
       title="Elegir imagen"
-      className={`group relative flex h-16 w-16 shrink-0 items-center justify-center border border-gray-20 bg-paper-dim text-gray-45 transition-colors hover:border-ink hover:text-ink ${className}`}
+      className={`group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center border border-gray-20 bg-paper-dim text-gray-45 transition-colors hover:border-ink hover:text-ink ${className}`}
     >
       {imagen ? (
         <>
