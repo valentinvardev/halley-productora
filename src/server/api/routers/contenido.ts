@@ -158,7 +158,7 @@ export const contenidoRouter = createTRPCRouter({
           where: { imagenId: input.id },
           data: { imagenId: null },
         }),
-        ctx.db.locacionPresupuesto.updateMany({
+        ctx.db.opcionItem.updateMany({
           where: { imagenId: input.id },
           data: { imagenId: null },
         }),

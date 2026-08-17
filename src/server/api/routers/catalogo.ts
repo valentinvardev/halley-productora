@@ -7,6 +7,8 @@ import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
   CLAVES_PARAMETRO,
   PARTES,
+  TIPOS_OPCION,
+  type TipoOpcion,
   parametrosPresupuesto,
   sembrarCatalogo,
   urlImagen,
@@ -99,32 +101,38 @@ export const catalogoRouter = createTRPCRouter({
       const filas = await ctx.db.itemPresupuesto.findMany({
         where: { evento: input.evento },
         orderBy: [{ orden: "asc" }],
-        include: { locaciones: { orderBy: { orden: "asc" } } },
+        include: { opciones: { orderBy: { orden: "asc" } } },
       });
 
       return PARTES.map((p) => ({
         parte: p,
         items: filas
           .filter((f) => f.parte === p)
-          .map((f) => ({
-            id: f.id,
-            clave: f.clave,
-            nombre: f.nombre,
-            texto: f.texto,
-            precio: Number(f.precio),
-            activo: f.activo,
-            imagenId: f.imagenId,
-            imagen: urlImagen(f.imagenId),
-            locaciones: f.locaciones.map((l) => ({
-              id: l.id,
-              clave: l.clave,
-              nombre: l.nombre,
-              texto: l.texto,
-              extra: Number(l.extra),
-              imagenId: l.imagenId,
-              imagen: urlImagen(l.imagenId),
-            })),
-          })),
+          .map((f) => {
+            const opciones = f.opciones.map((o) => ({
+              id: o.id,
+              tipo: o.tipo as TipoOpcion,
+              clave: o.clave,
+              nombre: o.nombre,
+              texto: o.texto,
+              extra: Number(o.extra),
+              imagenId: o.imagenId,
+              imagen: urlImagen(o.imagenId),
+            }));
+
+            return {
+              id: f.id,
+              clave: f.clave,
+              nombre: f.nombre,
+              texto: f.texto,
+              precio: Number(f.precio),
+              activo: f.activo,
+              imagenId: f.imagenId,
+              imagen: urlImagen(f.imagenId),
+              coberturas: opciones.filter((o) => o.tipo === "cobertura"),
+              locaciones: opciones.filter((o) => o.tipo === "locacion"),
+            };
+          }),
       }));
     }),
 
@@ -224,14 +232,20 @@ export const catalogoRouter = createTRPCRouter({
       ctx.db.itemPresupuesto.delete({ where: { id: input.id } }),
     ),
 
-  /* ------------------------------------------------------------ locaciones */
+  /* -------------------------------------------------------------- opciones */
 
-  guardarLocacion: adminProcedure
+  /**
+   * Guarda una cobertura o una locación. Es la misma pantalla y el mismo CRUD:
+   * lo único que las separa es cuántas se pueden elegir a la vez, y eso lo
+   * decide quien las pinta, no quien las guarda.
+   */
+  guardarOpcion: adminProcedure
     .input(
       z.object({
         /** Con `id` se edita; sin él, se crea dentro de `itemId`. */
         id: z.string().optional(),
         itemId: z.string(),
+        tipo: z.enum(TIPOS_OPCION),
         nombre: z.string().trim().min(2).max(80),
         texto: z.string().trim().min(3).max(400),
         extra: z.number().int().min(0).max(1_000_000_000),
@@ -240,7 +254,7 @@ export const catalogoRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       if (input.id) {
-        return ctx.db.locacionPresupuesto.update({
+        return ctx.db.opcionItem.update({
           where: { id: input.id },
           data: {
             nombre: input.nombre,
@@ -251,8 +265,8 @@ export const catalogoRouter = createTRPCRouter({
         });
       }
 
-      const ultima = await ctx.db.locacionPresupuesto.findFirst({
-        where: { itemId: input.itemId },
+      const ultima = await ctx.db.opcionItem.findFirst({
+        where: { itemId: input.itemId, tipo: input.tipo },
         orderBy: { orden: "desc" },
       });
 
@@ -261,16 +275,17 @@ export const catalogoRouter = createTRPCRouter({
       const base = aClave(input.nombre);
       let clave = base;
       for (let i = 1; i < 50; i++) {
-        const tomada = await ctx.db.locacionPresupuesto.findUnique({
+        const tomada = await ctx.db.opcionItem.findUnique({
           where: { itemId_clave: { itemId: input.itemId, clave } },
         });
         if (!tomada) break;
         clave = `${base}-${i + 1}`;
       }
 
-      return ctx.db.locacionPresupuesto.create({
+      return ctx.db.opcionItem.create({
         data: {
           itemId: input.itemId,
+          tipo: input.tipo,
           clave,
           nombre: input.nombre,
           texto: input.texto,
@@ -281,10 +296,10 @@ export const catalogoRouter = createTRPCRouter({
       });
     }),
 
-  eliminarLocacion: adminProcedure
+  eliminarOpcion: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(({ ctx, input }) =>
-      ctx.db.locacionPresupuesto.delete({ where: { id: input.id } }),
+      ctx.db.opcionItem.delete({ where: { id: input.id } }),
     ),
 
   /* ------------------------------------------------------------- imágenes */

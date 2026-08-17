@@ -21,6 +21,7 @@ import {
   Vacio,
 } from "~/app/_components/ui";
 import { EVENTOS, EVENTOS_ORDEN, type Evento } from "~/app/_datos/presupuesto";
+import type { TipoOpcion } from "~/server/catalogo";
 import { pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -48,14 +49,11 @@ import { BotonImagen, ElegirImagen } from "./elegir-imagen";
 const ROTULO_PARTE = {
   momentos: {
     titulo: "Parte 1 · Momentos",
-    ayuda: "Qué partes del día se cubren. Se pueden combinar.",
-  },
-  coberturas: {
-    titulo: "Parte 2 · Coberturas",
-    ayuda: "Con qué se cubre: fotografía, video, redes.",
+    ayuda:
+      "Qué partes del día se cubren y con qué. El precio del momento es estar ahí; lo que se entrega lo cobran sus coberturas.",
   },
   complementos: {
-    titulo: "Parte 3 · Complementos",
+    titulo: "Parte 2 · Complementos",
     ayuda: "Lo que se agrega sobre la cobertura. Nada es obligatorio.",
   },
 } as const;
@@ -362,9 +360,14 @@ function Fila({
           {item.nombre}
         </span>
         <span className="nota block truncate text-[12px]">{item.texto}</span>
-        {item.locaciones.length > 0 && (
+        {(item.coberturas.length > 0 || item.locaciones.length > 0) && (
           <span className="mt-0.5 block font-rotulo text-[10.5px] tracking-[0.06em] text-gray-45 uppercase">
-            {item.locaciones.length} locaciones
+            {[
+              item.coberturas.length && `${item.coberturas.length} coberturas`,
+              item.locaciones.length && `${item.locaciones.length} locaciones`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         )}
       </button>
@@ -505,7 +508,22 @@ function EditorItem({
           )}
         </div>
 
-        {item && <Locaciones item={item} alGuardar={alGuardar} />}
+        {item && (
+          <>
+            <Opciones
+              item={item}
+              tipo="cobertura"
+              lista={item.coberturas}
+              alGuardar={alGuardar}
+            />
+            <Opciones
+              item={item}
+              tipo="locacion"
+              lista={item.locaciones}
+              alGuardar={alGuardar}
+            />
+          </>
+        )}
 
         {error && (
           <p className="mt-4 flex items-start gap-2 border border-marca px-3 py-2 text-[13px] text-marca">
@@ -537,25 +555,55 @@ function EditorItem({
   );
 }
 
-/* --------------------------------------------------------------- locaciones */
+/* ----------------------------------------------------------------- opciones */
+
+/** Cómo se presenta cada clase de opción. Lo único que las distingue acá. */
+const ROTULO_OPCION = {
+  cobertura: {
+    titulo: "Coberturas",
+    ayuda:
+      "Con qué se cubre este momento. Se pueden tildar varias y cada una suma; si el ítem tiene coberturas, el simulador exige al menos una.",
+    singular: "Cobertura",
+    ejemploNombre: "Fotografía",
+    ejemploTexto: "Las fotos editadas, en una galería que se puede bajar.",
+  },
+  locacion: {
+    titulo: "Locaciones",
+    ayuda:
+      "Dónde se hace. Es excluyente: elegir una reemplaza a la anterior, y la primera es la del precio base.",
+    singular: "Locación",
+    ejemploNombre: "Sierras o altas cumbres",
+    ejemploTexto: "Una jornada afuera, con traslado y luz de atardecer.",
+  },
+} as const;
 
 /**
- * Las variantes que cambian el precio de un ítem: dónde se hace el book.
+ * Las opciones que cuelgan de un ítem y le suman al precio.
  *
  * Se editan adentro del ítem y no en una pantalla propia porque no existen sin
- * él: una locación suelta no significa nada. Y sólo aparecen en un ítem ya
+ * él: una cobertura suelta no significa nada. Y sólo aparecen en un ítem ya
  * creado, porque hasta que no lo esté no hay de qué colgarlas.
+ *
+ * Las dos clases —coberturas y locaciones— comparten esta pantalla porque son
+ * lo mismo de cargar: un nombre, un texto, una foto y cuánto suma. Lo que las
+ * separa —cuántas se pueden elegir a la vez— es problema de quien las pinta del
+ * lado del cliente, no de quien las escribe.
  */
-function Locaciones({
+function Opciones({
   item,
+  tipo,
+  lista,
   alGuardar,
 }: {
   item: Item;
+  tipo: TipoOpcion;
+  lista: Locacion[];
   alGuardar: () => Promise<unknown>;
 }) {
   const [abriendo, setAbriendo] = useState<Locacion | null | "nueva">(null);
+  const rotulo = ROTULO_OPCION[tipo];
 
-  const borrar = api.catalogo.eliminarLocacion.useMutation({
+  const borrar = api.catalogo.eliminarOpcion.useMutation({
     onSuccess: () => alGuardar(),
   });
 
@@ -563,11 +611,8 @@ function Locaciones({
     <div className="mt-7 border-t border-gray-20 pt-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Etiqueta>Locaciones</Etiqueta>
-          <p className="nota mt-1 text-[11.5px]">
-            Variantes que suman sobre el precio. Aparecen dentro de la tarjeta
-            cuando alguien la elige.
-          </p>
+          <Etiqueta>{rotulo.titulo}</Etiqueta>
+          <p className="nota mt-1 text-[11.5px]">{rotulo.ayuda}</p>
         </div>
         <BotonTexto onClick={() => setAbriendo("nueva")}>
           <IconoMas />
@@ -575,9 +620,9 @@ function Locaciones({
         </BotonTexto>
       </div>
 
-      {item.locaciones.length > 0 && (
+      {lista.length > 0 && (
         <ul className="mt-3 divide-y divide-gray-20 border border-gray-20">
-          {item.locaciones.map((l) => (
+          {lista.map((l) => (
             <li key={l.id} className="flex items-center gap-3 px-3 py-2">
               {l.imagen ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -612,8 +657,9 @@ function Locaciones({
       )}
 
       {abriendo && (
-        <EditorLocacion
+        <EditorOpcion
           itemId={item.id}
+          tipo={tipo}
           locacion={abriendo === "nueva" ? null : abriendo}
           alCerrar={() => setAbriendo(null)}
           alGuardar={alGuardar}
@@ -623,17 +669,20 @@ function Locaciones({
   );
 }
 
-function EditorLocacion({
+function EditorOpcion({
   itemId,
+  tipo,
   locacion,
   alCerrar,
   alGuardar,
 }: {
   itemId: string;
+  tipo: TipoOpcion;
   locacion: Locacion | null;
   alCerrar: () => void;
   alGuardar: () => Promise<unknown>;
 }) {
+  const rotulo = ROTULO_OPCION[tipo];
   const [nombre, setNombre] = useState(locacion?.nombre ?? "");
   const [texto, setTexto] = useState(locacion?.texto ?? "");
   const [extra, setExtra] = useState(String(locacion?.extra ?? "0"));
@@ -653,7 +702,7 @@ function EditorLocacion({
     if (encontrada) setImagen(encontrada.url);
   }, [imagenId, imagenes.data]);
 
-  const guardar = api.catalogo.guardarLocacion.useMutation({
+  const guardar = api.catalogo.guardarOpcion.useMutation({
     onSuccess: async () => {
       await alGuardar();
       alCerrar();
@@ -668,8 +717,8 @@ function EditorLocacion({
       <Modal
         abierto
         alCerrar={alCerrar}
-        eyebrow="Locación"
-        titulo={locacion ? "Editar la locación" : "Nueva locación"}
+        eyebrow={rotulo.singular}
+        titulo={`${locacion ? "Editar" : "Nueva"} ${rotulo.singular.toLowerCase()}`}
       >
         <div className="grid gap-5">
           <div className="flex items-start gap-4">
@@ -683,7 +732,7 @@ function EditorLocacion({
                 label="Nombre"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Sierras o altas cumbres"
+                placeholder={rotulo.ejemploNombre}
               />
             </div>
           </div>
@@ -693,7 +742,7 @@ function EditorLocacion({
             rows={2}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Una jornada afuera, con traslado y luz de atardecer."
+            placeholder={rotulo.ejemploTexto}
           />
 
           <Campo
@@ -725,6 +774,7 @@ function EditorLocacion({
               guardar.mutate({
                 id: locacion?.id,
                 itemId,
+                tipo,
                 nombre: nombre.trim(),
                 texto: texto.trim(),
                 extra: monto,

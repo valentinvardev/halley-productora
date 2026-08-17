@@ -10,6 +10,7 @@ import {
   armarCodigo,
   cierreDe,
   lineasDe,
+  sinCobertura,
   totalDe,
   type Evento,
   type Linea,
@@ -44,6 +45,10 @@ const seleccion = z.object({
   evento: z.enum(["quince", "boda"]),
   items: z.array(z.string().max(60)).max(40),
   locaciones: z.record(z.string().max(60), z.string().max(60)),
+  coberturas: z.record(
+    z.string().max(60),
+    z.array(z.string().max(60)).max(20),
+  ),
 });
 
 /** Cuántas emisiones seguidas se toleran desde un mismo origen. */
@@ -95,6 +100,8 @@ function leerLineas(valor: unknown): Linea[] {
         nombre: o.nombre,
         detalle: typeof o.detalle === "string" ? o.detalle : undefined,
         locacion: typeof o.locacion === "string" ? o.locacion : undefined,
+        opcion: typeof o.opcion === "string" ? o.opcion : undefined,
+        bajo: typeof o.bajo === "string" ? o.bajo : undefined,
         precio: Number(o.precio) || 0,
       },
     ];
@@ -151,7 +158,25 @@ export const presupuestoRouter = createTRPCRouter({
       const lineas = lineasDe(partes, {
         items: input.items,
         locaciones: input.locaciones,
+        coberturas: input.coberturas,
       });
+
+      // Un momento sin foto ni video no es contratable: el equipo estaría ahí
+      // parado. El wizard ya no deja avanzar, pero el que llega por la red no
+      // pasó por el wizard.
+      const faltan = sinCobertura(partes, {
+        items: input.items,
+        locaciones: input.locaciones,
+        coberturas: input.coberturas,
+      });
+      if (faltan.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Falta elegir con qué se cubre: ${faltan
+            .map((i) => i.nombre)
+            .join(", ")}.`,
+        });
+      }
       if (lineas.length === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",

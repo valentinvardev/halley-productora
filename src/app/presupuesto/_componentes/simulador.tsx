@@ -7,6 +7,7 @@ import { CampoFecha } from "~/app/_components/campo-fecha";
 import {
   IconoAlerta,
   IconoBajar,
+  IconoTilde,
   IconoFlecha,
   IconoVolver,
 } from "~/app/_components/iconos";
@@ -19,6 +20,7 @@ import {
   cierreDe,
   depurar,
   lineasDe,
+  sinCobertura,
   totalDe,
   type Evento,
   type Item,
@@ -57,19 +59,23 @@ import {
  * que acaba de tocar "Bodas" es hacerlo contestar dos veces lo mismo.
  */
 
-/** Los pasos que llenan el presupuesto — los que tienen punto de progreso. */
-const ETIQUETAS = [
-  "Momentos",
-  "Coberturas",
-  "Complementos",
-  "Contacto",
-  "Fecha",
-  "Pago",
-];
+/**
+ * Los pasos que llenan el presupuesto — los que tienen punto de progreso.
+ *
+ * Las coberturas eran el paso dos y ahora viven adentro del uno, como casillas
+ * debajo del momento que se elige. Antes se pedía "fotografía" una vez para
+ * todo el evento y eso cobraba lo mismo por cubrir el civil que por cubrir ocho
+ * horas de fiesta; puestas adentro de cada momento, cada una tiene su precio y
+ * de paso se contesta dónde se contesta bien: eligiendo la fiesta uno ya está
+ * pensando con qué la quiere.
+ */
+const ETIQUETAS = ["Momentos", "Complementos", "Contacto", "Fecha", "Pago"];
 
-const PASO_CONTACTO = 4;
-const PASO_FECHA = 5;
-const PASO_PAGO = 6;
+/** Cuántos pasos toma el catálogo. El resto son datos. */
+const PASOS_CATALOGO = 2;
+const PASO_CONTACTO = 3;
+const PASO_FECHA = 4;
+const PASO_PAGO = 5;
 
 type Datos = {
   nombre: string;
@@ -194,10 +200,7 @@ export function Simulador({
       const puesto = s.items.includes(item.id);
 
       if (puesto) {
-        return {
-          items: s.items.filter((id) => id !== item.id),
-          locaciones: s.locaciones,
-        };
+        return { ...s, items: s.items.filter((id) => id !== item.id) };
       }
 
       // Con selección única, elegir uno saca a los hermanos de la misma parte.
@@ -206,6 +209,7 @@ export function Simulador({
         : s.items.filter((id) => !idsDeLaParte.includes(id));
 
       return {
+        ...s,
         items: [...base, item.id],
         // Un ítem con locaciones estrena la primera, que es la de precio base:
         // así el total nunca sube por algo que no se eligió.
@@ -213,6 +217,10 @@ export function Simulador({
           item.locaciones && !s.locaciones[item.id]
             ? { ...s.locaciones, [item.id]: item.locaciones[0]!.id }
             : s.locaciones,
+        // Las coberturas arrancan vacías a propósito: son la decisión del paso
+        // —con qué se cubre— y darle una tildada de fábrica sería contestarla
+        // por él y hacerle pagar algo que no eligió.
+        coberturas: s.coberturas,
       };
     });
   }
@@ -223,11 +231,25 @@ export function Simulador({
       locaciones: { ...s.locaciones, [itemId]: locacionId },
     }));
 
+  const alternarCobertura = (itemId: string, coberturaId: string) =>
+    setSel((s) => {
+      const puestas = s.coberturas[itemId] ?? [];
+      return {
+        ...s,
+        coberturas: {
+          ...s.coberturas,
+          [itemId]: puestas.includes(coberturaId)
+            ? puestas.filter((c) => c !== coberturaId)
+            : [...puestas, coberturaId],
+        },
+      };
+    });
+
   /* ------------------------------------------------------------ avanzar */
 
   /** Qué falta para poder pasar al siguiente paso, o `null` si no falta nada. */
   function queFalta(desde: number): string | null {
-    if (desde >= 1 && desde <= 3) {
+    if (desde >= 1 && desde <= PASOS_CATALOGO) {
       const parte = partes[desde - 1];
       if (!parte) return null;
 
@@ -236,10 +258,13 @@ export function Simulador({
       if (parte.id === "momentos" && elegidos.length === 0) {
         return "Elegí al menos un momento para cubrir.";
       }
-      // Sin fotografía ni video no hay nada que entregar: son los momentos los
-      // que dicen cuándo estamos, y las coberturas las que dicen con qué.
-      if (parte.id === "coberturas" && elegidos.length === 0) {
-        return "Elegí al menos una cobertura: es lo que se entrega después.";
+
+      // Un momento sin foto ni video no es nada contratable: el equipo estaría
+      // ahí parado. Se nombra el que falta —pueden ser varios y el reclamo
+      // genérico obliga a buscar cuál.
+      const faltan = sinCobertura([parte], sel);
+      if (faltan[0]) {
+        return `Elegí con qué cubrimos ${faltan[0].nombre.toLowerCase()}: foto, video o las dos.`;
       }
       return null;
     }
@@ -280,6 +305,7 @@ export function Simulador({
       evento,
       items: sel.items,
       locaciones: sel.locaciones,
+      coberturas: sel.coberturas,
       nombre: datos.nombre.trim(),
       celular: datos.celular.trim(),
       email: datos.email.trim(),
@@ -333,12 +359,13 @@ export function Simulador({
       {/* El pie mide unos 120px y es fijo: sin este colchón, la última tarjeta
           de cada paso queda debajo del total y no se puede tocar. */}
       <div className="mx-auto max-w-[1140px] px-6 pt-12 pb-[200px] sm:px-10 sm:pt-16">
-        {paso <= 3 && partes[paso - 1] && (
+        {paso <= PASOS_CATALOGO && partes[paso - 1] && (
           <PasoParte
             parte={partes[paso - 1]!}
             sel={sel}
             alAlternar={alternar}
             alPonerLocacion={ponerLocacion}
+            alAlternarCobertura={alternarCobertura}
             preciosConfirmados={parametros.preciosConfirmados}
           />
         )}
@@ -500,12 +527,14 @@ function PasoParte({
   sel,
   alAlternar,
   alPonerLocacion,
+  alAlternarCobertura,
   preciosConfirmados,
 }: {
   parte: Parte;
   sel: Seleccion;
   alAlternar: (item: Item, multiple: boolean, idsDeLaParte: string[]) => void;
   alPonerLocacion: (itemId: string, locacionId: string) => void;
+  alAlternarCobertura: (itemId: string, coberturaId: string) => void;
   preciosConfirmados: boolean;
 }) {
   const ids = parte.items.map((i) => i.id);
@@ -535,9 +564,66 @@ function PasoParte({
               texto={item.texto}
               imagen={item.imagen}
               precio={
-                item.locaciones ? `Desde ${pesos(item.precio)}` : pesos(item.precio)
+                item.locaciones || item.coberturas
+                  ? `Desde ${pesos(item.precio)}`
+                  : pesos(item.precio)
               }
             >
+              {/* Con qué se cubre este momento. Aparece recién al elegirlo:
+                  antes de eso es una pregunta sobre algo que todavía no está
+                  en el presupuesto. */}
+              {item.coberturas && elegido && (
+                <div className="border-t border-gray-20 px-5 pt-4 pb-5 sm:px-6">
+                  <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">
+                    ¿Con qué lo cubrimos?
+                  </p>
+                  <div
+                    className="grid gap-2 sm:grid-cols-3"
+                    role="group"
+                    aria-label={`Coberturas de ${item.nombre}`}
+                  >
+                    {item.coberturas.map((c) => {
+                      const puesta = (sel.coberturas[item.id] ?? []).includes(
+                        c.id,
+                      );
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={puesta}
+                          onClick={() => alAlternarCobertura(item.id, c.id)}
+                          className={`flex cursor-pointer items-start gap-2.5 border p-3 text-left transition-colors ${
+                            puesta
+                              ? "border-ink bg-paper"
+                              : "border-gray-20 hover:border-gray-45"
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${
+                              puesta
+                                ? "border-ink bg-ink text-paper"
+                                : "border-gray-45"
+                            }`}
+                          >
+                            {puesta && <IconoTilde className="h-2.5 w-2.5" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13.5px] leading-tight">
+                              {c.nombre}
+                            </span>
+                            <span className="mt-1 block text-[13px] tabular-nums text-gray-45">
+                              + {pesos(c.extra)}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {item.locaciones && elegido && (
                 <div className="border-t border-gray-20 px-5 pt-4 pb-5 sm:px-6">
                   <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">

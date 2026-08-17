@@ -40,26 +40,16 @@ import { db } from "./db";
 const ENCABEZADOS = {
   momentos: {
     rotulo: "Parte 1",
-    titulo: "Qué momentos cubrimos",
+    titulo: "Qué cubrimos y con qué",
     bajada: {
       quince:
-        "Elegí qué partes del día queremos registrar. Se pueden combinar, y cada una se cotiza aparte.",
-      boda: "Una boda son varios actos en un día. Elegí cuáles cubrimos: se pueden combinar y cada uno se cotiza aparte.",
+        "Elegí qué partes del día registramos y con qué. Cada momento se cotiza aparte, y adentro de cada uno elegís si va foto, video o las dos.",
+      boda: "Una boda son varios actos en un día. Elegí cuáles cubrimos y con qué: cada uno se cotiza aparte, y adentro elegís si va foto, video o las dos.",
     },
     multiple: MOMENTOS_COMBINABLES,
   },
-  coberturas: {
-    rotulo: "Parte 2",
-    titulo: "Con qué lo cubrimos",
-    bajada: {
-      quince:
-        "Fotografía, video o las dos. Podés sumar todas las que quieras: cada una es un equipo más trabajando ese día.",
-      boda: "Fotografía, video o las dos. Podés sumar todas las que quieras: cada una es un equipo más trabajando ese día.",
-    },
-    multiple: true,
-  },
   complementos: {
-    rotulo: "Parte 3",
+    rotulo: "Parte 2",
     titulo: "Que no le falte nada",
     bajada: {
       quince:
@@ -70,7 +60,11 @@ const ENCABEZADOS = {
   },
 } as const;
 
-export const PARTES = ["momentos", "coberturas", "complementos"] as const;
+export const PARTES = ["momentos", "complementos"] as const;
+
+/** Las dos clases de opción que puede colgar de un ítem. */
+export const TIPOS_OPCION = ["cobertura", "locacion"] as const;
+export type TipoOpcion = (typeof TIPOS_OPCION)[number];
 
 /* ------------------------------------------------------------------ imágenes */
 
@@ -99,7 +93,8 @@ type FilaItem = {
   texto: string;
   precio: unknown;
   imagenId: string | null;
-  locaciones: {
+  opciones: {
+    tipo: string;
     clave: string;
     nombre: string;
     texto: string;
@@ -109,6 +104,20 @@ type FilaItem = {
 };
 
 function armarItem(f: FilaItem): Item {
+  const de = (tipo: TipoOpcion) =>
+    f.opciones
+      .filter((o) => o.tipo === tipo)
+      .map((o) => ({
+        id: o.clave,
+        nombre: o.nombre,
+        texto: o.texto,
+        extra: Number(o.extra),
+        imagen: urlImagen(o.imagenId),
+      }));
+
+  const locaciones = de("locacion");
+  const coberturas = de("cobertura");
+
   return {
     // Hacia afuera el ítem se identifica por su clave y no por su id de base:
     // es lo que queda escrito en los presupuestos emitidos, así que tiene que
@@ -118,17 +127,10 @@ function armarItem(f: FilaItem): Item {
     texto: f.texto,
     precio: Number(f.precio),
     imagen: urlImagen(f.imagenId),
-    ...(f.locaciones.length > 0
-      ? {
-          locaciones: f.locaciones.map((l) => ({
-            id: l.clave,
-            nombre: l.nombre,
-            texto: l.texto,
-            extra: Number(l.extra),
-            imagen: urlImagen(l.imagenId),
-          })),
-        }
-      : {}),
+    // Las listas vacías no se mandan: el wizard pregunta si existen, y una lista
+    // de cero elementos contestaría que sí.
+    ...(locaciones.length > 0 ? { locaciones } : {}),
+    ...(coberturas.length > 0 ? { coberturas } : {}),
   };
 }
 
@@ -148,7 +150,7 @@ export async function catalogoDe(
   const filas = await db.itemPresupuesto.findMany({
     where: { evento, ...(soloActivos ? { activo: true } : {}) },
     orderBy: [{ parte: "asc" }, { orden: "asc" }],
-    include: { locaciones: { orderBy: { orden: "asc" } } },
+    include: { opciones: { orderBy: { orden: "asc" } } },
   });
 
   return PARTES.map((parte) => {
@@ -257,11 +259,24 @@ async function sembrarSiHaceFalta() {
 
 async function sembrar() {
   const marca = await db.ajuste.findUnique({ where: { clave: SEMBRADO } });
-  if (marca) {
-    sembrado = true;
-    return;
-  }
 
+  if (marca) await mudarCoberturas();
+  else await sembrarDeCero();
+
+  // Que la marca ya exista no es un error: quiere decir que otro proceso
+  // terminó de sembrar mientras éste trabajaba, y el resultado es el mismo.
+  await db.ajuste
+    .upsert({
+      where: { clave: SEMBRADO },
+      create: { clave: SEMBRADO, valor: new Date().toISOString() },
+      update: {},
+    })
+    .catch(() => undefined);
+
+  sembrado = true;
+}
+
+async function sembrarDeCero() {
   for (const evento of EVENTOS_ORDEN) {
     for (const parte of CATALOGO_INICIAL[evento]) {
       for (const [i, item] of parte.items.entries()) {
@@ -278,35 +293,123 @@ async function sembrar() {
             },
           })
           .catch(() => null);
+        if (!creado) continue;
 
-        if (!creado || !item.locaciones) continue;
-
-        await db.locacionPresupuesto.createMany({
-          data: item.locaciones.map((l, j) => ({
-            itemId: creado.id,
-            clave: l.id,
-            nombre: l.nombre,
-            texto: l.texto,
-            extra: l.extra,
-            orden: j,
-          })),
+        await db.opcionItem.createMany({
+          data: [
+            ...(item.coberturas ?? []).map((o, j) => ({
+              itemId: creado.id,
+              tipo: "cobertura",
+              clave: o.id,
+              nombre: o.nombre,
+              texto: o.texto,
+              extra: o.extra,
+              orden: j,
+            })),
+            ...(item.locaciones ?? []).map((o, j) => ({
+              itemId: creado.id,
+              tipo: "locacion",
+              clave: o.id,
+              nombre: o.nombre,
+              texto: o.texto,
+              extra: o.extra,
+              orden: j,
+            })),
+          ],
           skipDuplicates: true,
         });
       }
     }
   }
+}
 
-  // Que la marca ya exista no es un error: quiere decir que otro proceso
-  // terminó de sembrar mientras éste trabajaba, y el resultado es el mismo.
+/**
+ * De las coberturas como paso propio a las coberturas dentro de cada momento.
+ *
+ * El catálogo nació con una Parte 2 —fotografía, video, redes— que se elegía una
+ * vez para todo el evento. Eso cobraba lo mismo por cubrir el civil que por
+ * cubrir ocho horas de fiesta, así que pasaron a colgar de cada momento con su
+ * propio precio. Esta función lleva de una forma a la otra las bases que ya
+ * estaban cargadas.
+ *
+ * Los precios nuevos salen del catálogo inicial, no de los viejos: copiar el
+ * precio único a los cinco momentos multiplicaría por cinco lo que antes se
+ * cobraba una vez. Para un momento que no esté en el catálogo inicial —uno que
+ * cargó Halley— se reparte sobre su propio precio, que es lo único que se sabe
+ * de él.
+ *
+ * Corre una sola vez y se marca aparte de la siembra, porque las bases viejas ya
+ * tenían la marca de sembrado y si no nunca entrarían acá.
+ */
+const MUDADO = "presupuestoCoberturasPorMomento";
+
+/** Con cuánto del precio del momento se estrena cada cobertura inventada. */
+const REPARTO: Record<string, number> = {
+  fotografia: 0.9,
+  "video-dron": 1.15,
+  redes: 0.45,
+};
+
+async function mudarCoberturas() {
+  const hecho = await db.ajuste.findUnique({ where: { clave: MUDADO } });
+  if (hecho) return;
+
+  const momentos = await db.itemPresupuesto.findMany({
+    where: { parte: "momentos" },
+    include: { opciones: true },
+  });
+
+  for (const m of momentos) {
+    // Si ya tiene coberturas es que alguien pasó por acá antes: no se pisa.
+    if (m.opciones.some((o) => o.tipo === "cobertura")) continue;
+
+    const inicial = CATALOGO_INICIAL[m.evento as Evento]
+      ?.flatMap((p) => p.items)
+      .find((i) => i.id === m.clave);
+
+    const nuevas =
+      inicial?.coberturas ??
+      Object.entries(REPARTO).map(([clave, parte]) => {
+        const molde = CATALOGO_INICIAL.boda[0]!.items[0]!.coberturas!.find(
+          (c) => c.id === clave,
+        )!;
+        return { ...molde, extra: Math.round(Number(m.precio) * parte) };
+      });
+
+    await db.opcionItem.createMany({
+      data: nuevas.map((o, j) => ({
+        itemId: m.id,
+        tipo: "cobertura",
+        clave: o.id,
+        nombre: o.nombre,
+        texto: o.texto,
+        extra: o.extra,
+        orden: j,
+      })),
+      skipDuplicates: true,
+    });
+
+    // El precio base baja al del catálogo inicial cuando lo hay: antes incluía
+    // lo que ahora cobran las coberturas, y dejarlo sumaría dos veces.
+    if (inicial && Number(m.precio) !== inicial.precio) {
+      await db.itemPresupuesto.update({
+        where: { id: m.id },
+        data: { precio: inicial.precio },
+      });
+    }
+  }
+
+  // La vieja Parte 2 se va. Los presupuestos ya emitidos no se tocan: guardan
+  // sus líneas con el precio adentro y siguen diciendo lo que decían.
+  await db.itemPresupuesto.deleteMany({ where: { parte: "coberturas" } });
+
   await db.ajuste
     .upsert({
-      where: { clave: SEMBRADO },
-      create: { clave: SEMBRADO, valor: new Date().toISOString() },
+      where: { clave: MUDADO },
+      create: { clave: MUDADO, valor: new Date().toISOString() },
       update: {},
     })
     .catch(() => undefined);
-
-  sembrado = true;
 }
 
 /** Para el panel: fuerza la siembra sin tener que entrar al simulador. */

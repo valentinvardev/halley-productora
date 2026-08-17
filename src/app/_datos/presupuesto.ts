@@ -113,12 +113,24 @@ export const MOMENTOS_COMBINABLES = true;
 
 /* ---------------------------------------------------------------- el catálogo */
 
-/** Dónde se hace el book. Cambia la logística, así que cambia el precio. */
-export type Locacion = {
+/**
+ * Una opción que cuelga de un ítem y le cambia el precio.
+ *
+ * Hay dos clases y se comportan distinto:
+ *
+ * - Las **locaciones** son excluyentes: el book se hace en un lugar, y elegir
+ *   uno reemplaza al anterior.
+ * - Las **coberturas** son acumulables: un momento se puede cubrir con foto, con
+ *   video, con las dos o con las tres cosas.
+ *
+ * Comparten la forma porque son lo mismo por debajo —algo que suma sobre el
+ * precio del ítem— y lo que cambia es cuántas se pueden tener a la vez.
+ */
+export type Opcion = {
   id: string;
   nombre: string;
   texto: string;
-  /** Lo que suma sobre el precio base del ítem. El primero suele ser 0. */
+  /** Lo que suma sobre el precio base del ítem. */
   extra: number;
   /**
    * La foto, ya resuelta a una URL servible. El catálogo guarda el id de la
@@ -132,30 +144,35 @@ export type Item = {
   id: string;
   nombre: string;
   texto: string;
+  /**
+   * El precio de estar ahí, sin lo que se entrega.
+   *
+   * Un momento cuesta algo por sí solo —el equipo se traslada, se queda esas
+   * horas— y encima de eso se suma lo que se registra. Separarlos es lo que
+   * permite que cubrir el civil con foto valga distinto que cubrir la fiesta
+   * con foto, que es como se cobra de verdad.
+   */
   precio: number;
   /** La foto, ya resuelta a una URL servible. */
   imagen?: string;
-  /**
-   * Sólo el book. Es el nivel extra de elección que ningún otro ítem tiene: se
-   * resuelve mostrando las locaciones adentro de la tarjeta, y sólo cuando la
-   * tarjeta está elegida. Tres tarjetas sueltas dirían que son tres productos
-   * distintos, y es uno con tres formas.
-   */
-  locaciones?: Locacion[];
+  /** Dónde se hace. Excluyentes: una sola. */
+  locaciones?: Opcion[];
+  /** Con qué se cubre. Acumulables, y al menos una si el ítem tiene. */
+  coberturas?: Opcion[];
 };
 
 export type Parte = {
-  id: "momentos" | "coberturas" | "complementos";
+  id: "momentos" | "complementos";
   rotulo: string;
   titulo: string;
   bajada: string;
-  /** Si se pueden elegir varios. La Parte 1 depende de MOMENTOS_COMBINABLES. */
+  /** Si se pueden elegir varios. */
   multiple: boolean;
   items: Item[];
 };
 
 /** Las tres locaciones del book. Son las mismas para los dos eventos. */
-const LOCACIONES: Locacion[] = [
+const LOCACIONES: Opcion[] = [
   {
     id: "estudio",
     nombre: "Estudio",
@@ -179,32 +196,34 @@ const LOCACIONES: Locacion[] = [
 ];
 
 /**
- * Las coberturas y los complementos son los mismos para los dos eventos: lo que
- * cambia entre una boda y un quince son los momentos, no las cámaras.
+ * Con qué se cubre un momento, y cuánto suma en ese momento.
+ *
+ * Los textos son los mismos en todos lados —fotografía es fotografía— y lo que
+ * cambia entre un momento y otro son los tres números. Por eso se arman con una
+ * función en vez de repetir las descripciones cinco veces.
  */
-const COBERTURAS: Item[] = [
-  {
-    id: "fotografia",
-    nombre: "Fotografía",
-    texto:
-      "Cobertura fotográfica completa, con las fotos editadas en una galería que se puede bajar.",
-    precio: 540_000,
-  },
-  {
-    id: "video-dron",
-    nombre: "Video y dron para exterior",
-    texto:
-      "El video editado que se mira entero, con las tomas aéreas de la llegada y del lugar.",
-    precio: 760_000,
-  },
-  {
-    id: "redes",
-    nombre: "Contenido para redes",
-    texto:
-      "Cortes verticales pensados para el teléfono, listos para publicar la misma semana.",
-    precio: 290_000,
-  },
-];
+function coberturas(foto: number, video: number, redes: number): Opcion[] {
+  return [
+    {
+      id: "fotografia",
+      nombre: "Fotografía",
+      texto: "Las fotos editadas, en una galería que se puede bajar.",
+      extra: foto,
+    },
+    {
+      id: "video-dron",
+      nombre: "Video y dron",
+      texto: "El video editado, con las tomas aéreas donde se pueda volar.",
+      extra: video,
+    },
+    {
+      id: "redes",
+      nombre: "Contenido para redes",
+      texto: "Cortes verticales pensados para el teléfono.",
+      extra: redes,
+    },
+  ];
+}
 
 const COMPLEMENTOS: Item[] = [
   {
@@ -217,8 +236,7 @@ const COMPLEMENTOS: Item[] = [
   {
     id: "invitacion",
     nombre: "Invitación digital",
-    texto:
-      "La invitación para mandar por WhatsApp, con el diseño del evento.",
+    texto: "La invitación para mandar por WhatsApp, con el diseño del evento.",
     precio: 95_000,
   },
   {
@@ -238,8 +256,7 @@ const COMPLEMENTOS: Item[] = [
   {
     id: "video-ingreso",
     nombre: "Video para ingreso al salón",
-    texto:
-      "La pieza que se proyecta en la entrada, armada con material previo.",
+    texto: "La pieza que se proyecta en la entrada, armada con material previo.",
     precio: 260_000,
   },
   {
@@ -265,22 +282,25 @@ const MOMENTOS_QUINCE: Item[] = [
     nombre: "Book Pre 15",
     texto:
       "La sesión previa, armada junto con ella. Se elige dónde se hace y de ahí sale buena parte del resultado.",
-    precio: 480_000,
+    precio: 260_000,
     locaciones: LOCACIONES,
+    coberturas: coberturas(230_000, 280_000, 120_000),
   },
   {
     id: "preparativos",
     nombre: "Preparativos previos",
     texto:
       "El maquillaje, el vestido, la casa antes de salir. Es donde están los nervios y la familia junta.",
-    precio: 320_000,
+    precio: 170_000,
+    coberturas: coberturas(160_000, 210_000, 100_000),
   },
   {
     id: "fiesta",
     nombre: "Cobertura de la fiesta",
     texto:
       "La entrada, el vals, el brindis y el baile, de punta a punta y sin cortes.",
-    precio: 980_000,
+    precio: 450_000,
+    coberturas: coberturas(400_000, 520_000, 200_000),
   },
 ];
 
@@ -289,8 +309,8 @@ const MOMENTOS_QUINCE: Item[] = [
  *
  * Es la estructura equivalente a la de quince, con lo que una boda tiene y un
  * quince no: el civil y la ceremonia son dos actos separados, con horarios y
- * lugares propios, y cotizarlos juntos obligaría a cobrar de más al que sólo
- * hace uno. Los otros tres son los mismos momentos con otro nombre.
+ * lugares propios, y cotizarlos juntos obligaría a cobrarle de más al que sólo
+ * hace uno.
  */
 const MOMENTOS_BODA: Item[] = [
   {
@@ -298,35 +318,40 @@ const MOMENTOS_BODA: Item[] = [
     nombre: "Sesión pre boda",
     texto:
       "La sesión de los dos antes del día. Se elige dónde se hace y de ahí sale buena parte del resultado.",
-    precio: 520_000,
+    precio: 280_000,
     locaciones: LOCACIONES,
+    coberturas: coberturas(240_000, 300_000, 120_000),
   },
   {
     id: "preparativos",
     nombre: "Preparativos de los novios",
     texto:
       "Las dos casas en simultáneo: mientras una cámara está con ella, la otra está con él.",
-    precio: 420_000,
+    precio: 190_000,
+    coberturas: coberturas(190_000, 250_000, 110_000),
   },
   {
     id: "civil",
     nombre: "Civil",
     texto: "El registro del acto y de la salida, con los testigos y la familia.",
-    precio: 290_000,
+    precio: 140_000,
+    coberturas: coberturas(140_000, 180_000, 90_000),
   },
   {
     id: "ceremonia",
     nombre: "Ceremonia",
     texto:
       "La entrada, los votos y la salida. Cobertura continua, sin cortes por cambio de lugar.",
-    precio: 480_000,
+    precio: 220_000,
+    coberturas: coberturas(220_000, 290_000, 120_000),
   },
   {
     id: "fiesta",
     nombre: "Cobertura de la fiesta",
     texto:
       "Desde el brindis hasta que se apaga la música. Nadie se queda afuera por irse temprano.",
-    precio: 1_090_000,
+    precio: 480_000,
+    coberturas: coberturas(430_000, 560_000, 210_000),
   },
 ];
 
@@ -335,23 +360,14 @@ function partesDe(momentos: Item[], quePasa: string): Parte[] {
     {
       id: "momentos",
       rotulo: "Parte 1",
-      titulo: "Qué momentos cubrimos",
+      titulo: "Qué cubrimos y con qué",
       bajada: quePasa,
       multiple: MOMENTOS_COMBINABLES,
       items: momentos,
     },
     {
-      id: "coberturas",
-      rotulo: "Parte 2",
-      titulo: "Con qué lo cubrimos",
-      bajada:
-        "Fotografía, video o las dos. Podés sumar todas las que quieras: cada una es un equipo más trabajando ese día.",
-      multiple: true,
-      items: COBERTURAS,
-    },
-    {
       id: "complementos",
-      rotulo: "Parte 3",
+      rotulo: "Parte 2",
       titulo: "Que no le falte nada",
       bajada:
         "Lo que se agrega sobre la cobertura. Nada de esto es obligatorio y todo se puede decidir después.",
@@ -372,11 +388,11 @@ function partesDe(momentos: Item[], quePasa: string): Parte[] {
 export const CATALOGO_INICIAL: Record<Evento, Parte[]> = {
   quince: partesDe(
     MOMENTOS_QUINCE,
-    "Elegí qué partes del día queremos registrar. Se pueden combinar, y cada una se cotiza aparte.",
+    "Elegí qué partes del día registramos y con qué. Cada momento se cotiza aparte, y adentro de cada uno elegís si va foto, video o las dos.",
   ),
   boda: partesDe(
     MOMENTOS_BODA,
-    "Una boda son varios actos en un día. Elegí cuáles cubrimos: se pueden combinar y cada uno se cotiza aparte.",
+    "Una boda son varios actos en un día. Elegí cuáles cubrimos y con qué: cada uno se cotiza aparte, y adentro elegís si va foto, video o las dos.",
   ),
 };
 
@@ -401,11 +417,17 @@ export function itemDe(partes: Parte[], id: string): Item | null {
  */
 export type Seleccion = {
   items: string[];
-  /** Para el book: qué locación se eligió. Clave por id de ítem. */
+  /** Para el book: qué locación se eligió. Una sola, por id de ítem. */
   locaciones: Record<string, string>;
+  /** Con qué se cubre cada momento. Varias, por id de ítem. */
+  coberturas: Record<string, string[]>;
 };
 
-export const SELECCION_VACIA: Seleccion = { items: [], locaciones: {} };
+export const SELECCION_VACIA: Seleccion = {
+  items: [],
+  locaciones: {},
+  coberturas: {},
+};
 
 /**
  * La selección que dio origen a estas líneas.
@@ -413,23 +435,38 @@ export const SELECCION_VACIA: Seleccion = { items: [], locaciones: {} };
  * Es el camino de vuelta: un presupuesto guardado se abre en el wizard tal como
  * lo dejó su dueño. Los ítems que ya no estén en el catálogo se caen solos al
  * recalcular, así que no hay que filtrarlos acá.
+ *
+ * Las coberturas viajan como líneas propias colgadas del ítem —por eso traen
+ * `bajo`— así que rearmarlas es agruparlas por su padre.
  */
 export function seleccionDe(lineas: Linea[]): Seleccion {
   const locaciones: Record<string, string> = {};
+  const coberturas: Record<string, string[]> = {};
+  const items: string[] = [];
+
   for (const l of lineas) {
+    if (l.bajo) {
+      (coberturas[l.bajo] ??= []).push(l.opcion ?? l.id);
+      continue;
+    }
+    items.push(l.id);
     if (l.locacion) locaciones[l.id] = l.locacion;
   }
-  return { items: lineas.map((l) => l.id), locaciones };
+
+  return { items, locaciones, coberturas };
 }
 
 /** Los ids de la selección que este catálogo todavía conoce. */
 export function depurar(partes: Parte[], sel: Seleccion): Seleccion {
   const validos = new Set(partes.flatMap((p) => p.items.map((i) => i.id)));
-  const items = sel.items.filter((id) => validos.has(id));
-  const locaciones = Object.fromEntries(
-    Object.entries(sel.locaciones).filter(([id]) => validos.has(id)),
-  );
-  return { items, locaciones };
+  const soloConocidos = <T,>(mapa: Record<string, T>) =>
+    Object.fromEntries(Object.entries(mapa).filter(([id]) => validos.has(id)));
+
+  return {
+    items: sel.items.filter((id) => validos.has(id)),
+    locaciones: soloConocidos(sel.locaciones),
+    coberturas: soloConocidos(sel.coberturas),
+  };
 }
 
 /** Una línea del presupuesto, ya con el precio resuelto. */
@@ -439,12 +476,23 @@ export type Linea = {
   /** El nombre de la locación elegida, cuando la hay. Es lo que se muestra. */
   detalle?: string;
   /**
-   * El id de esa locación. No se muestra nunca: está para poder rearmar la
-   * selección exacta al reeditar un presupuesto guardado. Sin esto habría que
-   * adivinar la locación a partir de su nombre, que es lo único que cambia
-   * cuando alguien corrige una mayúscula en el catálogo.
+   * El id de la opción que esta línea representa —la locación elegida, o la
+   * cobertura—. No se muestra nunca: está para poder rearmar la selección
+   * exacta al reeditar un presupuesto guardado. Sin esto habría que adivinarla
+   * a partir del nombre, que es lo único que cambia cuando alguien corrige una
+   * mayúscula en el catálogo.
    */
   locacion?: string;
+  opcion?: string;
+  /**
+   * De qué ítem cuelga, para las coberturas.
+   *
+   * Las coberturas van como líneas propias y no sumadas al precio del momento
+   * porque el presupuesto impreso tiene que decir con qué se cubre cada cosa:
+   * "la fiesta, con foto y video" es la mitad de lo que se está contratando, y
+   * escondido dentro de un solo número no se lee.
+   */
+  bajo?: string;
   precio: number;
 };
 
@@ -473,8 +521,24 @@ export function lineasDe(partes: Parte[], sel: Seleccion): Linea[] {
         nombre: item.nombre,
         detalle: locacion?.nombre,
         locacion: locacion?.id,
+        opcion: locacion?.id,
         precio: item.precio + (locacion?.extra ?? 0),
       });
+
+      // Y debajo, con qué se cubre. En el orden del catálogo, igual que todo.
+      const puestas = new Set(sel.coberturas[item.id] ?? []);
+      for (const c of item.coberturas ?? []) {
+        if (!puestas.has(c.id)) continue;
+        lineas.push({
+          // La clave lleva el ítem adentro: la misma cobertura puede estar en
+          // varios momentos y cada una es una línea distinta del presupuesto.
+          id: `${item.id}/${c.id}`,
+          nombre: c.nombre,
+          opcion: c.id,
+          bajo: item.id,
+          precio: c.extra,
+        });
+      }
     }
   }
 
@@ -485,6 +549,28 @@ export function totalDe(lineas: Linea[]) {
   return lineas.reduce((suma, l) => suma + l.precio, 0);
 }
 
+/**
+ * Qué ítems elegidos todavía no dicen con qué se los cubre.
+ *
+ * Un momento sin foto ni video no es nada contratable: el equipo estaría ahí
+ * parado. Sólo se le exige a los ítems que ofrecen coberturas —un complemento
+ * no tiene con qué cubrirse— así que la regla sale del catálogo y no de una
+ * lista de excepciones escrita al lado.
+ */
+export function sinCobertura(partes: Parte[], sel: Seleccion): Item[] {
+  const elegidos = new Set(sel.items);
+  const faltan: Item[] = [];
+
+  for (const parte of partes) {
+    for (const item of parte.items) {
+      if (!elegidos.has(item.id)) continue;
+      if (!item.coberturas?.length) continue;
+      if ((sel.coberturas[item.id] ?? []).length === 0) faltan.push(item);
+    }
+  }
+
+  return faltan;
+}
 /* ------------------------------------------------------------------ reserva */
 
 /**

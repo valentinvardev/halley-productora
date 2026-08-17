@@ -111,17 +111,30 @@ export function Hoja({
             {p.lineas.map((l) => (
               <li
                 key={l.id}
-                className="flex items-baseline justify-between gap-4 py-3"
+                // Las coberturas cuelgan del momento de arriba. Corridas y en
+                // gris se leen como lo que son: con qué se cubre eso, no otra
+                // cosa contratada aparte. En una lista al mismo nivel, "Video y
+                // dron" tres veces parecería un error de carga.
+                className={`flex items-baseline justify-between gap-4 py-3 ${
+                  l.bajo ? "linea-hija pl-5 text-gray-70" : ""
+                }`}
               >
                 <span className="min-w-0">
-                  <span className="text-[14.5px]">{l.nombre}</span>
+                  <span className={l.bajo ? "text-[13px]" : "text-[14.5px]"}>
+                    {l.bajo && <span aria-hidden="true">· </span>}
+                    {l.nombre}
+                  </span>
                   {l.detalle && (
                     <span className="block text-[12.5px] text-gray-45">
                       {l.detalle}
                     </span>
                   )}
                 </span>
-                <span className="text-[14px] tabular-nums whitespace-nowrap">
+                <span
+                  className={`tabular-nums whitespace-nowrap ${
+                    l.bajo ? "text-[13px]" : "text-[14px]"
+                  }`}
+                >
                   {pesos(l.precio)}
                 </span>
               </li>

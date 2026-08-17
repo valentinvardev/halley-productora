@@ -1566,6 +1566,21 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
     line-height: 1.25 !important;
   }
 
+  /* Las coberturas son las que multiplicaron la lista: cinco momentos con las
+     tres tildadas son quince renglones más. Van pegadas a su momento, sin la
+     línea divisoria que las separaría de él y en cuerpo chico, que es además
+     como se leen mejor: son el detalle de lo de arriba, no otro ítem. */
+  .hoja .linea-hija {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-top-width: 0 !important;
+  }
+
+  .hoja .linea-hija span {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
   /* El pie: la letra chica y a quién escribirle. */
   .pie-hoja {
     display: flex !important;

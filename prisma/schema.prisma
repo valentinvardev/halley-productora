@@ -587,7 +587,7 @@ model ItemPresupuesto {
     /// firmada que ya existe.
     imagenId String?
 
-    locaciones LocacionPresupuesto[]
+    opciones OpcionItem[]
 
     creadoEn DateTime @default(now())
 
@@ -595,27 +595,41 @@ model ItemPresupuesto {
     @@index([evento, parte, orden])
 }
 
-/// Una variante de un ítem que cambia su precio: dónde se hace el book.
+/// Algo que cuelga de un ítem y le suma al precio.
 ///
-/// Es el único nivel extra de elección del catálogo y por eso es una tabla y no
-/// un campo: un ítem tiene ninguna o varias, y cada una suma sobre el precio
-/// base en vez de reemplazarlo.
-model LocacionPresupuesto {
+/// Hay dos clases, y lo que las separa es cuántas se pueden tener a la vez:
+///
+/// - `locacion` es excluyente. El book se hace en un lugar, y elegir uno
+///   reemplaza al anterior.
+/// - `cobertura` es acumulable. Un momento se cubre con foto, con video, con
+///   las dos o con las tres cosas, y cada una suma.
+///
+/// Son una tabla y no dos porque por debajo son lo mismo —un nombre, un texto,
+/// una foto y un monto que se suma— y tenerlas separadas obligaba a escribir dos
+/// veces el mismo CRUD para que después se desincronizaran.
+///
+/// La tabla sigue llamándose `LocacionPresupuesto` para no migrar las filas ya
+/// cargadas; el modelo cambió de nombre cuando dejó de ser sólo eso.
+model OpcionItem {
     id     String          @id @default(cuid())
     itemId String
     item   ItemPresupuesto @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
+    /// "locacion" o "cobertura".
+    tipo String @default("locacion")
+
     clave  String
     nombre String
     texto  String
-    /// Lo que suma sobre el precio del ítem. La primera suele ser cero.
+    /// Lo que suma sobre el precio del ítem. Puede ser cero.
     extra  Decimal @db.Decimal(12, 2)
 
     orden    Int     @default(0)
     imagenId String?
 
     @@unique([itemId, clave])
-    @@index([itemId, orden])
+    @@index([itemId, tipo, orden])
+    @@map("LocacionPresupuesto")
 }
 
 enum ProveedorPago {

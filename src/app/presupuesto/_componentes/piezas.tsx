@@ -259,9 +259,17 @@ export function Detalle({
         {lineas.map((l) => (
           <li
             key={l.id}
-            className="flex items-baseline justify-between gap-4 py-2.5"
+            className={`flex items-baseline justify-between gap-4 py-2.5 ${
+              // Las coberturas cuelgan del momento de arriba: van corridas y
+              // más chicas, que es lo que dice "esto es parte de aquello" sin
+              // tener que escribirlo.
+              l.bajo ? "pl-4 text-gray-70" : ""
+            }`}
           >
-            <span className="min-w-0 text-[14px]">
+            <span
+              className={`min-w-0 ${l.bajo ? "text-[13px]" : "text-[14px]"}`}
+            >
+              {l.bajo && <span aria-hidden="true">· </span>}
               {l.nombre}
               {l.detalle && (
                 <span className="block text-[12.5px] text-gray-45">
