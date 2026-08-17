@@ -541,7 +541,6 @@
   transform: translate(0, 0) scale(1);
 }
 
-.plano-difumina,
 .plano-sombra {
   opacity: 0;
 }
@@ -555,7 +554,6 @@
     transition: transform 1100ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  .plano-difumina,
   .plano-sombra {
     transition: opacity 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -574,8 +572,6 @@
     transform: scale(1.07);
   }
 
-  .tarjeta-servicio:hover .plano-difumina,
-  .tarjeta-servicio.a-la-vista .plano-difumina,
   .tarjeta-servicio:hover .plano-sombra,
   .tarjeta-servicio.a-la-vista .plano-sombra {
     opacity: 1;

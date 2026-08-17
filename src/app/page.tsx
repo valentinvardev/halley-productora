@@ -13,8 +13,7 @@ import {
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
 import { FondoBoda } from "./_components/fondo-boda";
-import { FondoEgresados } from "./_components/fondo-egresados";
-import { FondoQuince } from "./_components/fondo-quince";
+import { FondoVideo } from "./_components/fondo-video";
 import { LogoAnimado } from "./_components/logo-animado";
 import { TarjetaServicio } from "./_components/tarjeta-servicio";
 import { Logotipo } from "./_components/logotipo";
@@ -415,12 +414,13 @@ async function Servicios() {
               key={s.slug}
               className="aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]"
             >
-              {s.slug === "egresados" ? (
-                <FondoEgresados />
+              {/* Egresados y quince tienen el movimiento ya rendido en video;
+                  bodas sigue armado por capas. Marcas se queda con la grilla de
+                  trabajos, que es lo que tiene para mostrar. */}
+              {s.slug === "egresados" || s.slug === "quince" ? (
+                <FondoVideo nombre={s.slug} />
               ) : s.slug === "bodas" ? (
                 <FondoBoda />
-              ) : s.slug === "quince" ? (
-                <FondoQuince />
               ) : portadas.length > 0 ? (
                 <MosaicoPortadas piezas={portadas} />
               ) : (
