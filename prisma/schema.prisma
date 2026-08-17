@@ -602,7 +602,7 @@ model ItemPresupuesto {
 /// - `locacion` es excluyente. El book se hace en un lugar, y elegir uno
 ///   reemplaza al anterior.
 /// - `cobertura` es acumulable. Un momento se cubre con foto, con video, con
-///   las dos o con las tres cosas, y cada una suma.
+///   las dos, y cada una suma.
 ///
 /// Son una tabla y no dos porque por debajo son lo mismo —un nombre, un texto,
 /// una foto y un monto que se suma— y tenerlas separadas obligaba a escribir dos

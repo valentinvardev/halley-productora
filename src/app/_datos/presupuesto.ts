@@ -121,7 +121,7 @@ export const MOMENTOS_COMBINABLES = true;
  * - Las **locaciones** son excluyentes: el book se hace en un lugar, y elegir
  *   uno reemplaza al anterior.
  * - Las **coberturas** son acumulables: un momento se puede cubrir con foto, con
- *   video, con las dos o con las tres cosas.
+ *   video o con las dos.
  *
  * Comparten la forma porque son lo mismo por debajo —algo que suma sobre el
  * precio del ítem— y lo que cambia es cuántas se pueden tener a la vez.
@@ -199,10 +199,15 @@ const LOCACIONES: Opcion[] = [
  * Con qué se cubre un momento, y cuánto suma en ese momento.
  *
  * Los textos son los mismos en todos lados —fotografía es fotografía— y lo que
- * cambia entre un momento y otro son los tres números. Por eso se arman con una
+ * cambia entre un momento y otro son los dos números. Por eso se arman con una
  * función en vez de repetir las descripciones cinco veces.
+ *
+ * Son dos y no tres: el contenido para redes salió de acá. Es un entregable de
+ * lo que ya se filmó, no otra forma de cubrir el momento, así que preguntarlo
+ * cinco veces —una por momento— era pedir la misma respuesta muchas veces. Si
+ * vuelve, va como complemento.
  */
-function coberturas(foto: number, video: number, redes: number): Opcion[] {
+function coberturas(foto: number, video: number): Opcion[] {
   return [
     {
       id: "fotografia",
@@ -215,12 +220,6 @@ function coberturas(foto: number, video: number, redes: number): Opcion[] {
       nombre: "Video y dron",
       texto: "El video editado, con las tomas aéreas donde se pueda volar.",
       extra: video,
-    },
-    {
-      id: "redes",
-      nombre: "Contenido para redes",
-      texto: "Cortes verticales pensados para el teléfono.",
-      extra: redes,
     },
   ];
 }
@@ -284,7 +283,7 @@ const MOMENTOS_QUINCE: Item[] = [
       "La sesión previa, armada junto con ella. Se elige dónde se hace y de ahí sale buena parte del resultado.",
     precio: 260_000,
     locaciones: LOCACIONES,
-    coberturas: coberturas(230_000, 280_000, 120_000),
+    coberturas: coberturas(230_000, 280_000),
   },
   {
     id: "preparativos",
@@ -292,7 +291,7 @@ const MOMENTOS_QUINCE: Item[] = [
     texto:
       "El maquillaje, el vestido, la casa antes de salir. Es donde están los nervios y la familia junta.",
     precio: 170_000,
-    coberturas: coberturas(160_000, 210_000, 100_000),
+    coberturas: coberturas(160_000, 210_000),
   },
   {
     id: "fiesta",
@@ -300,7 +299,7 @@ const MOMENTOS_QUINCE: Item[] = [
     texto:
       "La entrada, el vals, el brindis y el baile, de punta a punta y sin cortes.",
     precio: 450_000,
-    coberturas: coberturas(400_000, 520_000, 200_000),
+    coberturas: coberturas(400_000, 520_000),
   },
 ];
 
@@ -320,7 +319,7 @@ const MOMENTOS_BODA: Item[] = [
       "La sesión de los dos antes del día. Se elige dónde se hace y de ahí sale buena parte del resultado.",
     precio: 280_000,
     locaciones: LOCACIONES,
-    coberturas: coberturas(240_000, 300_000, 120_000),
+    coberturas: coberturas(240_000, 300_000),
   },
   {
     id: "preparativos",
@@ -328,14 +327,14 @@ const MOMENTOS_BODA: Item[] = [
     texto:
       "Las dos casas en simultáneo: mientras una cámara está con ella, la otra está con él.",
     precio: 190_000,
-    coberturas: coberturas(190_000, 250_000, 110_000),
+    coberturas: coberturas(190_000, 250_000),
   },
   {
     id: "civil",
     nombre: "Civil",
     texto: "El registro del acto y de la salida, con los testigos y la familia.",
     precio: 140_000,
-    coberturas: coberturas(140_000, 180_000, 90_000),
+    coberturas: coberturas(140_000, 180_000),
   },
   {
     id: "ceremonia",
@@ -343,7 +342,7 @@ const MOMENTOS_BODA: Item[] = [
     texto:
       "La entrada, los votos y la salida. Cobertura continua, sin cortes por cambio de lugar.",
     precio: 220_000,
-    coberturas: coberturas(220_000, 290_000, 120_000),
+    coberturas: coberturas(220_000, 290_000),
   },
   {
     id: "fiesta",
@@ -351,7 +350,7 @@ const MOMENTOS_BODA: Item[] = [
     texto:
       "Desde el brindis hasta que se apaga la música. Nadie se queda afuera por irse temprano.",
     precio: 480_000,
-    coberturas: coberturas(430_000, 560_000, 210_000),
+    coberturas: coberturas(430_000, 560_000),
   },
 ];
 
@@ -565,7 +564,14 @@ export function sinCobertura(partes: Parte[], sel: Seleccion): Item[] {
     for (const item of parte.items) {
       if (!elegidos.has(item.id)) continue;
       if (!item.coberturas?.length) continue;
-      if ((sel.coberturas[item.id] ?? []).length === 0) faltan.push(item);
+
+      // Se cuentan las que el catálogo reconoce, no las que llegaron. Contando
+      // lo que llega, mandar una cobertura que ya no existe pasaba el control
+      // —el arreglo no estaba vacío— pero no producía ninguna línea, y el
+      // momento terminaba cobrado sin nada que entregar, que es exactamente lo
+      // que esta función tiene que impedir.
+      const puestas = new Set(sel.coberturas[item.id] ?? []);
+      if (!item.coberturas.some((c) => puestas.has(c.id))) faltan.push(item);
     }
   }
 

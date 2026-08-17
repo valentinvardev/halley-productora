@@ -578,7 +578,7 @@ function PasoParte({
                     ¿Con qué lo cubrimos?
                   </p>
                   <div
-                    className="grid gap-2 sm:grid-cols-3"
+                    className="grid gap-2 sm:grid-cols-2"
                     role="group"
                     aria-label={`Coberturas de ${item.nombre}`}
                   >

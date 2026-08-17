@@ -347,7 +347,6 @@ const MUDADO = "presupuestoCoberturasPorMomento";
 const REPARTO: Record<string, number> = {
   fotografia: 0.9,
   "video-dron": 1.15,
-  redes: 0.45,
 };
 
 async function mudarCoberturas() {
