@@ -5,6 +5,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   IconoAlerta,
   IconoCruz,
+  IconoGrupos,
+  IconoImagen,
+  IconoLista,
   IconoRegalo,
   IconoTilde,
 } from "~/app/_components/iconos";
@@ -81,6 +84,58 @@ export function Progreso({
 
 /* ---------------------------------------------------------------- tarjetas */
 
+/** Cómo se listan las opciones: una debajo de otra, o en tarjetas. */
+export type Vista = "lista" | "grilla";
+
+/**
+ * El interruptor entre las dos vistas.
+ *
+ * La lista es para leer: los textos completos, uno tras otro, y alcanza para
+ * decidir cuando uno ya sabe qué quiere. La grilla es para comparar: cuatro
+ * fotos a la vez, que es lo que sirve cuando la decisión no está tomada y lo
+ * que la empuja no es el texto sino ver el trabajo.
+ *
+ * Van los dos y no uno solo porque las dos preguntas son reales, y cuál es la
+ * de cada persona no se sabe de antemano.
+ */
+export function SelectorVista({
+  vista,
+  alCambiar,
+}: {
+  vista: Vista;
+  alCambiar: (v: Vista) => void;
+}) {
+  return (
+    <div
+      className="flex border border-gray-20"
+      role="group"
+      aria-label="Cómo ver las opciones"
+    >
+      {(
+        [
+          ["lista", "Lista", <IconoLista key="l" className="h-3.5 w-3.5" />],
+          ["grilla", "Fotos", <IconoGrupos key="g" className="h-3.5 w-3.5" />],
+        ] as const
+      ).map(([valor, texto, icono]) => (
+        <button
+          key={valor}
+          type="button"
+          onClick={() => alCambiar(valor)}
+          aria-pressed={vista === valor}
+          className={`inline-flex cursor-pointer items-center gap-1.5 px-3 py-2 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
+            vista === valor
+              ? "bg-ink text-paper"
+              : "text-gray-45 hover:text-ink"
+          }`}
+        >
+          {icono}
+          {texto}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Una opción elegible.
  *
@@ -88,9 +143,14 @@ export function Progreso({
  * Se refleja en el rol de accesibilidad y en la marca de la esquina —un punto
  * para lo excluyente, un tilde para lo acumulable— porque es la diferencia que
  * hay que poder ver antes de tocar, no después.
+ *
+ * En `grilla` la foto pasa al frente y ocupa el ancho de la tarjeta. Es el
+ * mismo contenido con otra jerarquía: en lista se lee, en grilla se mira, y lo
+ * que cambia es qué tiene que entrar primero por el ojo.
  */
 export function Opcion({
   tipo,
+  vista = "lista",
   elegida,
   alElegir,
   titulo,
@@ -100,6 +160,7 @@ export function Opcion({
   children,
 }: {
   tipo: "una" | "varias";
+  vista?: Vista;
   elegida: boolean;
   alElegir: () => void;
   titulo: string;
@@ -108,12 +169,30 @@ export function Opcion({
   precio?: ReactNode;
   /** La foto que cargó el panel, si el ítem tiene una. */
   imagen?: string;
-  /** Lo que se despliega adentro al elegirla — hoy, las locaciones del book. */
+  /** Lo que se despliega adentro al elegirla — las coberturas, las locaciones. */
   children?: ReactNode;
 }) {
+  const grilla = vista === "grilla";
+
+  const marca = (
+    <span
+      aria-hidden="true"
+      className={`flex h-5 w-5 shrink-0 items-center justify-center border transition-colors ${
+        tipo === "una" ? "rounded-full" : ""
+      } ${elegida ? "border-ink bg-ink text-paper" : "border-gray-45 bg-paper"}`}
+    >
+      {elegida &&
+        (tipo === "una" ? (
+          <span className="h-2 w-2 rounded-full bg-paper" />
+        ) : (
+          <IconoTilde className="h-3 w-3" />
+        ))}
+    </span>
+  );
+
   return (
     <div
-      className={`border transition-colors ${
+      className={`flex flex-col border transition-colors ${
         elegida ? "border-ink bg-paper-dim" : "border-gray-20 bg-paper"
       }`}
     >
@@ -122,54 +201,91 @@ export function Opcion({
         role={tipo === "una" ? "radio" : "checkbox"}
         aria-checked={elegida}
         onClick={alElegir}
-        className="flex w-full cursor-pointer items-start gap-4 p-5 text-left sm:p-6"
+        className={
+          grilla
+            ? "flex w-full flex-1 cursor-pointer flex-col text-left"
+            : "flex w-full cursor-pointer items-start gap-4 p-5 text-left sm:p-6"
+        }
       >
-        {/* La marca de estado. El cuadrado es acumulable, el círculo excluyente:
-            es la convención de cualquier formulario y no hay razón para
-            reinventarla acá. */}
-        <span
-          aria-hidden="true"
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border transition-colors ${
-            tipo === "una" ? "rounded-full" : ""
-          } ${elegida ? "border-ink bg-ink text-paper" : "border-gray-45"}`}
-        >
-          {elegida &&
-            (tipo === "una" ? (
-              <span className="h-2 w-2 rounded-full bg-paper" />
-            ) : (
-              <IconoTilde className="h-3 w-3" />
-            ))}
-        </span>
-
-        {/* La foto va chica y al costado, no de fondo: detrás del texto obliga
-            a poner un velo encima, y un velo sobre una foto de trabajo la
-            apaga justo donde tenía que convencer. */}
-        {imagen && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imagen}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="hidden h-[76px] w-[76px] shrink-0 border border-gray-20 object-cover sm:block"
-          />
-        )}
-
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="font-titulo text-[clamp(1.15rem,2.6vw,1.5rem)] leading-tight uppercase">
-              {titulo}
+        {grilla ? (
+          <>
+            {/* La foto manda. Sin foto queda el hueco igual: una grilla donde
+                unas tarjetas miden una cosa y otras miden otra se lee como algo
+                roto, y el hueco además invita a cargarla. */}
+            {/* Dos por uno y no cuatro por tres. La grilla existe para
+                comparar de a cuatro, y con la foto más alta entraba una fila y
+                media: la segunda quedaba abajo del pliegue, que es justo lo que
+                la vista venía a resolver. */}
+            <span className="relative block aspect-[2/1] w-full overflow-hidden bg-paper-dim">
+              {imagen ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imagen}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-gray-45">
+                  <IconoImagen className="h-5 w-5" />
+                </span>
+              )}
+              <span className="absolute top-2.5 left-2.5">{marca}</span>
             </span>
-            {precio !== undefined && (
-              <span className="text-[15px] tabular-nums whitespace-nowrap">
-                {precio}
+
+            <span className="flex flex-1 flex-col p-4">
+              <span className="font-titulo text-[clamp(1.05rem,2.2vw,1.35rem)] leading-tight uppercase">
+                {titulo}
               </span>
+              <span className="mt-1.5 block text-[13px] leading-snug text-gray-70">
+                {texto}
+              </span>
+              {precio !== undefined && (
+                <span className="mt-3 block text-[14px] tabular-nums">
+                  {precio}
+                </span>
+              )}
+            </span>
+          </>
+        ) : (
+          <>
+            {/* La marca de estado. El cuadrado es acumulable, el círculo
+                excluyente: es la convención de cualquier formulario y no hay
+                razón para reinventarla acá. */}
+            <span className="mt-0.5">{marca}</span>
+
+            {/* La foto va chica y al costado, no de fondo: detrás del texto
+                obliga a poner un velo encima, y un velo sobre una foto de
+                trabajo la apaga justo donde tenía que convencer. */}
+            {imagen && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imagen}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="hidden h-[76px] w-[76px] shrink-0 border border-gray-20 object-cover sm:block"
+              />
             )}
-          </span>
-          <span className="mt-2 block max-w-[54ch] text-[14px] leading-relaxed text-gray-70">
-            {texto}
-          </span>
-        </span>
+
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <span className="font-titulo text-[clamp(1.15rem,2.6vw,1.5rem)] leading-tight uppercase">
+                  {titulo}
+                </span>
+                {precio !== undefined && (
+                  <span className="text-[15px] tabular-nums whitespace-nowrap">
+                    {precio}
+                  </span>
+                )}
+              </span>
+              <span className="mt-2 block max-w-[54ch] text-[14px] leading-relaxed text-gray-70">
+                {texto}
+              </span>
+            </span>
+          </>
+        )}
       </button>
 
       {children}
@@ -303,16 +419,22 @@ export function Cabecera({
   rotulo,
   titulo,
   bajada,
+  acciones,
 }: {
   rotulo: string;
   titulo: string;
   bajada?: string;
+  /** Va arriba a la derecha: el interruptor de vista, hoy. */
+  acciones?: ReactNode;
 }) {
   return (
     <header className="mb-8">
-      <p className="font-rotulo text-[11.5px] tracking-[0.22em] text-gray-70 uppercase">
-        {rotulo}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="font-rotulo text-[11.5px] tracking-[0.22em] text-gray-70 uppercase">
+          {rotulo}
+        </p>
+        {acciones}
+      </div>
       <h2 className="mt-3 max-w-[20ch] font-titulo text-[clamp(1.8rem,5vw,3rem)] leading-[0.94] uppercase">
         {titulo}
       </h2>

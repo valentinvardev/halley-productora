@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
 import {
@@ -38,6 +45,8 @@ import {
   Detalle,
   Opcion,
   Progreso,
+  SelectorVista,
+  type Vista,
 } from "./piezas";
 
 /**
@@ -69,13 +78,28 @@ import {
  * de paso se contesta dónde se contesta bien: eligiendo la fiesta uno ya está
  * pensando con qué la quiere.
  */
-const ETIQUETAS = ["Momentos", "Complementos", "Contacto", "Fecha", "Pago"];
+type IdPaso =
+  | "momentos"
+  | "complementos"
+  | "contacto"
+  | "fecha"
+  | "pago";
 
-/** Cuántos pasos toma el catálogo. El resto son datos. */
-const PASOS_CATALOGO = 2;
-const PASO_CONTACTO = 3;
-const PASO_FECHA = 4;
-const PASO_PAGO = 5;
+const ETIQUETA: Record<IdPaso, string> = {
+  momentos: "Momentos",
+  complementos: "Complementos",
+  contacto: "Contacto",
+  fecha: "Fecha",
+  pago: "Pago",
+};
+
+const PASOS: IdPaso[] = [
+  "momentos",
+  "complementos",
+  "contacto",
+  "fecha",
+  "pago",
+];
 
 type Datos = {
   nombre: string;
@@ -121,9 +145,16 @@ export function Simulador({
   const [evento, setEvento] = useState<Evento | null>(
     retomar?.evento ?? inicial,
   );
-  const [paso, setPaso] = useState(evento ? 1 : 0);
-  /** Hasta dónde llegó: habilita los puntos del progreso ya recorridos. */
-  const [maximo, setMaximo] = useState(paso);
+  /** `null` es el paso cero: elegir el evento. */
+  const [paso, setPaso] = useState<IdPaso | null>(evento ? "momentos" : null);
+  /**
+   * Por dónde ya pasó, para habilitar los puntos del progreso.
+   *
+   * Es un conjunto de nombres y no un número porque la lista de pasos cambia de
+   * largo: con un índice, elegir el book correría todo un lugar y lo ya visitado
+   * pasaría a señalar otra cosa.
+   */
+  const [vistos, setVistos] = useState<Set<IdPaso>>(new Set(["momentos"]));
 
   const [sel, setSel] = useState<Seleccion>(
     retomar?.seleccion ?? SELECCION_VACIA,
@@ -137,6 +168,11 @@ export function Simulador({
   const [fechaEvento, setFechaEvento] = useState(retomar?.fechaEvento ?? "");
   const [plan, setPlan] = useState(retomar?.plan ?? "3");
 
+  /**
+   * Cómo se miran las opciones. Es preferencia de quien mira, así que se elige
+   * una vez y vale para todos los pasos.
+   */
+  const [vista, setVista] = useState<Vista>("lista");
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   /** Se muestra recién al intentar avanzar: nadie quiere un error antes de escribir. */
   const [reclamo, setReclamo] = useState<string | null>(null);
@@ -148,6 +184,17 @@ export function Simulador({
     [evento, catalogos],
   );
   const lineas = useMemo(() => lineasDe(partes, sel), [partes, sel]);
+
+  /** Lo elegido que además tiene dónde elegirse. Es lo que abre el paso. */
+  const conLocacion = useMemo(
+    () =>
+      partes
+        .flatMap((p) => p.items)
+        .filter((i) => sel.items.includes(i.id) && i.locaciones?.length),
+    [partes, sel.items],
+  );
+
+  const indice = paso ? PASOS.indexOf(paso) : -1;
   const total = totalDe(lineas);
   const cierre = cierreDe(total, plan, parametros);
 
@@ -179,9 +226,9 @@ export function Simulador({
     reiniciar();
   }, [reiniciar]);
 
-  function irA(siguiente: number) {
+  function irA(siguiente: IdPaso) {
     setPaso(siguiente);
-    setMaximo((m) => Math.max(m, siguiente));
+    setVistos((v) => new Set(v).add(siguiente));
   }
 
   function elegirEvento(e: Evento) {
@@ -190,7 +237,7 @@ export function Simulador({
     // otro no tiene. Vaciar todo castigaría a quien se equivocó de tarjeta.
     setEvento(e);
     setSel((s) => depurar(catalogos[e], s));
-    irA(1);
+    irA("momentos");
   }
 
   /* ---------------------------------------------------------- selección */
@@ -248,9 +295,9 @@ export function Simulador({
   /* ------------------------------------------------------------ avanzar */
 
   /** Qué falta para poder pasar al siguiente paso, o `null` si no falta nada. */
-  function queFalta(desde: number): string | null {
-    if (desde >= 1 && desde <= PASOS_CATALOGO) {
-      const parte = partes[desde - 1];
+  function queFalta(desde: IdPaso): string | null {
+    if (desde === "momentos" || desde === "complementos") {
+      const parte = partes.find((p) => p.id === desde);
       if (!parte) return null;
 
       const elegidos = parte.items.filter((i) => sel.items.includes(i.id));
@@ -264,12 +311,20 @@ export function Simulador({
       // genérico obliga a buscar cuál.
       const faltan = sinCobertura([parte], sel);
       if (faltan[0]) {
-        return `Elegí con qué cubrimos ${faltan[0].nombre.toLowerCase()}: foto, video o las dos.`;
+        return `Elegí con qué cubrimos ${faltan[0].nombre.toLowerCase()}: foto o video.`;
+      }
+
+      // La ubicación se pregunta dentro de este paso, así que se valida acá.
+      if (desde === "complementos") {
+        const sinLugar = conLocacion.find((i) => !sel.locaciones[i.id]);
+        if (sinLugar) {
+          return `Elegí dónde hacemos ${sinLugar.nombre.toLowerCase()}.`;
+        }
       }
       return null;
     }
 
-    if (desde === PASO_CONTACTO) {
+    if (desde === "contacto") {
       if (datos.nombre.trim().length < 2) return "Escribí tu nombre.";
       if (datos.celular.replace(/\D/g, "").length < 6)
         return "Escribí un celular al que podamos escribirte.";
@@ -277,7 +332,7 @@ export function Simulador({
       return null;
     }
 
-    if (desde === PASO_FECHA && !fechaEvento) {
+    if (desde === "fecha" && !fechaEvento) {
       return "Elegí una fecha, aunque sea aproximada.";
     }
 
@@ -285,18 +340,27 @@ export function Simulador({
   }
 
   function continuar() {
+    if (!paso) return;
+
     const falta = queFalta(paso);
     if (falta) {
       setReclamo(falta);
       return;
     }
 
-    if (paso === PASO_PAGO) {
+    if (paso === "pago") {
       confirmar();
       return;
     }
 
-    irA(paso + 1);
+    const siguiente = PASOS[indice + 1];
+    if (siguiente) irA(siguiente);
+  }
+
+  /** Atrás. Desde el primer paso se sale al cero: volver a elegir el evento. */
+  function volver() {
+    if (indice <= 0) return setPaso(null);
+    setPaso(PASOS[indice - 1] ?? null);
   }
 
   function confirmar() {
@@ -318,7 +382,7 @@ export function Simulador({
 
   /* ------------------------------------------------------------- pintar */
 
-  if (!evento || paso === 0) {
+  if (!evento || paso === null) {
     return (
       <div ref={arriba}>
         <PasoEvento
@@ -343,15 +407,23 @@ export function Simulador({
               {nombreEvento.nombre}
             </p>
             <p className="font-rotulo text-[11px] tracking-[0.14em] text-gray-45 uppercase">
-              Paso {Math.min(paso, ETIQUETAS.length)} de {ETIQUETAS.length}
+              Paso {indice + 1} de {PASOS.length}
             </p>
           </div>
           <Progreso
-            cantidad={ETIQUETAS.length}
-            actual={paso}
-            maximo={maximo}
-            alIr={irA}
-            etiquetas={ETIQUETAS}
+            cantidad={PASOS.length}
+            actual={indice + 1}
+            // El punto se puede tocar si ya se pasó por ese paso. Con la lista
+            // cambiando de largo, "hasta dónde llegué" es el más lejano de los
+            // visitados que todavía existe.
+            maximo={
+              PASOS.reduce((m, id, i) => (vistos.has(id) ? i + 1 : m), 1)
+            }
+            alIr={(n) => {
+              const destino = PASOS[n - 1];
+              if (destino) irA(destino);
+            }}
+            etiquetas={PASOS.map((id) => ETIQUETA[id])}
           />
         </div>
       </div>
@@ -359,22 +431,39 @@ export function Simulador({
       {/* El pie mide unos 120px y es fijo: sin este colchón, la última tarjeta
           de cada paso queda debajo del total y no se puede tocar. */}
       <div className="mx-auto max-w-[1140px] px-6 pt-12 pb-[200px] sm:px-10 sm:pt-16">
-        {paso <= PASOS_CATALOGO && partes[paso - 1] && (
-          <PasoParte
-            parte={partes[paso - 1]!}
-            sel={sel}
-            alAlternar={alternar}
-            alPonerLocacion={ponerLocacion}
-            alAlternarCobertura={alternarCobertura}
-            preciosConfirmados={parametros.preciosConfirmados}
-          />
-        )}
+        {(paso === "momentos" || paso === "complementos") &&
+          partes.find((pa) => pa.id === paso) && (
+            <PasoParte
+              parte={partes.find((pa) => pa.id === paso)!}
+              sel={sel}
+              vista={vista}
+              alCambiarVista={setVista}
+              alAlternar={alternar}
+              alAlternarCobertura={alternarCobertura}
+              preciosConfirmados={parametros.preciosConfirmados}
+              // La ubicación va acá y no en un paso propio: es una decisión
+              // sobre algo que ya está contratado, no otra cosa que sumar, y
+              // un paso entero para una sola pregunta se siente como un
+              // trámite. Va primero porque cambia el resultado del book, que
+              // pesa más que cualquier agregado de los de abajo.
+              antes={
+                paso === "complementos" && conLocacion.length > 0 ? (
+                  <BloqueLocaciones
+                    items={conLocacion}
+                    sel={sel}
+                    vista={vista}
+                    alPonerLocacion={ponerLocacion}
+                  />
+                ) : null
+              }
+            />
+          )}
 
-        {paso === PASO_CONTACTO && (
+        {paso === "contacto" && (
           <PasoContacto datos={datos} alCambiar={setDatos} />
         )}
 
-        {paso === PASO_FECHA && (
+        {paso === "fecha" && (
           <PasoFecha
             valor={fechaEvento}
             alCambiar={setFechaEvento}
@@ -382,7 +471,7 @@ export function Simulador({
           />
         )}
 
-        {paso === PASO_PAGO && (
+        {paso === "pago" && (
           <PasoPago
             plan={plan}
             alElegir={setPlan}
@@ -440,7 +529,7 @@ export function Simulador({
 
           <button
             type="button"
-            onClick={() => (paso === 1 ? setPaso(0) : setPaso(paso - 1))}
+            onClick={volver}
             className="hidden cursor-pointer items-center gap-1.5 font-rotulo text-[11.5px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink sm:inline-flex"
           >
             <IconoVolver className="h-3 w-3" />
@@ -454,7 +543,7 @@ export function Simulador({
           >
             {generar.isPending
               ? "Generando…"
-              : paso === PASO_PAGO
+              : paso === "pago"
                 ? "Generar presupuesto"
                 : "Continuar"}
             {!generar.isPending && <IconoFlecha />}
@@ -465,7 +554,7 @@ export function Simulador({
             propia línea antes que achicarse hasta no poder tocarlo. */}
         <button
           type="button"
-          onClick={() => (paso === 1 ? setPaso(0) : setPaso(paso - 1))}
+          onClick={volver}
           className="flex w-full cursor-pointer items-center justify-center gap-1.5 border-t border-gray-20 py-2.5 font-rotulo text-[11.5px] tracking-[0.06em] text-gray-45 uppercase hover:text-ink sm:hidden"
         >
           <IconoVolver className="h-3 w-3" />
@@ -525,19 +614,25 @@ function PasoEvento({
 function PasoParte({
   parte,
   sel,
+  vista,
+  alCambiarVista,
   alAlternar,
-  alPonerLocacion,
   alAlternarCobertura,
   preciosConfirmados,
+  antes,
 }: {
   parte: Parte;
   sel: Seleccion;
+  vista: Vista;
+  alCambiarVista: (v: Vista) => void;
   alAlternar: (item: Item, multiple: boolean, idsDeLaParte: string[]) => void;
-  alPonerLocacion: (itemId: string, locacionId: string) => void;
   alAlternarCobertura: (itemId: string, coberturaId: string) => void;
   preciosConfirmados: boolean;
+  /** Lo que va entre el encabezado y la grilla. Hoy, dónde se hace el book. */
+  antes?: ReactNode;
 }) {
   const ids = parte.items.map((i) => i.id);
+  const grilla = vista === "grilla";
 
   return (
     <section>
@@ -545,10 +640,13 @@ function PasoParte({
         rotulo={parte.rotulo}
         titulo={parte.titulo}
         bajada={parte.bajada}
+        acciones={<SelectorVista vista={vista} alCambiar={alCambiarVista} />}
       />
 
+      {antes}
+
       <div
-        className="grid gap-3"
+        className={grilla ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
         role={parte.multiple ? "group" : "radiogroup"}
         aria-label={parte.titulo}
       >
@@ -558,6 +656,7 @@ function PasoParte({
             <Opcion
               key={item.id}
               tipo={parte.multiple ? "varias" : "una"}
+              vista={vista}
               elegida={elegido}
               alElegir={() => alAlternar(item, parte.multiple, ids)}
               titulo={item.nombre}
@@ -573,12 +672,19 @@ function PasoParte({
                   antes de eso es una pregunta sobre algo que todavía no está
                   en el presupuesto. */}
               {item.coberturas && elegido && (
-                <div className="border-t border-gray-20 px-5 pt-4 pb-5 sm:px-6">
+                <div
+                  className={`border-t border-gray-20 ${
+                    grilla ? "px-4 pt-3 pb-4" : "px-5 pt-4 pb-5 sm:px-6"
+                  }`}
+                >
                   <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">
                     ¿Con qué lo cubrimos?
                   </p>
+                  {/* En grilla la tarjeta mide la mitad, así que las casillas
+                      van una debajo de otra: dos columnas ahí dejan el nombre
+                      partido en dos renglones. */}
                   <div
-                    className="grid gap-2 sm:grid-cols-2"
+                    className={grilla ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}
                     role="group"
                     aria-label={`Coberturas de ${item.nombre}`}
                   >
@@ -623,69 +729,6 @@ function PasoParte({
                   </div>
                 </div>
               )}
-
-              {item.locaciones && elegido && (
-                <div className="border-t border-gray-20 px-5 pt-4 pb-5 sm:px-6">
-                  <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">
-                    ¿Dónde lo hacemos?
-                  </p>
-                  <div
-                    className="grid gap-2"
-                    role="radiogroup"
-                    aria-label={`Locación de ${item.nombre}`}
-                  >
-                    {item.locaciones.map((l) => {
-                      const puesta = sel.locaciones[item.id] === l.id;
-                      return (
-                        <button
-                          key={l.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={puesta}
-                          onClick={() => alPonerLocacion(item.id, l.id)}
-                          className={`flex cursor-pointer items-start gap-3 border p-3.5 text-left transition-colors ${
-                            puesta
-                              ? "border-ink bg-paper"
-                              : "border-gray-20 hover:border-gray-45"
-                          }`}
-                        >
-                          {l.imagen && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={l.imagen}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="hidden h-11 w-11 shrink-0 border border-gray-20 object-cover sm:block"
-                            />
-                          )}
-                          <span
-                            aria-hidden="true"
-                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                              puesta ? "border-ink bg-ink" : "border-gray-45"
-                            }`}
-                          >
-                            {puesta && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-paper" />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                              <span className="text-[14px]">{l.nombre}</span>
-                              <span className="text-[13px] tabular-nums whitespace-nowrap text-gray-45">
-                                {l.extra === 0 ? "Sin cargo" : `+ ${pesos(l.extra)}`}
-                              </span>
-                            </span>
-                            <span className="mt-1 block text-[12.5px] leading-snug text-gray-45">
-                              {l.texto}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </Opcion>
           );
         })}
@@ -695,6 +738,82 @@ function PasoParte({
         <AvisoReferencia className="mt-8" />
       )}
     </section>
+  );
+}
+
+/* ------------------------------------------------------------- locaciones */
+
+/**
+ * Dónde se hace cada cosa que tiene dónde hacerse.
+ *
+ * Era un desplegable adentro de la tarjeta del momento. Metido ahí competía con
+ * la decisión de ese paso —qué momentos van y con qué— y encima escondía lo que
+ * más cambia el resultado del book: la locación no es un detalle de
+ * configuración, es de qué van a ser las fotos.
+ *
+ * Vive dentro del paso de los complementos y no en uno propio: es una decisión
+ * sobre algo que ya está contratado, y un paso entero para una sola pregunta se
+ * siente como un trámite. Va primero de ese paso porque pesa más que cualquiera
+ * de los agregados que vienen abajo.
+ *
+ * Aparece sólo si hay algo que preguntar. Hoy eso es el book, pero la regla sale
+ * del catálogo, así que si mañana otro ítem estrena locaciones aparece solo.
+ */
+function BloqueLocaciones({
+  items,
+  sel,
+  vista,
+  alPonerLocacion,
+}: {
+  items: Item[];
+  sel: Seleccion;
+  vista: Vista;
+  alPonerLocacion: (itemId: string, locacionId: string) => void;
+}) {
+  const grilla = vista === "grilla";
+
+  return (
+    <div className="mb-10 border-b border-gray-20 pb-9">
+      <h3 className="font-titulo text-[clamp(1.4rem,3.4vw,2rem)] leading-tight uppercase">
+        ¿Dónde lo hacemos?
+      </h3>
+      <p className="mt-2 max-w-[56ch] text-[14px] leading-relaxed text-gray-70">
+        El lugar cambia la luz, el tiempo que lleva y lo que se ve detrás. Es lo
+        que más define de qué van a ser las fotos.
+      </p>
+
+      {items.map((item) => (
+        <div key={item.id} className="mt-6">
+          {/* Con un solo ítem el subtítulo sobra; con dos hace falta saber de
+              cuál se está eligiendo el lugar. */}
+          {items.length > 1 && (
+            <p className="mb-3 font-rotulo text-[11.5px] tracking-[0.1em] text-gray-45 uppercase">
+              {item.nombre}
+            </p>
+          )}
+
+          <div
+            className={grilla ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
+            role="radiogroup"
+            aria-label={`Dónde hacemos ${item.nombre}`}
+          >
+            {(item.locaciones ?? []).map((l) => (
+              <Opcion
+                key={l.id}
+                tipo="una"
+                vista={vista}
+                elegida={sel.locaciones[item.id] === l.id}
+                alElegir={() => alPonerLocacion(item.id, l.id)}
+                titulo={l.nombre}
+                texto={l.texto}
+                imagen={l.imagen}
+                precio={l.extra === 0 ? "Sin cargo" : `+ ${pesos(l.extra)}`}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
