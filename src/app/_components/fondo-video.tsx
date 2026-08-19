@@ -65,9 +65,9 @@ export function FondoVideo({
      *
      * `playbackRate` no acepta negativos en ningún navegador, así que el
      * retroceso se hace moviendo `currentTime` a mano contra el reloj de los
-     * cuadros. Anda porque el clip dura tres segundos y para cuando alguien
-     * saca el cursor ya está entero en memoria: buscar dentro de lo que está
-     * cargado no vuelve a pedir nada a la red.
+     * cuadros. Anda porque los clips duran tres o cuatro segundos y para cuando
+     * alguien saca el cursor ya están enteros en memoria: buscar dentro de lo
+     * que está cargado no vuelve a pedir nada a la red.
      */
     const rebobinar = () => {
       frenar();

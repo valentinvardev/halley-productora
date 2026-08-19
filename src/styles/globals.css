@@ -534,47 +534,27 @@
 
 /* El estado de reposo va afuera del `prefers-reduced-motion`: es cómo se ve la
    foto quieta, y tiene que valer igual para quien pidió menos movimiento. Lo que
-   queda adentro es sólo el movimiento — sin él, las capas se quedan acá para
-   siempre, que es exactamente lo que corresponde. */
-.plano-acerca,
+   queda adentro es sólo el movimiento — sin él, la foto se queda acá para
+   siempre, que es exactamente lo que corresponde.
+
+   Acá quedó una sola foto: las tres categorías de evento mueven la cámara en
+   video y no por CSS, así que las variables que repartían el crecimiento entre
+   los planos de cada panel se fueron con ellos. */
 .fondo-servicio {
   transform: translate(0, 0) scale(1);
-}
-
-.plano-sombra {
-  opacity: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   /* La transición vive en el reposo y no en el estado final para que la vuelta
      dure lo mismo que la ida: declarada sólo en `:hover`, al salir el cursor la
-     capa volvería de golpe. */
-  .plano-acerca,
+     foto volvería de golpe. */
   .fondo-servicio {
     transition: transform 1100ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-
-  .plano-sombra {
-    transition: opacity 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-
-  .tarjeta-servicio:hover .plano-acerca,
-  .tarjeta-servicio.a-la-vista .plano-acerca {
-    /* Cada plano trae su propio destino en variables: cuánto crece, y si además
-       sube o se corre. Las tres valen cero o uno por defecto, así que una sola
-       regla mueve los diez planos repartidos entre los tres paneles. */
-    transform: translate(var(--corre, 0%), var(--sube, 0%))
-      scale(var(--acerca, 1));
   }
 
   .tarjeta-servicio:hover .fondo-servicio,
   .tarjeta-servicio.a-la-vista .fondo-servicio {
     transform: scale(1.07);
-  }
-
-  .tarjeta-servicio:hover .plano-sombra,
-  .tarjeta-servicio.a-la-vista .plano-sombra {
-    opacity: 1;
   }
 }
 
