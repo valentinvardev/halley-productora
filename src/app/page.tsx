@@ -399,37 +399,19 @@ async function Servicios() {
         </h2>
       </div>
 
-      {/* Una columna en el teléfono, dos desde `lg` y tres desde `xl`. La
-          separación es una línea de un píxel, como la grilla del mosaico: el
-          fondo gris asoma por el `gap` y no hace falta un borde por tarjeta.
-
-          El corte de las tres columnas es `xl` y no `lg` por el ancho que le
-          queda a cada tarjeta: en 1024 serían de 341 píxeles, más angostas que
-          el título. Desde 1280 son 426 para arriba, que es donde el titular y
-          los dos botones vuelven a entrar cómodos. Por debajo quedan dos, que
-          para esto alcanza. */}
-      <div className="grid gap-px border-y border-gray-20 bg-gray-20 lg:grid-cols-2 xl:grid-cols-3">
+      {/* Dos por dos en escritorio, una columna en el teléfono. La separación
+          es una línea de un píxel, como la grilla del mosaico: el fondo gris
+          asoma por el `gap` y no hace falta un borde por tarjeta. */}
+      <div className="grid gap-px border-y border-gray-20 bg-gray-20 lg:grid-cols-2">
         {SERVICIOS.map((s, i) => {
           const portadas = fondos[i] ?? [];
           // Sólo bodas y quince tienen catálogo de precios; las otras dos
           // categorías se cotizan hablando, y la función lo sabe por las dos.
           const evento = eventoDeServicio(s.slug);
-
-          // Con tres columnas y cuatro tarjetas, la última queda sola en su fila
-          // y al lado no hay un hueco sino dos bloques del gris del fondo. La
-          // huérfana se lleva la fila entera: es la misma regla que ya sigue el
-          // mosaico, donde un agujero en la grilla se lee como un error. Y cae
-          // en marcas, que es la única de las cuatro que no es un evento, así
-          // que la fila ancha de cierre le queda bien.
-          const huerfana =
-            SERVICIOS.length % 3 === 1 && i === SERVICIOS.length - 1;
-
           return (
             <TarjetaServicio
               key={s.slug}
-              className={`aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]${
-                huerfana ? " xl:col-span-3" : ""
-              }`}
+              className="aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]"
             >
               {/* Las tres categorías de evento tienen el movimiento ya rendido
                   en video: la cámara avanzando de verdad, no una foto partida en
@@ -447,14 +429,7 @@ async function Servicios() {
                   alt=""
                   aria-hidden="true"
                   fill
-                  // Un tercio del ancho donde hay tres columnas, la mitad donde
-                  // hay dos. La huérfana es la excepción: se lleva la fila
-                  // entera, así que ahí vuelve a pedir el ancho completo.
-                  sizes={
-                    huerfana
-                      ? "(min-width: 1280px) 100vw, (min-width: 1024px) 50vw, 100vw"
-                      : "(min-width: 1280px) 33vw, (min-width: 1024px) 50vw, 100vw"
-                  }
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   priority={i === 0}
                   className="fondo-servicio object-cover"
                 />
