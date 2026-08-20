@@ -45,8 +45,6 @@ import {
   Detalle,
   Opcion,
   Progreso,
-  SelectorVista,
-  type Vista,
 } from "./piezas";
 
 /**
@@ -168,11 +166,6 @@ export function Simulador({
   const [fechaEvento, setFechaEvento] = useState(retomar?.fechaEvento ?? "");
   const [plan, setPlan] = useState(retomar?.plan ?? "3");
 
-  /**
-   * Cómo se miran las opciones. Es preferencia de quien mira, así que se elige
-   * una vez y vale para todos los pasos.
-   */
-  const [vista, setVista] = useState<Vista>("lista");
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   /** Se muestra recién al intentar avanzar: nadie quiere un error antes de escribir. */
   const [reclamo, setReclamo] = useState<string | null>(null);
@@ -436,8 +429,6 @@ export function Simulador({
             <PasoParte
               parte={partes.find((pa) => pa.id === paso)!}
               sel={sel}
-              vista={vista}
-              alCambiarVista={setVista}
               alAlternar={alternar}
               alAlternarCobertura={alternarCobertura}
               preciosConfirmados={parametros.preciosConfirmados}
@@ -451,7 +442,6 @@ export function Simulador({
                   <BloqueLocaciones
                     items={conLocacion}
                     sel={sel}
-                    vista={vista}
                     alPonerLocacion={ponerLocacion}
                   />
                 ) : null
@@ -614,8 +604,6 @@ function PasoEvento({
 function PasoParte({
   parte,
   sel,
-  vista,
-  alCambiarVista,
   alAlternar,
   alAlternarCobertura,
   preciosConfirmados,
@@ -623,8 +611,6 @@ function PasoParte({
 }: {
   parte: Parte;
   sel: Seleccion;
-  vista: Vista;
-  alCambiarVista: (v: Vista) => void;
   alAlternar: (item: Item, multiple: boolean, idsDeLaParte: string[]) => void;
   alAlternarCobertura: (itemId: string, coberturaId: string) => void;
   preciosConfirmados: boolean;
@@ -632,7 +618,6 @@ function PasoParte({
   antes?: ReactNode;
 }) {
   const ids = parte.items.map((i) => i.id);
-  const grilla = vista === "grilla";
 
   return (
     <section>
@@ -640,21 +625,18 @@ function PasoParte({
         rotulo={parte.rotulo}
         titulo={parte.titulo}
         bajada={parte.bajada}
-        acciones={<SelectorVista vista={vista} alCambiar={alCambiarVista} />}
       />
 
       {antes}
 
-      {/* Dos desde `sm` y tres desde `lg`. La caja del wizard corta en 1140, así
-          que en una pantalla de escritorio la tercera columna no achica las
-          tarjetas hasta lo ilegible: quedan de 345 píxeles contra los 524 de
-          dos, que para una foto apaisada y tres renglones alcanza de sobra. Y
-          es lo que la vista vino a hacer: cuantas más entren de una, mejor se
-          comparan. */}
+      {/* Una en el teléfono, dos desde `sm` y tres desde `lg`. La caja del
+          wizard corta en 1140, así que en una pantalla de escritorio la tercera
+          columna no achica las tarjetas hasta lo ilegible: quedan de 345
+          píxeles contra los 524 de dos, que para una foto apaisada y tres
+          renglones alcanza de sobra. Y es lo que la grilla vino a hacer:
+          cuantas más entren de una, mejor se comparan. */}
       <div
-        className={
-          grilla ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-3"
-        }
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
         role={parte.multiple ? "group" : "radiogroup"}
         aria-label={parte.titulo}
       >
@@ -664,7 +646,6 @@ function PasoParte({
             <Opcion
               key={item.id}
               tipo={parte.multiple ? "varias" : "una"}
-              vista={vista}
               elegida={elegido}
               alElegir={() => alAlternar(item, parte.multiple, ids)}
               titulo={item.nombre}
@@ -680,20 +661,15 @@ function PasoParte({
                   antes de eso es una pregunta sobre algo que todavía no está
                   en el presupuesto. */}
               {item.coberturas && elegido && (
-                <div
-                  className={`border-t border-gray-20 ${
-                    grilla ? "px-4 pt-3 pb-4" : "px-5 pt-4 pb-5 sm:px-6"
-                  }`}
-                >
+                <div className="border-t border-gray-20 px-4 pt-3 pb-4">
                   <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">
                     ¿Con qué lo cubrimos?
                   </p>
-                  {/* En grilla la tarjeta es media pantalla, o un tercio en
-                      escritorio, así que las casillas van una debajo de otra:
-                      dos columnas ahí dejan el nombre partido en dos
-                      renglones. */}
+                  {/* La tarjeta es media pantalla, o un tercio en escritorio,
+                      así que las casillas van una debajo de otra: dos columnas
+                      ahí dejan el nombre partido en dos renglones. */}
                   <div
-                    className={grilla ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}
+                    className="grid gap-2"
                     role="group"
                     aria-label={`Coberturas de ${item.nombre}`}
                   >
@@ -771,16 +747,12 @@ function PasoParte({
 function BloqueLocaciones({
   items,
   sel,
-  vista,
   alPonerLocacion,
 }: {
   items: Item[];
   sel: Seleccion;
-  vista: Vista;
   alPonerLocacion: (itemId: string, locacionId: string) => void;
 }) {
-  const grilla = vista === "grilla";
-
   return (
     <div className="mb-10 border-b border-gray-20 pb-9">
       <h3 className="font-titulo text-[clamp(1.4rem,3.4vw,2rem)] leading-tight uppercase">
@@ -802,9 +774,7 @@ function BloqueLocaciones({
           )}
 
           <div
-            className={
-              grilla ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-3"
-            }
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
             role="radiogroup"
             aria-label={`Dónde hacemos ${item.nombre}`}
           >
@@ -812,7 +782,6 @@ function BloqueLocaciones({
               <Opcion
                 key={l.id}
                 tipo="una"
-                vista={vista}
                 elegida={sel.locaciones[item.id] === l.id}
                 alElegir={() => alPonerLocacion(item.id, l.id)}
                 titulo={l.nombre}
