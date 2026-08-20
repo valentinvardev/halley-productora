@@ -919,58 +919,76 @@ function PasoPago({
         bajada="La reserva bloquea la fecha y congela el precio: a partir de ahí, lo que elegiste no cambia de valor. No es un cargo aparte, se descuenta del total."
       />
 
-      {/* La reserva primero y sola: es lo único obligatorio de este paso y lo
-          que hay que entender antes de mirar las cuotas. */}
-      <div className="mb-8 border border-ink p-6 sm:p-7">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <div>
-            <p className="font-rotulo text-[11.5px] tracking-[0.1em] text-gray-45 uppercase">
-              Reserva
-            </p>
-            <p className="mt-1 max-w-[42ch] text-[13.5px] leading-relaxed text-gray-70">
-              Se abona una sola vez para bloquear la fecha. Se descuenta del
-              total.
-            </p>
-          </div>
-          <p className="text-[clamp(1.6rem,5vw,2.2rem)] leading-none font-medium tabular-nums">
+      {/* El total partido en dos, que es de lo que trata el paso: esto se abona
+          ahora y aquello queda. Antes la reserva iba en una caja sola y el saldo
+          asomaba abajo como un rótulo suelto —"El saldo de $2.240.000"— que no
+          se leía como la otra mitad de nada. Juntos y separados por una línea
+          se entiende la cuenta sin explicarla. */}
+      <div className="mb-9 grid gap-px border border-ink bg-ink sm:grid-cols-2">
+        <div className="bg-paper p-6 sm:p-7">
+          <p className="font-rotulo text-[11px] tracking-[0.12em] text-gray-45 uppercase">
+            Reserva · ahora
+          </p>
+          <p className="mt-2 text-[clamp(1.6rem,4.4vw,2.1rem)] leading-none font-medium tabular-nums">
             {pesos(cierre.reserva)}
+          </p>
+          <p className="mt-2.5 max-w-[34ch] text-[13.5px] leading-relaxed text-gray-70">
+            Bloquea la fecha y congela el precio. No es un cargo aparte: se
+            descuenta del total.
+          </p>
+        </div>
+
+        <div className="bg-paper p-6 sm:p-7">
+          <p className="font-rotulo text-[11px] tracking-[0.12em] text-gray-45 uppercase">
+            Saldo · después
+          </p>
+          <p className="mt-2 text-[clamp(1.6rem,4.4vw,2.1rem)] leading-none font-medium tabular-nums">
+            {pesos(cierre.saldo)}
+          </p>
+          <p className="mt-2.5 max-w-[34ch] text-[13.5px] leading-relaxed text-gray-70">
+            Lo que queda del total una vez abonada la reserva. Elegí abajo en
+            cuántas veces.
           </p>
         </div>
       </div>
 
-      <p className="mb-4 font-rotulo text-[11.5px] tracking-[0.1em] text-gray-45 uppercase">
-        El saldo de {pesos(cierre.saldo)}
+      <p className="mb-3 font-rotulo text-[11.5px] tracking-[0.1em] text-gray-45 uppercase">
+        ¿En cuántas veces?
       </p>
 
-      <div className="grid gap-3" role="radiogroup" aria-label="Forma de pago">
-        {PLANES.map((p) => {
-          const elegido = p.id === plan;
-          const cuenta = cierreDe(cierre.total, p.id, parametros);
-          return (
-            <Opcion
-              key={p.id}
-              tipo="una"
-              elegida={elegido}
-              alElegir={() => alElegir(p.id)}
-              titulo={p.destacado ? `${p.nombre} — más elegido` : p.nombre}
-              texto={p.texto}
-              precio={
-                p.cuotas === 1 ? (
-                  pesos(cuenta.saldoFinanciado)
-                ) : (
-                  <>
-                    {p.cuotas} × {pesos(cuenta.porCuota)}
-                  </>
-                )
-              }
-            />
-          );
-        })}
+      {/* Filas y no tarjetas. Las tarjetas de este simulador son las del
+          catálogo: foto adelante, porque ahí lo que decide es ver el trabajo.
+          Un plan de pago no tiene nada que mostrar —son cuatro variantes del
+          mismo número— y lo que se hace con ellas es comparar montos, que se
+          compara mejor en una columna alineada que en cuatro cajas. */}
+      <div
+        className="grid gap-px border border-gray-20 bg-gray-20"
+        role="radiogroup"
+        aria-label="Forma de pago"
+      >
+        {PLANES.map((p) => (
+          <FilaPlan
+            key={p.id}
+            plan={p}
+            elegido={p.id === plan}
+            cuenta={cierreDe(cierre.total, p.id, parametros)}
+            alElegir={() => alElegir(p.id)}
+          />
+        ))}
       </div>
 
       {/* El cierre completo, sin tener que abrir el detalle del pie: es el
-          último paso antes de emitir y acá sí hay que ver todo junto. */}
+          último paso antes de emitir y acá sí hay que ver todo junto.
+
+          Repite la reserva y el saldo que están arriba, y no es duplicación:
+          arriba es cómo se parte el total antes de elegir plan, acá es cómo
+          queda después. Cuando el plan tiene descuento o interés los dos saldos
+          ni siquiera son el mismo número. */}
       <div className="mt-10 border-t border-ink pt-6">
+        <p className="mb-4 font-rotulo text-[11.5px] tracking-[0.1em] text-gray-45 uppercase">
+          Cómo queda
+        </p>
+
         <Detalle lineas={lineas} total={cierre.total} />
 
         <dl className="mt-5 space-y-2 text-[14px]">
@@ -1007,6 +1025,95 @@ function PasoPago({
 
       {!parametros.preciosConfirmados && <AvisoReferencia className="mt-8" />}
     </section>
+  );
+}
+
+/**
+ * Un plan de pago, como fila.
+ *
+ * El estado elegido invierte tinta y papel, que es el "esto está puesto" más
+ * fuerte que tiene la marca y el que corresponde acá: de los cuatro se elige
+ * uno, y con un fondo apenas más oscuro había que comparar cuatro grises para
+ * saber cuál. En el catálogo la marca es suave porque ahí se eligen varios y
+ * cuatro tarjetas invertidas serían una mancha.
+ *
+ * El monto va a la derecha y en cifras tabulares: las cuatro filas alinean sus
+ * números en la misma columna, y esa columna es la comparación que la persona
+ * vino a hacer.
+ *
+ * Debajo del monto, lo que el plan le hace al saldo. Estaba sólo en el resumen
+ * del pie y para el plan ya elegido, así que el descuento del pago único —que
+ * es el argumento del plan— no se veía hasta después de elegirlo.
+ */
+function FilaPlan({
+  plan,
+  elegido,
+  cuenta,
+  alElegir,
+}: {
+  plan: (typeof PLANES)[number];
+  elegido: boolean;
+  cuenta: ReturnType<typeof cierreDe>;
+  alElegir: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={elegido}
+      onClick={alElegir}
+      className={`flex w-full cursor-pointer items-center gap-4 p-4 text-left transition-colors sm:px-5 ${
+        elegido ? "bg-ink text-paper" : "bg-paper hover:bg-paper-dim"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+          elegido ? "border-paper bg-paper" : "border-gray-45 bg-paper"
+        }`}
+      >
+        {elegido && <span className="h-2 w-2 rounded-full bg-ink" />}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <span className="text-[15px]">{plan.nombre}</span>
+          {plan.destacado && (
+            <span
+              className={`border px-1.5 py-px font-rotulo text-[9.5px] tracking-[0.1em] uppercase ${
+                elegido ? "border-paper/50 text-paper/80" : "border-gray-45 text-gray-45"
+              }`}
+            >
+              Más elegido
+            </span>
+          )}
+        </span>
+        <span
+          className={`mt-1 block text-[13px] leading-snug ${
+            elegido ? "text-paper/75" : "text-gray-70"
+          }`}
+        >
+          {plan.texto}
+        </span>
+      </span>
+
+      <span className="shrink-0 text-right">
+        <span className="block text-[15px] tabular-nums whitespace-nowrap">
+          {plan.cuotas === 1
+            ? pesos(cuenta.saldoFinanciado)
+            : `${plan.cuotas} × ${pesos(cuenta.porCuota)}`}
+        </span>
+        {cuenta.ajuste !== 0 && (
+          <span
+            className={`mt-0.5 block text-[12px] tabular-nums whitespace-nowrap ${
+              elegido ? "text-paper/70" : "text-gray-45"
+            }`}
+          >
+            {cuenta.ajuste < 0 ? "−" : "+"} {pesos(Math.abs(cuenta.ajuste))}
+          </span>
+        )}
+      </span>
+    </button>
   );
 }
 
