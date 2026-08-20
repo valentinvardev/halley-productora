@@ -33,13 +33,31 @@ export function Logotipo({
   variante = "palabra",
   className = "",
   prioridad = false,
+  ansioso = false,
 }: {
   variante?: keyof typeof PIEZAS;
   /** Va al contenedor: definí el alto y el ancho sale solo. */
   className?: string;
   prioridad?: boolean;
+  /**
+   * Bajarlo aunque no se vea.
+   *
+   * Hace falta en un solo lugar y es el membrete de la hoja del presupuesto:
+   * vive dentro de `.solo-imprimir`, que en pantalla es `display: none`. Una
+   * imagen diferida adentro de algo apagado no se baja nunca —el navegador
+   * espera a que se acerque a la pantalla y eso no pasa jamás—, así que al
+   * imprimir el membrete salía sin logo. No alcanza con mostrarla en el momento
+   * de imprimir: para entonces ya es tarde, el diálogo dibuja lo que hay.
+   *
+   * Va como bandera aparte y no como `prioridad` porque no es urgente: no tiene
+   * que adelantarse a nada ni pedir un `preload` en el `head`, sólo tiene que
+   * estar antes de que alguien apriete imprimir.
+   */
+  ansioso?: boolean;
 }) {
   const pieza = PIEZAS[variante];
+  // `priority` ya implica ansioso, y declarar los dos hace ruido en consola.
+  const carga = !prioridad && ansioso ? ("eager" as const) : undefined;
 
   return (
     <span className={`relative block ${className}`}>
@@ -50,6 +68,7 @@ export function Logotipo({
         width={pieza.ancho}
         height={pieza.alto}
         priority={prioridad}
+        loading={carga}
         className="logo-claro h-full w-auto"
       />
       <Image
@@ -59,6 +78,7 @@ export function Logotipo({
         width={pieza.ancho}
         height={pieza.alto}
         priority={prioridad}
+        loading={carga}
         className="logo-oscuro absolute inset-0 h-full w-auto"
       />
     </span>

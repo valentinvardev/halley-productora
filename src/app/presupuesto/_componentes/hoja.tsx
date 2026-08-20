@@ -69,7 +69,10 @@ export function Hoja({
     <>
       {/* --------------------------------------------------------- membrete */}
       <div className="solo-imprimir membrete">
-        <Logotipo variante="isologo" className="h-[17mm]" />
+        {/* `ansioso` porque este bloque está apagado en pantalla: sin eso la
+            imagen queda esperando a acercarse a un cuadro al que nunca va a
+            llegar, y el PDF sale con el membrete sin logo. */}
+        <Logotipo variante="isologo" className="h-[17mm]" ansioso />
 
         <div className="membrete-datos">
           <p className="font-rotulo text-[10px] tracking-[0.24em] text-gray-45 uppercase">
