@@ -645,8 +645,16 @@ function PasoParte({
 
       {antes}
 
+      {/* Dos desde `sm` y tres desde `lg`. La caja del wizard corta en 1140, así
+          que en una pantalla de escritorio la tercera columna no achica las
+          tarjetas hasta lo ilegible: quedan de 345 píxeles contra los 524 de
+          dos, que para una foto apaisada y tres renglones alcanza de sobra. Y
+          es lo que la vista vino a hacer: cuantas más entren de una, mejor se
+          comparan. */}
       <div
-        className={grilla ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
+        className={
+          grilla ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-3"
+        }
         role={parte.multiple ? "group" : "radiogroup"}
         aria-label={parte.titulo}
       >
@@ -680,9 +688,10 @@ function PasoParte({
                   <p className="mb-3 font-rotulo text-[11px] tracking-[0.1em] text-gray-45 uppercase">
                     ¿Con qué lo cubrimos?
                   </p>
-                  {/* En grilla la tarjeta mide la mitad, así que las casillas
-                      van una debajo de otra: dos columnas ahí dejan el nombre
-                      partido en dos renglones. */}
+                  {/* En grilla la tarjeta es media pantalla, o un tercio en
+                      escritorio, así que las casillas van una debajo de otra:
+                      dos columnas ahí dejan el nombre partido en dos
+                      renglones. */}
                   <div
                     className={grilla ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}
                     role="group"
@@ -793,7 +802,9 @@ function BloqueLocaciones({
           )}
 
           <div
-            className={grilla ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
+            className={
+              grilla ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-3"
+            }
             role="radiogroup"
             aria-label={`Dónde hacemos ${item.nombre}`}
           >

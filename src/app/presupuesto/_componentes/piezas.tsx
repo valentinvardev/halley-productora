@@ -91,9 +91,10 @@ export type Vista = "lista" | "grilla";
  * El interruptor entre las dos vistas.
  *
  * La lista es para leer: los textos completos, uno tras otro, y alcanza para
- * decidir cuando uno ya sabe qué quiere. La grilla es para comparar: cuatro
- * fotos a la vez, que es lo que sirve cuando la decisión no está tomada y lo
- * que la empuja no es el texto sino ver el trabajo.
+ * decidir cuando uno ya sabe qué quiere. La grilla es para comparar: varias
+ * fotos a la vez —dos en el teléfono, tres en escritorio—, que es lo que sirve
+ * cuando la decisión no está tomada y lo que la empuja no es el texto sino ver
+ * el trabajo.
  *
  * Van los dos y no uno solo porque las dos preguntas son reales, y cuál es la
  * de cada persona no se sabe de antemano.
