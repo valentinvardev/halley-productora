@@ -24,6 +24,7 @@ import {
 import {
   EVENTOS,
   EVENTOS_ORDEN,
+  muestraMonto,
   planDe,
   type Evento,
 } from "~/app/_datos/presupuesto";
@@ -298,9 +299,11 @@ function Fila({
                     <span className="text-gray-45"> — {l.detalle}</span>
                   )}
                 </span>
-                <span className="font-display tabular-nums">
-                  {pesos(l.precio)}
-                </span>
+                {muestraMonto(l) && (
+                  <span className="font-display tabular-nums">
+                    {pesos(l.precio)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

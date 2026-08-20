@@ -20,7 +20,12 @@ import {
   Etiqueta,
   Vacio,
 } from "~/app/_components/ui";
-import { EVENTOS, EVENTOS_ORDEN, type Evento } from "~/app/_datos/presupuesto";
+import {
+  EVENTOS,
+  EVENTOS_ORDEN,
+  desdeDe,
+  type Evento,
+} from "~/app/_datos/presupuesto";
 import type { TipoOpcion } from "~/server/catalogo";
 import { pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -50,7 +55,7 @@ const ROTULO_PARTE = {
   momentos: {
     titulo: "Parte 1 · Momentos",
     ayuda:
-      "Qué partes del día se cubren y con qué. El precio del momento es estar ahí; lo que se entrega lo cobran sus coberturas.",
+      "Qué partes del día se cubren y con qué. El momento no cobra nada por sí solo: el precio sale entero de sus coberturas, así que dejá el precio en cero y cargá los montos en foto y video.",
   },
   complementos: {
     titulo: "Parte 2 · Complementos",
@@ -372,8 +377,14 @@ function Fila({
         )}
       </button>
 
+      {/* En un momento el precio propio es cero —lo ponen sus coberturas—, así
+          que mostrarlo pelado sería una columna de ceros. Se muestra el piso:
+          lo que sale elegirlo con la cobertura más barata, que es el número que
+          la web anuncia en la tarjeta. */}
       <span className="shrink-0 text-[14px] tabular-nums">
-        {pesos(item.precio)}
+        {item.coberturas.length > 0
+          ? `Desde ${pesos(desdeDe(item))}`
+          : pesos(item.precio)}
       </span>
 
       <div className="flex shrink-0 items-center gap-4">

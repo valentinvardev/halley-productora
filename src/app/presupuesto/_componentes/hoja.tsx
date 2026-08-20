@@ -4,6 +4,7 @@ import {
   EVENTOS,
   HALLEY_BOX,
   cierreDe,
+  muestraMonto,
   planDe,
   progresoBox,
   type Evento,
@@ -133,13 +134,15 @@ export function Hoja({
                     </span>
                   )}
                 </span>
-                <span
-                  className={`tabular-nums whitespace-nowrap ${
-                    l.bajo ? "text-[13px]" : "text-[14px]"
-                  }`}
-                >
-                  {pesos(l.precio)}
-                </span>
+                {muestraMonto(l) && (
+                  <span
+                    className={`tabular-nums whitespace-nowrap ${
+                      l.bajo ? "text-[13px]" : "text-[14px]"
+                    }`}
+                  >
+                    {pesos(l.precio)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

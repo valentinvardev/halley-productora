@@ -145,12 +145,23 @@ export type Item = {
   nombre: string;
   texto: string;
   /**
-   * El precio de estar ahí, sin lo que se entrega.
+   * Lo que cuesta el ítem por sí mismo, antes de lo que le cuelgue.
    *
-   * Un momento cuesta algo por sí solo —el equipo se traslada, se queda esas
-   * horas— y encima de eso se suma lo que se registra. Separarlos es lo que
-   * permite que cubrir el civil con foto valga distinto que cubrir la fiesta
-   * con foto, que es como se cobra de verdad.
+   * En los momentos es cero y el precio lo ponen enteramente sus coberturas.
+   *
+   * Hubo un tiempo en que cobraban una base aparte —la idea era que estar ahí
+   * vale algo aunque no se entregue nada— y encima se sumaba lo que se
+   * registra. En la pantalla eso se leía como un precio cobrado dos veces: la
+   * tarjeta decía "Desde $480.000" y abajo foto y video sumaban de nuevo. Y la
+   * base tenía además un problema propio: no se puede contratar un momento sin
+   * al menos una cobertura, así que era un número que nadie podía pagar.
+   *
+   * Ahora cubrir la fiesta con foto vale lo que dice fotografía, y punto. Que
+   * el civil y la fiesta valgan distinto ya lo resuelven sus coberturas, que
+   * tienen precio propio en cada momento.
+   *
+   * En los complementos sigue siendo el precio del complemento: no cuelga nada
+   * de ellos.
    */
   precio: number;
   /** La foto, ya resuelta a una URL servible. */
@@ -281,7 +292,7 @@ const MOMENTOS_QUINCE: Item[] = [
     nombre: "Book Pre 15",
     texto:
       "La sesión previa, armada junto con ella. Se elige dónde se hace y de ahí sale buena parte del resultado.",
-    precio: 260_000,
+    precio: 0,
     locaciones: LOCACIONES,
     coberturas: coberturas(230_000, 280_000),
   },
@@ -290,7 +301,7 @@ const MOMENTOS_QUINCE: Item[] = [
     nombre: "Preparativos previos",
     texto:
       "El maquillaje, el vestido, la casa antes de salir. Es donde están los nervios y la familia junta.",
-    precio: 170_000,
+    precio: 0,
     coberturas: coberturas(160_000, 210_000),
   },
   {
@@ -298,7 +309,7 @@ const MOMENTOS_QUINCE: Item[] = [
     nombre: "Cobertura de la fiesta",
     texto:
       "La entrada, el vals, el brindis y el baile, de punta a punta y sin cortes.",
-    precio: 450_000,
+    precio: 0,
     coberturas: coberturas(400_000, 520_000),
   },
 ];
@@ -317,7 +328,7 @@ const MOMENTOS_BODA: Item[] = [
     nombre: "Sesión pre boda",
     texto:
       "La sesión de los dos antes del día. Se elige dónde se hace y de ahí sale buena parte del resultado.",
-    precio: 280_000,
+    precio: 0,
     locaciones: LOCACIONES,
     coberturas: coberturas(240_000, 300_000),
   },
@@ -326,14 +337,14 @@ const MOMENTOS_BODA: Item[] = [
     nombre: "Preparativos de los novios",
     texto:
       "Las dos casas en simultáneo: mientras una cámara está con ella, la otra está con él.",
-    precio: 190_000,
+    precio: 0,
     coberturas: coberturas(190_000, 250_000),
   },
   {
     id: "civil",
     nombre: "Civil",
     texto: "El registro del acto y de la salida, con los testigos y la familia.",
-    precio: 140_000,
+    precio: 0,
     coberturas: coberturas(140_000, 180_000),
   },
   {
@@ -341,7 +352,7 @@ const MOMENTOS_BODA: Item[] = [
     nombre: "Ceremonia",
     texto:
       "La entrada, los votos y la salida. Cobertura continua, sin cortes por cambio de lugar.",
-    precio: 220_000,
+    precio: 0,
     coberturas: coberturas(220_000, 290_000),
   },
   {
@@ -349,7 +360,7 @@ const MOMENTOS_BODA: Item[] = [
     nombre: "Cobertura de la fiesta",
     texto:
       "Desde el brindis hasta que se apaga la música. Nadie se queda afuera por irse temprano.",
-    precio: 480_000,
+    precio: 0,
     coberturas: coberturas(430_000, 560_000),
   },
 ];
@@ -546,6 +557,50 @@ export function lineasDe(partes: Parte[], sel: Seleccion): Linea[] {
 
 export function totalDe(lineas: Linea[]) {
   return lineas.reduce((suma, l) => suma + l.precio, 0);
+}
+
+/**
+ * Lo mínimo que puede salir un ítem: el "desde" de su tarjeta.
+ *
+ * No es su `precio` a secas. Un momento con coberturas no se puede contratar
+ * sin al menos una —lo exige `sinCobertura`, y lo hacen cumplir el wizard y el
+ * servidor—, así que el piso incluye la más barata. Mostrar el precio pelado
+ * era anunciar un número que nadie podía pagar: en la fiesta decía la mitad de
+ * lo que costaba elegirla.
+ *
+ * Con las locaciones pasa lo mismo al revés: hay que elegir una, pero la más
+ * barata puede no sumar nada, y entonces no mueve el piso. Se toma el mínimo y
+ * la cuenta sale sola en los dos casos.
+ *
+ * Un complemento no tiene nada colgando, así que su piso es su precio.
+ */
+/**
+ * Si esta línea tiene que mostrar su monto.
+ *
+ * Un momento no cobra nada por sí solo: lo que se paga son sus coberturas, que
+ * van como líneas propias debajo. Escribirle "$0" al lado sería contestar una
+ * pregunta que nadie hizo y encima daría la impresión de que algo salió mal.
+ * Se calla el monto y las líneas de abajo hablan.
+ *
+ * Sólo aplica a las líneas madre. Una cobertura en cero sí muestra su cero: ahí
+ * el número informa —esa cobertura no suma— en vez de sobrar.
+ *
+ * Cuando el momento trae una locación con extra, la línea deja de estar en cero
+ * y el monto vuelve solo. Es lo correcto: eso sí se cobra en la línea.
+ */
+export function muestraMonto(linea: Linea) {
+  return linea.precio !== 0 || linea.bajo !== undefined;
+}
+
+export function desdeDe(item: {
+  precio: number;
+  locaciones?: { extra: number }[];
+  coberturas?: { extra: number }[];
+}) {
+  const minimo = (opciones: { extra: number }[] | undefined) =>
+    opciones?.length ? Math.min(...opciones.map((o) => o.extra)) : 0;
+
+  return item.precio + minimo(item.locaciones) + minimo(item.coberturas);
 }
 
 /**

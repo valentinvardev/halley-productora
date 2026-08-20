@@ -263,6 +263,11 @@ async function sembrar() {
   if (marca) await mudarCoberturas();
   else await sembrarDeCero();
 
+  // Va después de las dos ramas y no adentro de una: la base recién sembrada ya
+  // viene en cero desde el catálogo inicial, y la vieja hay que bajarla. Correr
+  // siempre y marcarse aparte es lo que hace que las dos terminen igual.
+  await quitarBaseDeMomentos();
+
   // Que la marca ya exista no es un error: quiere decir que otro proceso
   // terminó de sembrar mientras éste trabajaba, y el resultado es el mismo.
   await db.ajuste
@@ -406,6 +411,59 @@ async function mudarCoberturas() {
     .upsert({
       where: { clave: MUDADO },
       create: { clave: MUDADO, valor: new Date().toISOString() },
+      update: {},
+    })
+    .catch(() => undefined);
+}
+
+/**
+ * Los momentos dejan de cobrar una base: el precio lo ponen sus coberturas.
+ *
+ * Un momento cobraba dos cosas —estar ahí, y lo que se entrega— y en pantalla
+ * eso se leía como un precio cobrado dos veces: la tarjeta anunciaba "Desde
+ * $480.000" y abajo foto y video volvían a sumar. La base tenía además un
+ * defecto propio: no se puede contratar un momento sin al menos una cobertura,
+ * así que ese "desde" era un número que nadie podía pagar nunca.
+ *
+ * Ahora cubrir la fiesta con fotografía vale lo que dice fotografía. Los
+ * presupuestos bajan, y eso es la decisión, no un efecto: lo que antes se
+ * cobraba de base deja de cobrarse.
+ *
+ * Sólo se tocan los momentos que tienen con qué cobrar. Uno sin coberturas
+ * quedaría gratis, y lo que se pidió es que el precio lo pongan las coberturas,
+ * no que desaparezca.
+ *
+ * Los presupuestos ya emitidos no se tocan: guardan sus líneas con el precio
+ * adentro y siguen diciendo lo que decían el día que salieron.
+ */
+const SIN_BASE = "presupuestoMomentosSinBase";
+
+async function quitarBaseDeMomentos() {
+  const hecho = await db.ajuste.findUnique({ where: { clave: SIN_BASE } });
+  if (hecho) return;
+
+  // Se buscan los ids primero en vez de filtrar por la relación adentro del
+  // `updateMany`: es la forma que no depende de qué filtros de relación acepta
+  // el `updateMany` de turno, y son quince filas.
+  const conCobertura = await db.itemPresupuesto.findMany({
+    where: {
+      parte: "momentos",
+      opciones: { some: { tipo: "cobertura" } },
+    },
+    select: { id: true },
+  });
+
+  if (conCobertura.length > 0) {
+    await db.itemPresupuesto.updateMany({
+      where: { id: { in: conCobertura.map((m) => m.id) } },
+      data: { precio: 0 },
+    });
+  }
+
+  await db.ajuste
+    .upsert({
+      where: { clave: SIN_BASE },
+      create: { clave: SIN_BASE, valor: new Date().toISOString() },
       update: {},
     })
     .catch(() => undefined);

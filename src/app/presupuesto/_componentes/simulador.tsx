@@ -26,6 +26,7 @@ import {
   SELECCION_VACIA,
   cierreDe,
   depurar,
+  desdeDe,
   lineasDe,
   sinCobertura,
   totalDe,
@@ -651,9 +652,14 @@ function PasoParte({
               titulo={item.nombre}
               texto={item.texto}
               imagen={item.imagen}
+              // "Desde" cuando hay algo que elegir abajo que puede subirlo, y
+              // el número es el piso real —con la cobertura más barata ya
+              // adentro—, no el precio pelado del ítem. En los momentos ese
+              // precio pelado hoy es cero, así que mostrarlo sería anunciar que
+              // la fiesta sale nada.
               precio={
                 item.locaciones || item.coberturas
-                  ? `Desde ${pesos(item.precio)}`
+                  ? `Desde ${pesos(desdeDe(item))}`
                   : pesos(item.precio)
               }
             >

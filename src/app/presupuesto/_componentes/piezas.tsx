@@ -11,6 +11,7 @@ import {
 } from "~/app/_components/iconos";
 import {
   HALLEY_BOX,
+  muestraMonto,
   progresoBox,
   type Linea,
   type Parametros,
@@ -297,9 +298,11 @@ export function Detalle({
                 </span>
               )}
             </span>
-            <span className="text-[14px] tabular-nums whitespace-nowrap">
-              {pesos(l.precio)}
-            </span>
+            {muestraMonto(l) && (
+              <span className="text-[14px] tabular-nums whitespace-nowrap">
+                {pesos(l.precio)}
+              </span>
+            )}
           </li>
         ))}
       </ul>
