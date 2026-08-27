@@ -69,10 +69,10 @@ export function galeriaVigente(galeria: { venceEl: Date | null }) {
 async function alumnoAlDia(alumnoId: string) {
   const alumno = await db.alumno.findUnique({
     where: { id: alumnoId },
-    include: { grupo: { include: { cuotas: true } }, pagos: true },
+    include: { grupo: { include: { cuotas: true } }, pagos: true, ajustesCuota: true },
   });
   if (!alumno) return null;
-  const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
   return { grupoId: alumno.grupoId, alDia: plan.deuda <= 0 };
 }
 

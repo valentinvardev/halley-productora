@@ -28,6 +28,7 @@ type AlumnoParaPago = Prisma.AlumnoGetPayload<{
     grupo: { include: { cuotas: true } };
     tutores: { include: { cuenta: true } };
     pagos: true;
+    ajustesCuota: true;
   };
 }>;
 
@@ -73,7 +74,7 @@ async function registrarPagoConfirmado(
 
   // La transferencia se imputa a la cuota impaga más vieja: es la regla que
   // espera cualquiera que deba varias cuotas.
-  const antes = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  const antes = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
   const cuotaDestino = antes.proxima;
 
   const pago = await db.pago.create({
@@ -86,7 +87,11 @@ async function registrarPagoConfirmado(
     },
   });
 
-  const despues = imputarPagos(alumno.grupo.cuotas, antes.pagado + tx.monto);
+  const despues = imputarPagos(
+    alumno.grupo.cuotas,
+    alumno.ajustesCuota,
+    antes.pagado + tx.monto,
+  );
 
   // Sólo confirmamos si la transferencia efectivamente saldó la cuota; un pago
   // parcial queda registrado y la cuota sigue figurando impaga.
@@ -138,6 +143,7 @@ const INCLUDE_ALUMNO = {
   grupo: { include: { cuotas: true } },
   tutores: { include: { cuenta: true } },
   pagos: true,
+  ajustesCuota: true,
 } satisfies Prisma.AlumnoInclude;
 
 /**

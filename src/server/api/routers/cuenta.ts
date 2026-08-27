@@ -12,6 +12,7 @@ import {
   imputarPagos,
   linkAlumno,
   linkRegistroAlumno,
+  soloCuotas,
   sumarPagos,
 } from "~/server/dominio";
 
@@ -119,12 +120,13 @@ export const cuentaRouter = createTRPCRouter({
         },
         include: {
           grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } },
+          ajustesCuota: true,
           pagos: true,
         },
       });
       if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+      const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
 
       const hasta = input.hastaCuotaId
         ? plan.cuotas.find((c) => c.id === input.hastaCuotaId)
@@ -165,9 +167,16 @@ export const cuentaRouter = createTRPCRouter({
         monto,
         /** Con tolerancia de un centavo, igual que la imputación. */
         listo: monto <= 0.01,
-        /** Qué cuotas cubre esta transferencia. */
-        numeros: aSaldar.map((c) => c.numero),
-        totalCuotas: plan.cuotas.length,
+        /**
+         * Qué cuotas cubre esta transferencia.
+         *
+         * La seña queda afuera: no tiene número que mostrar. Si la transferencia
+         * la incluye, el monto ya la contempla y el detalle del plan la muestra
+         * con su nombre — lo que no se puede es anunciarla como "cuota 0".
+         */
+        numeros: soloCuotas(aSaldar).map((c) => c.numero),
+        /** Cuántas cuotas tiene el plan. La seña no es una. */
+        totalCuotas: soloCuotas(plan.cuotas).length,
         venceEl: primera?.venceEl ?? null,
         vencida: aSaldar.some((c) => c.estado === "VENCIDA"),
         plan: {
@@ -220,11 +229,12 @@ export const cuentaRouter = createTRPCRouter({
           orderBy: { creadoEn: "asc" },
         },
         pagos: { orderBy: { recibidoEn: "desc" } },
+        ajustesCuota: true,
       },
     });
 
     return alumnos.map((a) => {
-      const plan = imputarPagos(a.grupo.cuotas, sumarPagos(a.pagos));
+      const plan = imputarPagos(a.grupo.cuotas, a.ajustesCuota, sumarPagos(a.pagos));
 
       return {
         id: a.id,

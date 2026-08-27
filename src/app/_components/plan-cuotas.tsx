@@ -3,6 +3,7 @@ import { Marca } from "./marca";
 
 export type CuotaVista = {
   id: string;
+  tipo: "SENA" | "CUOTA";
   numero: number;
   monto: number;
   venceEl: Date;
@@ -11,6 +12,34 @@ export type CuotaVista = {
   saldo: number;
   estado: "PENDIENTE" | "PAGADA" | "VENCIDA";
 };
+
+/**
+ * Las cuotas propiamente dichas, sin la seña.
+ *
+ * La seña viaja en la misma lista que las cuotas porque es una instancia de
+ * pago más, pero no es una cuota: no se numera con ellas ni entra en el "3 de
+ * 6". Todo conteo que se le muestre a alguien tiene que pasar por acá y nunca
+ * por el largo del plan entero.
+ *
+ * Es el espejo de la función del mismo nombre del dominio. Se repite en vez de
+ * importarse porque aquélla vive del lado del servidor y esto lo usan pantallas
+ * del navegador; la regla es una comparación, no un cálculo que pueda divergir.
+ */
+export function soloCuotas<T extends { tipo: "SENA" | "CUOTA" }>(plan: T[]) {
+  return plan.filter((c) => c.tipo === "CUOTA");
+}
+
+/**
+ * El rótulo de la izquierda.
+ *
+ * La seña se nombra y no se numera: su número es cero y sólo existe para que se
+ * cobre antes que todo. "CUOTA 00" sería un error a la vista.
+ */
+function rotuloDe(cuota: CuotaVista) {
+  return cuota.tipo === "SENA"
+    ? "SEÑA"
+    : `CUOTA ${String(cuota.numero).padStart(2, "0")}`;
+}
 
 /** Una marca de lápiz graso por estado. Compartida con el modal de cuotas. */
 export const MARCA_ESTADO = {
@@ -67,7 +96,7 @@ export function PlanCuotas({
             </span>
 
             <span className="w-14 shrink-0 font-rotulo text-[12px] tracking-[0.06em] text-gray-45">
-              CUOTA {String(cuota.numero).padStart(2, "0")}
+              {rotuloDe(cuota)}
             </span>
 
             <span className="flex-1 font-mono text-[13px]">

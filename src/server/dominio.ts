@@ -13,15 +13,33 @@ export const MAX_RESPONSABLES = 3;
 
 export type EstadoCuota = "PENDIENTE" | "PAGADA" | "VENCIDA";
 
+/** Seña o cuota. Es el mismo enum que la base; se repite acá para no arrastrar
+ * el cliente de Prisma hasta el navegador, que también usa estos tipos. */
+export type TipoCobro = "SENA" | "CUOTA";
+
 type CuotaPlan = {
   id: string;
+  tipo: TipoCobro;
   numero: number;
   monto: unknown;
   venceEl: Date;
 };
 
+/**
+ * Lo que un alumno paga distinto del resto del grupo, para una instancia.
+ *
+ * Cada campo en nulo quiere decir "lo que dice el grupo", así que ajustarle el
+ * monto a alguien no le congela la fecha.
+ */
+export type AjusteCuota = {
+  cuotaId: string;
+  monto: unknown | null;
+  venceEl: Date | null;
+};
+
 export type CuotaImputada = {
   id: string;
+  tipo: TipoCobro;
   numero: number;
   /** El valor original de la cuota, sin recargo. */
   monto: number;
@@ -33,6 +51,45 @@ export type CuotaImputada = {
   saldo: number;
   estado: EstadoCuota;
 };
+
+/**
+ * El plan tal como le toca a este alumno.
+ *
+ * El plan vive en el grupo, pero los precios se negocian por familia, así que
+ * encima del plan del grupo van los ajustes de este alumno. Sin ajustes devuelve
+ * la misma lista sin copiar nada: el caso de "paga lo que pagan todos" no tiene
+ * por qué costar.
+ *
+ * No se exporta para que la use cualquiera: la usa `imputarPagos`, y ése es el
+ * punto. Si resolver los ajustes fuera un paso aparte que hay que acordarse de
+ * hacer, el día que alguien lo olvide el panel mostraría un precio y el cobro
+ * otro — y eso no falla ruidosamente, falla en silencio y por plata.
+ */
+function planDelAlumno(cuotas: CuotaPlan[], ajustes: AjusteCuota[]): CuotaPlan[] {
+  if (ajustes.length === 0) return cuotas;
+
+  const porCuota = new Map(ajustes.map((a) => [a.cuotaId, a]));
+  return cuotas.map((c) => {
+    const ajuste = porCuota.get(c.id);
+    if (!ajuste) return c;
+    return {
+      ...c,
+      monto: ajuste.monto ?? c.monto,
+      venceEl: ajuste.venceEl ?? c.venceEl,
+    };
+  });
+}
+
+/**
+ * Las cuotas propiamente dichas, sin la seña.
+ *
+ * Es lo que se cuenta y lo que se numera en pantalla. "Pagaste las 6 cuotas" o
+ * "la cuota 3 de 6" salen de acá y nunca del largo del plan entero, porque la
+ * seña está en la misma lista y no es una cuota.
+ */
+export function soloCuotas<T extends { tipo: TipoCobro }>(plan: T[]) {
+  return plan.filter((c) => c.tipo === "CUOTA");
+}
 
 /**
  * El día del mes en que vence toda cuota: el 20. Lo usa `grupo.crear` al armar
@@ -97,12 +154,25 @@ export function recargoPorMora(venceEl: Date, ahora = new Date()) {
  * El recargo por mora se suma al monto exigible de cada cuota impaga, así que
  * también sale derivado: no hay un campo "interés" que actualizar ni que se
  * pueda desincronizar. Se cobra oldest-first junto con el capital.
+ *
+ * Los ajustes del alumno son un parámetro obligatorio y no un paso previo
+ * opcional. Es a propósito: son trece los lugares que imputan, casi todos
+ * pasaban el plan del grupo crudo, y con los precios negociados por familia un
+ * lugar que se olvide de resolverlos no falla en un caso raro sino en la
+ * mayoría. Pedirlos acá hace que el compilador los encuentre a todos. Quien de
+ * verdad no tenga ajustes que aplicar pasa una lista vacía y lo dice.
  */
-export function imputarPagos(cuotas: CuotaPlan[], totalPagado: number) {
+export function imputarPagos(
+  cuotasDelGrupo: CuotaPlan[],
+  ajustes: AjusteCuota[],
+  totalPagado: number,
+) {
   const ahora = new Date();
   let resto = totalPagado;
 
-  const imputadas: CuotaImputada[] = [...cuotas]
+  const imputadas: CuotaImputada[] = [...planDelAlumno(cuotasDelGrupo, ajustes)]
+    // La seña es número 0, así que ordenar por número la deja primera sola: se
+    // cobra antes que cualquier cuota, que es lo que es.
     .sort((a, b) => a.numero - b.numero)
     .map((cuota) => {
       const monto = Number(cuota.monto);
@@ -130,6 +200,7 @@ export function imputarPagos(cuotas: CuotaPlan[], totalPagado: number) {
 
       return {
         id: cuota.id,
+        tipo: cuota.tipo,
         numero: cuota.numero,
         monto,
         venceEl: cuota.venceEl,

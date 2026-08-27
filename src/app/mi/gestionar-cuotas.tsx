@@ -8,6 +8,7 @@ import {
   FONDO_ESTADO,
   MARCA_ESTADO,
   PlanCuotas,
+  soloCuotas,
   type CuotaVista,
 } from "~/app/_components/plan-cuotas";
 import { botonSolido } from "~/app/_components/ui";
@@ -67,7 +68,7 @@ export function GestionarCuotas({
                 Plan saldado
               </div>
               <p className="mt-1 text-[13px] text-gray-70">
-                Las {cuotas.length} cuotas están pagas.
+                Las {soloCuotas(cuotas).length} cuotas están pagas.
               </p>
             </div>
           </div>

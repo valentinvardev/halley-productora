@@ -36,7 +36,7 @@ async function crearPreferenciaPago(
 ) {
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
-    include: { grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } }, pagos: true },
+    include: { grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } }, pagos: true, ajustesCuota: true },
   });
 
   const { proveedor, cuenta } = await proveedorDeGrupo(alumno.grupoId);
@@ -47,7 +47,7 @@ async function crearPreferenciaPago(
     });
   }
 
-  const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
   // `soloProxima` recorta hasta la primera impaga: es el monto que ve la familia
   // en el link. Si no, respeta el `hastaCuotaId` del panel (o el plan entero).
   const hastaId = opciones.soloProxima
@@ -104,7 +104,7 @@ async function crearPreferenciaPago(
 async function simularTransferencia(alumnoId: string, montoManual?: number) {
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
-    include: { grupo: { include: { cuotas: true } }, pagos: true },
+    include: { grupo: { include: { cuotas: true } }, pagos: true, ajustesCuota: true },
   });
 
   // Sin esto, cualquiera con el token de una familia se da por pagado sin
@@ -114,7 +114,7 @@ async function simularTransferencia(alumnoId: string, montoManual?: number) {
     throw new TRPCError({ code: "NOT_FOUND", message: "No disponible." });
   }
 
-  const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+  const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
   const monto = montoManual ?? plan.proxima?.saldo;
 
   if (!monto) {
@@ -190,7 +190,7 @@ export const pagoRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const alumnos = await ctx.db.alumno.findMany({
         where: { id: { in: input.alumnoIds } },
-        include: { pagos: true, grupo: { include: { cuotas: true } } },
+        include: { pagos: true, ajustesCuota: true, grupo: { include: { cuotas: true } } },
       });
       if (alumnos.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
 
@@ -200,6 +200,7 @@ export const pagoRouter = createTRPCRouter({
       for (const alumno of alumnos) {
         const plan = imputarPagos(
           alumno.grupo.cuotas,
+          alumno.ajustesCuota,
           sumarPagos(alumno.pagos),
         );
 

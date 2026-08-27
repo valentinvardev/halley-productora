@@ -107,6 +107,7 @@ export async function invitarFamilia(
     where: { id: alumnoId },
     include: {
       grupo: { include: { cuotas: true } },
+      ajustesCuota: true,
       tutores: { include: { cuenta: true } },
       pagos: true,
     },
@@ -117,6 +118,7 @@ export async function invitarFamilia(
 
   const plan = imputarPagos(
     alumno.grupo.cuotas,
+    alumno.ajustesCuota,
     alumno.pagos.reduce((t, p) => t + Number(p.monto), 0),
   );
 

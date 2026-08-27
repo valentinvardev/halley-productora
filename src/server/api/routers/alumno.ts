@@ -98,13 +98,14 @@ export const alumnoRouter = createTRPCRouter({
         where: { id: input.alumnoId },
         include: {
           grupo: { include: { cuotas: true } },
+          ajustesCuota: true,
           tutores: { include: { cuenta: true } },
           pagos: true,
         },
       });
 
       const emails = destinatarios(alumno);
-      const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+      const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
       if (emails.length === 0 || !plan.proxima) return { enviado: false as const };
 
       // El recordatorio va a todos los responsables del alumno.
@@ -130,6 +131,7 @@ export const alumnoRouter = createTRPCRouter({
         where: { grupoId: input.grupoId },
         include: {
           grupo: { include: { cuotas: true } },
+          ajustesCuota: true,
           tutores: { include: { cuenta: true } },
           pagos: true,
         },
@@ -137,7 +139,7 @@ export const alumnoRouter = createTRPCRouter({
 
       let enviados = 0;
       for (const alumno of alumnos) {
-        const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+        const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
         if (!plan.proxima) continue;
 
         // A todos los responsables del alumno, no a uno solo.

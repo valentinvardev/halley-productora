@@ -35,12 +35,13 @@ export const publicoRouter = createTRPCRouter({
             },
           },
           pagos: { orderBy: { recibidoEn: "desc" } },
+          ajustesCuota: true,
           _count: { select: { tutores: true } },
         },
       });
       if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const plan = imputarPagos(alumno.grupo.cuotas, sumarPagos(alumno.pagos));
+      const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
 
       const { proveedor } = await proveedorDeGrupo(alumno.grupoId);
 

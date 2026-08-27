@@ -7,6 +7,9 @@ import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
   DIA_VENCIMIENTO,
   imputarPagos,
+  soloCuotas,
+  type AjusteCuota,
+  type TipoCobro,
   linkAlumno,
   linkGrupo,
   linkRegistroAlumno,
@@ -15,10 +18,24 @@ import {
 import { simuladorTaloActivo } from "~/server/demo";
 import { slugify } from "~/lib/slug";
 
-type CuotaDb = { id: string; numero: number; monto: unknown; venceEl: Date };
-type AlumnoDb = { pagos: { monto: unknown }[] };
+type CuotaDb = {
+  id: string;
+  tipo: TipoCobro;
+  numero: number;
+  monto: unknown;
+  venceEl: Date;
+};
+type AlumnoDb = {
+  pagos: { monto: unknown }[];
+  ajustesCuota: AjusteCuota[];
+};
 
-/** Estado de cobranza del grupo entero, sumando el plan de cada alumno. */
+/**
+ * Estado de cobranza del grupo entero, sumando el plan de cada alumno.
+ *
+ * Suma alumno por alumno y no cuotas × alumnos, que es lo que permite que cada
+ * familia tenga su propio precio sin que el total del grupo deje de cerrar.
+ */
 function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
   let esperado = 0;
   let recaudado = 0;
@@ -27,7 +44,7 @@ function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
   let vencidos = 0;
 
   for (const alumno of alumnos) {
-    const plan = imputarPagos(cuotas, sumarPagos(alumno.pagos));
+    const plan = imputarPagos(cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
     esperado += plan.total;
     recaudado += plan.pagado;
 
@@ -38,7 +55,8 @@ function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
 
   return {
     alumnos: alumnos.length,
-    cuotas: cuotas.length,
+    // La seña no es una cuota y no entra en el conteo del plan.
+    cuotas: soloCuotas(cuotas).length,
     alDia,
     conDeuda,
     vencidos,
@@ -53,7 +71,9 @@ export const grupoRouter = createTRPCRouter({
       orderBy: { creadoEn: "desc" },
       include: {
         cuotas: true,
-        alumnos: { select: { pagos: { select: { monto: true } } } },
+        alumnos: {
+          select: { pagos: { select: { monto: true } }, ajustesCuota: true },
+        },
       },
     });
 
@@ -84,6 +104,7 @@ export const grupoRouter = createTRPCRouter({
             include: {
               tutores: { include: { cuenta: true }, orderBy: { creadoEn: "asc" } },
               pagos: { orderBy: { recibidoEn: "desc" } },
+              ajustesCuota: true,
             },
           },
         },
@@ -105,6 +126,7 @@ export const grupoRouter = createTRPCRouter({
         resumen: resumir(grupo.cuotas, grupo.alumnos),
         cuotas: grupo.cuotas.map((c) => ({
           id: c.id,
+          tipo: c.tipo,
           numero: c.numero,
           monto: Number(c.monto),
           venceEl: c.venceEl,
@@ -116,7 +138,7 @@ export const grupoRouter = createTRPCRouter({
           venceEl: g.venceEl,
         })),
         alumnos: grupo.alumnos.map((a) => {
-          const plan = imputarPagos(grupo.cuotas, sumarPagos(a.pagos));
+          const plan = imputarPagos(grupo.cuotas, a.ajustesCuota, sumarPagos(a.pagos));
           return {
             id: a.id,
             nombre: a.nombre,
@@ -274,6 +296,134 @@ export const grupoRouter = createTRPCRouter({
       const { cuotaId, ...datos } = input;
       await ctx.db.cuota.update({ where: { id: cuotaId }, data: datos });
       return { ok: true };
+    }),
+
+  /**
+   * Pone, cambia o saca la seña del grupo.
+   *
+   * Es una instancia de pago más y por eso vive en la misma tabla que las
+   * cuotas, con número cero: se cobra antes que todas y ese cero no se muestra
+   * nunca. Un grupo tiene una seña o no tiene, así que la operación es un
+   * `upsert` y no un "agregar" que pudiera dejar dos.
+   *
+   * Sacarla borra la fila, y con ella los ajustes que colgaban —la relación
+   * cae en cascada—. Lo que no se toca son los pagos ya imputados contra ella:
+   * `Pago.cuotaId` queda en nulo y la plata sigue contada, porque lo que suma
+   * es el pago y no contra qué se lo anotó.
+   */
+  ponerSena: adminProcedure
+    .input(
+      z.object({
+        grupoId: z.string(),
+        monto: z.number().positive(),
+        venceEl: z.date(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.cuota.upsert({
+        where: { grupoId_numero: { grupoId: input.grupoId, numero: 0 } },
+        create: {
+          grupoId: input.grupoId,
+          tipo: "SENA",
+          numero: 0,
+          monto: input.monto,
+          venceEl: input.venceEl,
+        },
+        update: { monto: input.monto, venceEl: input.venceEl },
+      });
+      return { ok: true };
+    }),
+
+  quitarSena: adminProcedure
+    .input(z.object({ grupoId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.cuota.deleteMany({
+        where: { grupoId: input.grupoId, tipo: "SENA" },
+      });
+      return { ok: true };
+    }),
+
+  /**
+   * El monto (o el vencimiento) que este alumno tiene para esta instancia.
+   *
+   * Guardar sólo la diferencia es lo que hace que el plan siga siendo del grupo:
+   * si mañana Halley cambia el precio general, los que no tienen ajuste lo
+   * heredan solos y los que sí lo tienen no se pisan.
+   *
+   * Mandar los dos campos en nulo borra el ajuste y devuelve al alumno al precio
+   * del grupo. Es la forma de deshacer sin una mutación aparte.
+   */
+  ajustarCuotaAlumno: adminProcedure
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        cuotaId: z.string(),
+        monto: z.number().positive().nullable(),
+        venceEl: z.date().nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { alumnoId, cuotaId, monto, venceEl } = input;
+      const llave = { alumnoId_cuotaId: { alumnoId, cuotaId } };
+
+      if (monto === null && venceEl === null) {
+        await ctx.db.cuotaAlumno.deleteMany({ where: { alumnoId, cuotaId } });
+        return { ok: true, borrado: true };
+      }
+
+      await ctx.db.cuotaAlumno.upsert({
+        where: llave,
+        create: { alumnoId, cuotaId, monto, venceEl },
+        update: { monto, venceEl },
+      });
+      return { ok: true, borrado: false };
+    }),
+
+  /**
+   * El precio de este alumno, de una.
+   *
+   * Cargar a una familia con precio propio son trece ediciones sueltas —la seña
+   * y doce cuotas— y en un curso de cuarenta eso no lo hace nadie. Acá se dice
+   * "este alumno paga tanto por cuota" y se escriben todas juntas; la edición
+   * fina de una cuota puntual sigue estando en `ajustarCuotaAlumno` para el que
+   * la necesite.
+   *
+   * La seña no entra: tiene su propio monto y su propia lógica, y meterla en un
+   * "todas las cuotas valen X" sería cobrarla como una cuota más.
+   */
+  ajustarPlanAlumno: adminProcedure
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        montoPorCuota: z.number().positive(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const alumno = await ctx.db.alumno.findUniqueOrThrow({
+        where: { id: input.alumnoId },
+        select: { grupoId: true },
+      });
+
+      const cuotas = await ctx.db.cuota.findMany({
+        where: { grupoId: alumno.grupoId, tipo: "CUOTA" },
+        select: { id: true },
+      });
+
+      for (const cuota of cuotas) {
+        await ctx.db.cuotaAlumno.upsert({
+          where: {
+            alumnoId_cuotaId: { alumnoId: input.alumnoId, cuotaId: cuota.id },
+          },
+          create: {
+            alumnoId: input.alumnoId,
+            cuotaId: cuota.id,
+            monto: input.montoPorCuota,
+          },
+          update: { monto: input.montoPorCuota },
+        });
+      }
+
+      return { ok: true, cuotas: cuotas.length };
     }),
 
   /**

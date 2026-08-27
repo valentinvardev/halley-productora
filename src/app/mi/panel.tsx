@@ -11,7 +11,7 @@ import { Copiar } from "~/app/_components/copiar";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { IconoCandado } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
-import { PlanCuotas } from "~/app/_components/plan-cuotas";
+import { PlanCuotas, soloCuotas } from "~/app/_components/plan-cuotas";
 import {
   Boton,
   BotonTexto,
@@ -88,7 +88,7 @@ export function Panel({
                     Gracias por confiar en nosotros
                   </h2>
                   <p className="nota mx-auto mt-3 max-w-[46ch]">
-                    Las {hijo.plan.cuotas.length} cuotas están pagas: no queda
+                    Las {soloCuotas(hijo.plan.cuotas).length} cuotas están pagas: no queda
                     nada por abonar. Te mandamos el comprobante de cada una por
                     email.
                   </p>

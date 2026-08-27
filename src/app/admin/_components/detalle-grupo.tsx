@@ -20,6 +20,7 @@ import {
   IconoTilde,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
+import { soloCuotas } from "~/app/_components/plan-cuotas";
 import { ItemAccion, MenuAcciones } from "~/app/_components/menu-acciones";
 import { Modal } from "~/app/_components/modal";
 import {
@@ -108,7 +109,7 @@ export function DetalleGrupo({ id }: { id: string }) {
       </Link>
 
       <Encabezado
-        eyebrow={`${grupo.colegio} · ${grupo.cuotas.length} cuotas`}
+        eyebrow={`${grupo.colegio} · ${soloCuotas(grupo.cuotas).length} cuotas`}
         titulo={grupo.nombre}
         acciones={
           <MenuAcciones>
@@ -362,7 +363,7 @@ export function DetalleGrupo({ id }: { id: string }) {
         abierto={gestionandoCuotas}
         alCerrar={() => setGestionandoCuotas(false)}
         grupoNombre={grupo.nombre}
-        totalCuotas={grupo.cuotas.length}
+        totalCuotas={soloCuotas(grupo.cuotas).length}
         // Cada alumno viaja con su plan ya imputado, que es lo que le permite al
         // modal mostrar cuánto debe cada uno y sumar el total exacto de lo que se
         // va a registrar sin volver a preguntar.

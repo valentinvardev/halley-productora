@@ -61,22 +61,80 @@ model Grupo {
 
 }
 
-/// Una cuota del plan: "la 3 de 6, $45.000, vence el 05/09".
+/// Qué clase de instancia de pago es.
+///
+/// La seña no es una cuota. No se numera con ellas, no entra en el "3 de 6" y se
+/// cobra una sola vez al principio. Pero sí es algo que hay que pagar, así que
+/// comparte tabla con las cuotas y con eso hereda todo lo que ya funciona sobre
+/// instancias de pago: la imputación de la más vieja a la más nueva, la mora, el
+/// desbloqueo de la galería, el marcar como pagada del panel y los montos por
+/// alumno. Lo que la separa de una cuota es este campo, no una tabla aparte —
+/// darle tabla propia no la haría más distinta, sólo obligaría a escribir de
+/// nuevo esas cinco cosas.
+enum TipoCobro {
+    SENA
+    CUOTA
+}
+
+/// Una instancia de pago del plan: "la cuota 3 de 6, $45.000, vence el 05/09",
+/// o la seña que va antes que todas.
 model Cuota {
     id      String @id @default(cuid())
     grupoId String
     grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
+    tipo TipoCobro @default(CUOTA)
+
+    /// Posición de cobro dentro del plan, y de ahí sale el orden en que se
+    /// imputa lo que se paga.
+    ///
+    /// La seña es 0 —se cobra antes que todo— y ese cero no se muestra nunca: en
+    /// pantalla dice "Seña". Las cuotas van de 1 a N y ésas sí llevan su número
+    /// a la vista. Por eso el conteo de "cuántas cuotas tiene el plan" nunca es
+    /// el largo de esta lista: hay que filtrar por tipo.
     numero  Int
     monto   Decimal  @db.Decimal(12, 2)
     venceEl DateTime
 
-    pagos Pago[]
+    pagos   Pago[]
+    ajustes CuotaAlumno[]
 
     creadoEn DateTime @default(now())
 
     @@unique([grupoId, numero])
     @@index([grupoId])
+}
+
+/// Lo que este alumno paga por esta instancia, cuando no es lo que paga el grupo.
+///
+/// El plan vive en el grupo, pero dentro de un mismo curso los precios no son
+/// todos iguales: se negocian por familia. Esta tabla guarda sólo la diferencia
+/// —si no hay fila, vale el monto del grupo— así que un grupo donde nadie tiene
+/// precio propio no ocupa una fila, y uno donde todos lo tienen tampoco es
+/// problema: son unos cientos de filas.
+///
+/// `venceEl` está por el que se suma tarde. Como la mora se calcula desde la
+/// fecha de vencimiento y no se guarda, bajarle el monto no le saca el recargo:
+/// se lo vuelve a calcular sobre el monto nuevo y sigue creciendo todos los
+/// meses. Corriéndole la fecha al mes en que entró, el recargo arranca de cero
+/// solo y no hay nada que volver a tocar.
+model CuotaAlumno {
+    id String @id @default(cuid())
+
+    alumnoId String
+    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+    cuotaId  String
+    cuota    Cuota  @relation(fields: [cuotaId], references: [id], onDelete: Cascade)
+
+    /// Nulo es "lo que dice el grupo". Se guarda sólo lo que se cambió, así que
+    /// una fila que ajusta el monto sigue heredando la fecha del plan.
+    monto   Decimal?  @db.Decimal(12, 2)
+    venceEl DateTime?
+
+    creadoEn DateTime @default(now())
+
+    @@unique([alumnoId, cuotaId])
+    @@index([alumnoId])
 }
 
 /* -------------------------------------------------------------------------- */
@@ -115,6 +173,8 @@ model Alumno {
 
     pagos          Pago[]
     notificaciones Notificacion[]
+    /// Los montos y vencimientos propios de este alumno, donde los tenga.
+    ajustesCuota   CuotaAlumno[]
 
     creadoEn DateTime @default(now())
 
