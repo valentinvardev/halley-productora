@@ -150,7 +150,7 @@ export async function notificarPagoRecibido(
     grupo,
     emails,
   }: { alumno: Alumno; grupo: Grupo; emails: string[] },
-  pago: { monto: number; cuota: number; deuda: number },
+  pago: { monto: number; concepto: string; deuda: number },
 ) {
   for (const email of emails) {
     await entregar(
@@ -161,7 +161,7 @@ export async function notificarPagoRecibido(
         cuerpo: [
           "Hola,",
           "",
-          `Confirmamos la acreditación de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}.`,
+          `Confirmamos la acreditación de ${pesos(pago.monto)} para ${pago.concepto} de ${alumno.nombre}.`,
           "",
           pago.deuda > 0
             ? `Saldo pendiente del plan: ${pesos(pago.deuda)}.`
@@ -174,11 +174,11 @@ export async function notificarPagoRecibido(
         grupoId: grupo.id,
       },
       plantillaEmail({
-        preheader: `Acreditamos ${pesos(pago.monto)} de la cuota ${pago.cuota} de ${alumno.nombre}.`,
+        preheader: `Acreditamos ${pesos(pago.monto)} de ${pago.concepto} de ${alumno.nombre}.`,
         titulo: "Recibimos tu pago",
         saludo: "Hola,",
         parrafos: [
-          `Confirmamos la acreditación del pago de la cuota ${pago.cuota} de ${alumno.nombre}. Este mail es tu comprobante.`,
+          `Confirmamos la acreditación del pago de ${pago.concepto} de ${alumno.nombre}. Este mail es tu comprobante.`,
         ],
         destacado: {
           rotulo: "Pago acreditado",
@@ -200,7 +200,7 @@ export async function notificarPagoRecibido(
       destinatario: env.ADMIN_EMAIL,
       asunto: `Pago recibido — ${alumno.nombre} (${grupo.colegio})`,
       cuerpo: [
-        `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, cuota ${pago.cuota}.`,
+        `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, ${pago.concepto}.`,
         "",
         `Grupo: ${grupo.nombre}`,
         `Alias: ${alumno.alias}`,
@@ -213,7 +213,7 @@ export async function notificarPagoRecibido(
       preheader: `${pesos(pago.monto)} de ${alumno.nombre} — ${grupo.colegio}.`,
       titulo: "Pago recibido",
       parrafos: [
-        `Se acreditó un pago de ${alumno.nombre}, cuota ${pago.cuota}.`,
+        `Se acreditó un pago de ${alumno.nombre}, ${pago.concepto}.`,
         `Grupo: ${grupo.nombre} · Alias: ${alumno.alias}`,
       ],
       destacado: {

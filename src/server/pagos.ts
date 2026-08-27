@@ -104,7 +104,17 @@ async function registrarPagoConfirmado(
     // tiene que enterarse.
     await notificarPagoRecibido(
       { alumno, grupo: alumno.grupo, emails: destinatarios(alumno) },
-      { monto: tx.monto, cuota: cuotaDestino.numero, deuda: despues.deuda },
+      {
+        monto: tx.monto,
+        // Cómo se nombra lo que se acaba de pagar. La seña no tiene número que
+        // mostrar —el suyo es cero y sólo sirve para cobrarla primera—, así que
+        // el comprobante diría "la cuota 0" si esto fuera el número pelado.
+        concepto:
+          cuotaDestino.tipo === "SENA"
+            ? "la seña"
+            : `la cuota ${cuotaDestino.numero}`,
+        deuda: despues.deuda,
+      },
     );
   }
 
