@@ -9,7 +9,7 @@ import { DatosTransferencia } from "~/app/_components/datos-transferencia";
 import { GaleriaEntrega } from "~/app/_components/galeria-entrega";
 import { IconoMercadoPago } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
-import { PlanCuotas, soloCuotas } from "~/app/_components/plan-cuotas";
+import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { Boton, BotonTexto } from "~/app/_components/ui";
 import { fecha, pesos } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -142,7 +142,7 @@ export function PaginaPadre({
                 {pesos(data.plan.pagado)}
               </div>
               <p className="mt-5 text-[13px] leading-relaxed text-gray-70">
-                Pagaste las {soloCuotas(data.plan.cuotas).length} cuotas. Te mandamos el
+                Pagaste las {data.plan.cuotas.length} cuotas. Te mandamos el
                 comprobante de cada una por email.
               </p>
             </div>
@@ -157,7 +157,7 @@ export function PaginaPadre({
                   <div className="mt-1.5 font-rotulo text-[12px] tracking-[0.05em] text-gray-70">
                     {proxima.estado === "VENCIDA" ? "VENCIÓ" : "VENCE"}{" "}
                     {fecha(proxima.venceEl)} · CUOTA {proxima.numero} DE{" "}
-                    {soloCuotas(data.plan.cuotas).length}
+                    {data.plan.cuotas.length}
                   </div>
                 </>
               ) : (
@@ -172,7 +172,7 @@ export function PaginaPadre({
                   </div>
                   <p className="mt-3 text-[13.5px] leading-relaxed text-gray-70">
                     La próxima es la cuota {proxima.numero} de{" "}
-                    {soloCuotas(data.plan.cuotas).length}, de {pesos(proxima.saldo)}, y
+                    {data.plan.cuotas.length}, de {pesos(proxima.saldo)}, y
                     vence el {fecha(proxima.venceEl)}. No hay nada que hacer
                     hasta entonces.
                   </p>

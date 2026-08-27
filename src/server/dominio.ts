@@ -13,20 +13,15 @@ export const MAX_RESPONSABLES = 3;
 
 export type EstadoCuota = "PENDIENTE" | "PAGADA" | "VENCIDA";
 
-/** Seña o cuota. Es el mismo enum que la base; se repite acá para no arrastrar
- * el cliente de Prisma hasta el navegador, que también usa estos tipos. */
-export type TipoCobro = "SENA" | "CUOTA";
-
 type CuotaPlan = {
   id: string;
-  tipo: TipoCobro;
   numero: number;
   monto: unknown;
   venceEl: Date;
 };
 
 /**
- * Lo que un alumno paga distinto del resto del grupo, para una instancia.
+ * Lo que un alumno paga distinto del resto del grupo, para una cuota.
  *
  * Cada campo en nulo quiere decir "lo que dice el grupo", así que ajustarle el
  * monto a alguien no le congela la fecha.
@@ -39,7 +34,6 @@ export type AjusteCuota = {
 
 export type CuotaImputada = {
   id: string;
-  tipo: TipoCobro;
   numero: number;
   /** El valor original de la cuota, sin recargo. */
   monto: number;
@@ -78,17 +72,6 @@ function planDelAlumno(cuotas: CuotaPlan[], ajustes: AjusteCuota[]): CuotaPlan[]
       venceEl: ajuste.venceEl ?? c.venceEl,
     };
   });
-}
-
-/**
- * Las cuotas propiamente dichas, sin la seña.
- *
- * Es lo que se cuenta y lo que se numera en pantalla. "Pagaste las 6 cuotas" o
- * "la cuota 3 de 6" salen de acá y nunca del largo del plan entero, porque la
- * seña está en la misma lista y no es una cuota.
- */
-export function soloCuotas<T extends { tipo: TipoCobro }>(plan: T[]) {
-  return plan.filter((c) => c.tipo === "CUOTA");
 }
 
 /**
@@ -131,9 +114,6 @@ function mesesVencida(venceEl: Date, ahora: Date) {
  * Dos cuotas vencidas hace tres y hace un mes acumulan distinto, que es lo
  * correcto: cada una se atrasó lo suyo.
  *
- * Vale para toda instancia de pago vencida, seña incluida. La seña no es una
- * cuota, pero es algo que había que pagar y no se pagó.
- *
  * Es una decisión de negocio y vive en un solo lugar a propósito: se cambia acá
  * y lo toman el panel, el cobro y el aviso por igual.
  */
@@ -156,7 +136,7 @@ export function recargoPorMora(venceEl: Date, ahora = new Date()) {
  * pueda desincronizar. Se cobra oldest-first junto con el capital.
  *
  * Los ajustes del alumno son un parámetro obligatorio y no un paso previo
- * opcional. Es a propósito: son trece los lugares que imputan, casi todos
+ * opcional. Es a propósito: son catorce los lugares que imputan, casi todos
  * pasaban el plan del grupo crudo, y con los precios negociados por familia un
  * lugar que se olvide de resolverlos no falla en un caso raro sino en la
  * mayoría. Pedirlos acá hace que el compilador los encuentre a todos. Quien de
@@ -171,8 +151,6 @@ export function imputarPagos(
   let resto = totalPagado;
 
   const imputadas: CuotaImputada[] = [...planDelAlumno(cuotasDelGrupo, ajustes)]
-    // La seña es número 0, así que ordenar por número la deja primera sola: se
-    // cobra antes que cualquier cuota, que es lo que es.
     .sort((a, b) => a.numero - b.numero)
     .map((cuota) => {
       const monto = Number(cuota.monto);
@@ -200,7 +178,6 @@ export function imputarPagos(
 
       return {
         id: cuota.id,
-        tipo: cuota.tipo,
         numero: cuota.numero,
         monto,
         venceEl: cuota.venceEl,

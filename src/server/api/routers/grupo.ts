@@ -7,9 +7,7 @@ import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
   DIA_VENCIMIENTO,
   imputarPagos,
-  soloCuotas,
   type AjusteCuota,
-  type TipoCobro,
   linkAlumno,
   linkGrupo,
   linkRegistroAlumno,
@@ -20,7 +18,6 @@ import { slugify } from "~/lib/slug";
 
 type CuotaDb = {
   id: string;
-  tipo: TipoCobro;
   numero: number;
   monto: unknown;
   venceEl: Date;
@@ -55,8 +52,7 @@ function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
 
   return {
     alumnos: alumnos.length,
-    // La seña no es una cuota y no entra en el conteo del plan.
-    cuotas: soloCuotas(cuotas).length,
+    cuotas: cuotas.length,
     alDia,
     conDeuda,
     vencidos,
@@ -126,7 +122,6 @@ export const grupoRouter = createTRPCRouter({
         resumen: resumir(grupo.cuotas, grupo.alumnos),
         cuotas: grupo.cuotas.map((c) => ({
           id: c.id,
-          tipo: c.tipo,
           numero: c.numero,
           monto: Number(c.monto),
           venceEl: c.venceEl,
@@ -299,52 +294,7 @@ export const grupoRouter = createTRPCRouter({
     }),
 
   /**
-   * Pone, cambia o saca la seña del grupo.
-   *
-   * Es una instancia de pago más y por eso vive en la misma tabla que las
-   * cuotas, con número cero: se cobra antes que todas y ese cero no se muestra
-   * nunca. Un grupo tiene una seña o no tiene, así que la operación es un
-   * `upsert` y no un "agregar" que pudiera dejar dos.
-   *
-   * Sacarla borra la fila, y con ella los ajustes que colgaban —la relación
-   * cae en cascada—. Lo que no se toca son los pagos ya imputados contra ella:
-   * `Pago.cuotaId` queda en nulo y la plata sigue contada, porque lo que suma
-   * es el pago y no contra qué se lo anotó.
-   */
-  ponerSena: adminProcedure
-    .input(
-      z.object({
-        grupoId: z.string(),
-        monto: z.number().positive(),
-        venceEl: z.date(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.cuota.upsert({
-        where: { grupoId_numero: { grupoId: input.grupoId, numero: 0 } },
-        create: {
-          grupoId: input.grupoId,
-          tipo: "SENA",
-          numero: 0,
-          monto: input.monto,
-          venceEl: input.venceEl,
-        },
-        update: { monto: input.monto, venceEl: input.venceEl },
-      });
-      return { ok: true };
-    }),
-
-  quitarSena: adminProcedure
-    .input(z.object({ grupoId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.cuota.deleteMany({
-        where: { grupoId: input.grupoId, tipo: "SENA" },
-      });
-      return { ok: true };
-    }),
-
-  /**
-   * El monto (o el vencimiento) que este alumno tiene para esta instancia.
+   * El monto (o el vencimiento) que este alumno tiene para esta cuota.
    *
    * Guardar sólo la diferencia es lo que hace que el plan siga siendo del grupo:
    * si mañana Halley cambia el precio general, los que no tienen ajuste lo
@@ -388,8 +338,9 @@ export const grupoRouter = createTRPCRouter({
    * fina de una cuota puntual sigue estando en `ajustarCuotaAlumno` para el que
    * la necesite.
    *
-   * La seña no entra: tiene su propio monto y su propia lógica, y meterla en un
-   * "todas las cuotas valen X" sería cobrarla como una cuota más.
+   * Pisa todas las cuotas del plan, la primera incluida. Si el grupo cobra seña,
+   * ésa es la cuota 1 y tiene su propio monto: después de igualar a todas hay que
+   * volver a ponerle el suyo con `ajustarCuotaAlumno`, que es la edición fina.
    */
   ajustarPlanAlumno: adminProcedure
     .input(
@@ -405,7 +356,7 @@ export const grupoRouter = createTRPCRouter({
       });
 
       const cuotas = await ctx.db.cuota.findMany({
-        where: { grupoId: alumno.grupoId, tipo: "CUOTA" },
+        where: { grupoId: alumno.grupoId },
         select: { id: true },
       });
 

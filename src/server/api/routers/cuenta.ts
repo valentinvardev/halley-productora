@@ -12,7 +12,6 @@ import {
   imputarPagos,
   linkAlumno,
   linkRegistroAlumno,
-  soloCuotas,
   sumarPagos,
 } from "~/server/dominio";
 
@@ -167,16 +166,9 @@ export const cuentaRouter = createTRPCRouter({
         monto,
         /** Con tolerancia de un centavo, igual que la imputación. */
         listo: monto <= 0.01,
-        /**
-         * Qué cuotas cubre esta transferencia.
-         *
-         * La seña queda afuera: no tiene número que mostrar. Si la transferencia
-         * la incluye, el monto ya la contempla y el detalle del plan la muestra
-         * con su nombre — lo que no se puede es anunciarla como "cuota 0".
-         */
-        numeros: soloCuotas(aSaldar).map((c) => c.numero),
-        /** Cuántas cuotas tiene el plan. La seña no es una. */
-        totalCuotas: soloCuotas(plan.cuotas).length,
+        /** Qué cuotas cubre esta transferencia. */
+        numeros: aSaldar.map((c) => c.numero),
+        totalCuotas: plan.cuotas.length,
         venceEl: primera?.venceEl ?? null,
         vencida: aSaldar.some((c) => c.estado === "VENCIDA"),
         plan: {
