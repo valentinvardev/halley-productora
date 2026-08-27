@@ -9,7 +9,10 @@ import { registrarEvento } from "./eventos";
 import { mercadoPago } from "./mercadopago";
 import { mercadoPagoMock } from "./mercadopago/mock";
 import { tokenVigente } from "./mercadopago/oauth";
-import { notificarPagoRecibido } from "./notificaciones";
+import {
+  notificarPagoParcial,
+  notificarPagoRecibido,
+} from "./notificaciones";
 import { credencialesDeAlumno, talo, taloMock } from "./talo";
 
 /**
@@ -106,6 +109,23 @@ async function registrarPagoConfirmado(
       { alumno, grupo: alumno.grupo, emails: destinatarios(alumno) },
       { monto: tx.monto, cuota: cuotaDestino.numero, deuda: despues.deuda },
     );
+  } else if (cuotaDestino) {
+    // Entró plata pero la cuota no cerró. Antes acá no pasaba nada: el pago
+    // quedaba registrado y la familia no se enteraba de que le faltaba, que es
+    // justo cuando más falta hace decírselo.
+    //
+    // Sin `cuotaDestino` no hay nada que avisar: eso es una transferencia sin
+    // cuota pendiente a la que imputar, o sea saldo a favor, y ésa no le pide
+    // nada a nadie.
+    const restante =
+      despues.cuotas.find((c) => c.id === cuotaDestino.id)?.saldo ?? 0;
+
+    if (restante > 0) {
+      await notificarPagoParcial(
+        { alumno, grupo: alumno.grupo, emails: destinatarios(alumno) },
+        { monto: tx.monto, cuota: cuotaDestino.numero, falta: restante },
+      );
+    }
   }
 
   await registrarEvento({

@@ -696,6 +696,10 @@ enum TipoNotificacion {
     CONFIRMACION_PADRE
     AVISO_ADMIN
     RECORDATORIO
+    /// La transferencia entró pero no alcanzó a completar la cuota. Es el único
+    /// aviso que sale de un pago que no cerró nada: sin él, la familia manda
+    /// menos de lo que debía y el sistema se queda callado justo ahí.
+    PAGO_PARCIAL
     /// La copia del presupuesto armado en el simulador. Va a alguien que
     /// todavía no es cliente, así que no cuelga de ningún alumno ni grupo.
     PRESUPUESTO

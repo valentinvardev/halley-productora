@@ -15,6 +15,7 @@ const ROTULO = {
   CONFIRMACION_PADRE: "Confirmación",
   AVISO_ADMIN: "Aviso a Halley",
   RECORDATORIO: "Recordatorio",
+  PAGO_PARCIAL: "Pago incompleto",
   PRESUPUESTO: "Presupuesto",
 } as const;
 

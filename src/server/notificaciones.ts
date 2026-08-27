@@ -225,6 +225,108 @@ export async function notificarPagoRecibido(
   );
 }
 
+/**
+ * La transferencia entró pero no alcanzó a completar la cuota.
+ *
+ * Es el hueco que dejaba el comprobante: sólo sale cuando una cuota se salda,
+ * así que la familia que manda de menos —porque transfirió el monto pelado sin
+ * el recargo, o porque redondeó para abajo— no recibía nada. Justo en el
+ * momento en que algo salió mal, el sistema se quedaba callado y se enteraban
+ * recién si entraban al panel por su cuenta.
+ *
+ * Dice lo que entró, lo que falta y de qué cuota, que es lo único que hace
+ * falta para arreglarlo. El monto que falta sale del plan ya imputado, así que
+ * lleva el recargo del día adentro: es lo que hay que transferir hoy, no lo que
+ * se debía cuando venció.
+ *
+ * No existe el aviso espejo —el de la transferencia que se pasa y deja saldo a
+ * favor— a propósito: ese caso no le pide nada a nadie.
+ */
+export async function notificarPagoParcial(
+  {
+    alumno,
+    grupo,
+    emails,
+  }: { alumno: Alumno; grupo: Grupo; emails: string[] },
+  pago: { monto: number; cuota: number; falta: number },
+) {
+  for (const email of emails) {
+    await entregar(
+      {
+        tipo: "PAGO_PARCIAL",
+        destinatario: email,
+        asunto: `Faltó completar la cuota ${pago.cuota} — ${grupo.nombre}`,
+        cuerpo: [
+          "Hola,",
+          "",
+          `Recibimos tu transferencia de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}.`,
+          "",
+          `Faltaron ${pesos(pago.falta)} para completarla, así que la cuota sigue figurando impaga.`,
+          "",
+          `Podés transferir la diferencia acá: ${linkAlumno(alumno.token)}`,
+          "",
+          "Si ya la transferiste, ignorá este mensaje.",
+          ...firma,
+        ].join("\n"),
+        alumnoId: alumno.id,
+        grupoId: grupo.id,
+      },
+      plantillaEmail({
+        preheader: `Faltaron ${pesos(pago.falta)} para completar la cuota ${pago.cuota} de ${alumno.nombre}.`,
+        titulo: "Faltó completar la cuota",
+        saludo: "Hola,",
+        parrafos: [
+          `Recibimos tu transferencia de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}, pero no alcanzó a cubrirla entera. La cuota sigue figurando impaga hasta que entre la diferencia.`,
+        ],
+        destacado: {
+          rotulo: `Falta de la cuota ${pago.cuota}`,
+          valor: pesos(pago.falta),
+          pie: "Es lo que hay que transferir para cerrarla",
+          alerta: true,
+        },
+        boton: {
+          texto: "Pagar la diferencia",
+          url: linkAlumno(alumno.token),
+        },
+        nota: "Si ya la transferiste, ignorá este mensaje.",
+        responder: true,
+      }),
+    );
+  }
+
+  // Halley también se entera. Un pago que no cerró la cuota es de las pocas
+  // cosas del circuito que necesitan que alguien haga algo después.
+  return entregar(
+    {
+      tipo: "AVISO_ADMIN",
+      destinatario: env.ADMIN_EMAIL,
+      asunto: `Pago incompleto — ${alumno.nombre} (${grupo.colegio})`,
+      cuerpo: [
+        `${alumno.nombre} transfirió ${pesos(pago.monto)} para la cuota ${pago.cuota}, y faltaron ${pesos(pago.falta)}.`,
+        "",
+        `Grupo: ${grupo.nombre}`,
+        `Alias: ${alumno.alias}`,
+      ].join("\n"),
+      alumnoId: alumno.id,
+      grupoId: grupo.id,
+    },
+    plantillaEmail({
+      preheader: `${alumno.nombre} quedó a ${pesos(pago.falta)} de cerrar la cuota ${pago.cuota}.`,
+      titulo: "Pago incompleto",
+      parrafos: [
+        `${alumno.nombre} transfirió ${pesos(pago.monto)} para la cuota ${pago.cuota} y no alcanzó a cubrirla.`,
+        `Grupo: ${grupo.nombre} · Alias: ${alumno.alias}`,
+      ],
+      destacado: {
+        rotulo: "Falta",
+        valor: pesos(pago.falta),
+        pie: `De la cuota ${pago.cuota}`,
+        alerta: true,
+      },
+    }),
+  );
+}
+
 export async function notificarRecordatorio(
   { alumno, grupo, email }: { alumno: Alumno; grupo: Grupo; email: string },
   cuota: { numero: number; monto: number; venceEl: Date; vencida: boolean },
