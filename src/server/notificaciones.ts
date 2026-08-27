@@ -5,6 +5,7 @@ import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
 import { emailHabilitado, enviarEmail } from "./email";
 import { plantillaEmail } from "./email-plantilla";
+import { render, textosDe } from "./plantillas";
 
 /**
  * Capa de notificaciones. Todo mensaje se registra primero en la tabla
@@ -61,15 +62,29 @@ export async function notificarInvitacion(
 ) {
   const registro = linkRegistroAlumno(grupo.slug, alumno.id);
 
+  const t = await textosDe("invitacion");
+  // Sin cuota cargada las variables del plan quedan en blanco en vez de dejar
+  // el `{monto}` crudo en el mail. El texto de fábrica no las usa, pero nada
+  // impide que alguien las agregue desde el panel.
+  const vars = {
+    alumno: alumno.nombre,
+    grupo: grupo.nombre,
+    cuota: cuota ? String(cuota.numero) : "",
+    total: cuota ? String(cuota.total) : "",
+    monto: cuota ? pesos(cuota.monto) : "",
+    vence: cuota ? fecha(cuota.venceEl) : "",
+  };
+  const con = (texto: string) => render(texto, vars);
+
   return entregar(
     {
       tipo: "INVITACION",
       destinatario: email,
-      asunto: `Pagos de ${grupo.nombre}`,
+      asunto: con(t.asunto),
       cuerpo: [
         "Hola,",
         "",
-        `Ya está abierto el sistema de pagos de ${grupo.nombre}.`,
+        con(t.parrafo),
         ...(cuota
           ? [
               "",
@@ -78,10 +93,8 @@ export async function notificarInvitacion(
             ]
           : []),
         "",
-        `Creá tu cuenta para seguir los pagos de ${alumno.nombre} y ver la galería:`,
-        registro,
-        "",
-        "No hace falta contraseña: te mandamos un link para entrar.",
+        `Creá tu cuenta acá: ${registro}`,
+        ...(t.nota ? ["", con(t.nota)] : []),
         "",
         `Si preferís no registrarte, este link te lleva directo al pago: ${linkAlumno(alumno.token)}`,
         ...firma,
@@ -91,11 +104,9 @@ export async function notificarInvitacion(
     },
     plantillaEmail({
       preheader: `Seguí los pagos de ${alumno.nombre} y accedé a la galería.`,
-      titulo: `Pagos de ${grupo.nombre}`,
+      titulo: con(t.titulo),
       saludo: "Hola,",
-      parrafos: [
-        `Ya está abierto el sistema de pagos de ${grupo.nombre}. Creá tu cuenta para seguir la cuota de ${alumno.nombre} de principio a fin y acceder a la galería cuando esté lista.`,
-      ],
+      parrafos: [con(t.parrafo)],
       destacado: cuota
         ? {
             rotulo: `Próxima cuota — ${cuota.numero} de ${cuota.total}`,
@@ -104,7 +115,7 @@ export async function notificarInvitacion(
           }
         : undefined,
       boton: { texto: "Crear mi cuenta", url: registro },
-      nota: `No hace falta contraseña: entrás con tu email. Si preferís no registrarte, este link te lleva directo al pago: ${linkAlumno(alumno.token)}`,
+      nota: `${con(t.nota)} Si preferís no registrarte, este link te lleva directo al pago: ${linkAlumno(alumno.token)}`.trim(),
       responder: true,
     }),
   );
@@ -116,30 +127,35 @@ export async function notificarAcceso(
   url: string,
   minutos: number,
 ) {
+  const t = await textosDe("acceso");
+
   return entregar(
     {
       tipo: "ACCESO",
       destinatario: email,
-      asunto: "Tu link para entrar — Halley Audiovisual",
+      asunto: t.asunto,
       cuerpo: [
         "Hola,",
         "",
-        "Entrá con este link:",
+        t.parrafo,
+        "",
         url,
         "",
         `Vence en ${minutos} minutos y sirve una sola vez.`,
-        "",
-        "Si no lo pediste vos, ignorá este mensaje.",
+        ...(t.nota ? ["", t.nota] : []),
         ...firma,
       ].join("\n"),
     },
     plantillaEmail({
       preheader: "Tu link de acceso a Halley. Vence en un rato y sirve una vez.",
-      titulo: "Tu acceso a Halley",
+      titulo: t.titulo,
       saludo: "Hola,",
-      parrafos: ["Tocá el botón para entrar a tu panel."],
+      parrafos: [t.parrafo],
       boton: { texto: "Entrar", url },
-      nota: `El link vence en ${minutos} minutos y sirve una sola vez. Si no lo pediste vos, ignorá este mensaje.`,
+      // Los minutos los pone el sistema y no el texto: si el día de mañana el
+      // enlace dura otra cosa, un texto editado a mano diría treinta para
+      // siempre.
+      nota: `El link vence en ${minutos} minutos y sirve una sola vez. ${t.nota}`.trim(),
     }),
   );
 }
@@ -152,22 +168,30 @@ export async function notificarPagoRecibido(
   }: { alumno: Alumno; grupo: Grupo; emails: string[] },
   pago: { monto: number; cuota: number; deuda: number },
 ) {
+  const t = await textosDe("pagoRecibido");
+  const vars = {
+    alumno: alumno.nombre,
+    grupo: grupo.nombre,
+    cuota: String(pago.cuota),
+    monto: pesos(pago.monto),
+  };
+  const con = (texto: string) => render(texto, vars);
+
   for (const email of emails) {
     await entregar(
       {
         tipo: "CONFIRMACION_PADRE",
         destinatario: email,
-        asunto: `Recibimos tu pago — ${grupo.nombre}`,
+        asunto: con(t.asunto),
         cuerpo: [
           "Hola,",
           "",
-          `Confirmamos la acreditación de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}.`,
+          con(t.parrafo),
           "",
           pago.deuda > 0
             ? `Saldo pendiente del plan: ${pesos(pago.deuda)}.`
             : "Con esto quedás al día con todo el plan.",
-          "",
-          "Este mail es tu comprobante.",
+          ...(t.nota ? ["", con(t.nota)] : []),
           ...firma,
         ].join("\n"),
         alumnoId: alumno.id,
@@ -175,11 +199,9 @@ export async function notificarPagoRecibido(
       },
       plantillaEmail({
         preheader: `Acreditamos ${pesos(pago.monto)} de la cuota ${pago.cuota} de ${alumno.nombre}.`,
-        titulo: "Recibimos tu pago",
+        titulo: con(t.titulo),
         saludo: "Hola,",
-        parrafos: [
-          `Confirmamos la acreditación del pago de la cuota ${pago.cuota} de ${alumno.nombre}. Este mail es tu comprobante.`,
-        ],
+        parrafos: [con(t.parrafo)],
         destacado: {
           rotulo: "Pago acreditado",
           valor: pesos(pago.monto),
@@ -250,22 +272,29 @@ export async function notificarPagoParcial(
   }: { alumno: Alumno; grupo: Grupo; emails: string[] },
   pago: { monto: number; cuota: number; falta: number },
 ) {
+  const t = await textosDe("pagoParcial");
+  const vars = {
+    alumno: alumno.nombre,
+    grupo: grupo.nombre,
+    cuota: String(pago.cuota),
+    monto: pesos(pago.monto),
+    falta: pesos(pago.falta),
+  };
+  const con = (texto: string) => render(texto, vars);
+
   for (const email of emails) {
     await entregar(
       {
         tipo: "PAGO_PARCIAL",
         destinatario: email,
-        asunto: `Faltó completar la cuota ${pago.cuota} — ${grupo.nombre}`,
+        asunto: con(t.asunto),
         cuerpo: [
           "Hola,",
           "",
-          `Recibimos tu transferencia de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}.`,
-          "",
-          `Faltaron ${pesos(pago.falta)} para completarla, así que la cuota sigue figurando impaga.`,
+          con(t.parrafo),
           "",
           `Podés transferir la diferencia acá: ${linkAlumno(alumno.token)}`,
-          "",
-          "Si ya la transferiste, ignorá este mensaje.",
+          ...(t.nota ? ["", con(t.nota)] : []),
           ...firma,
         ].join("\n"),
         alumnoId: alumno.id,
@@ -273,11 +302,9 @@ export async function notificarPagoParcial(
       },
       plantillaEmail({
         preheader: `Faltaron ${pesos(pago.falta)} para completar la cuota ${pago.cuota} de ${alumno.nombre}.`,
-        titulo: "Faltó completar la cuota",
+        titulo: con(t.titulo),
         saludo: "Hola,",
-        parrafos: [
-          `Recibimos tu transferencia de ${pesos(pago.monto)} para la cuota ${pago.cuota} de ${alumno.nombre}, pero no alcanzó a cubrirla entera. La cuota sigue figurando impaga hasta que entre la diferencia.`,
-        ],
+        parrafos: [con(t.parrafo)],
         destacado: {
           rotulo: `Falta de la cuota ${pago.cuota}`,
           valor: pesos(pago.falta),
@@ -288,7 +315,7 @@ export async function notificarPagoParcial(
           texto: "Pagar la diferencia",
           url: linkAlumno(alumno.token),
         },
-        nota: "Si ya la transferiste, ignorá este mensaje.",
+        nota: con(t.nota) || undefined,
         responder: true,
       }),
     );
@@ -331,23 +358,33 @@ export async function notificarRecordatorio(
   { alumno, grupo, email }: { alumno: Alumno; grupo: Grupo; email: string },
   cuota: { numero: number; monto: number; venceEl: Date; vencida: boolean },
 ) {
+  // Vencida y por vencer son dos plantillas y no una con un `if` adentro: son
+  // dos mensajes distintos —uno avisa, el otro reclama— y Halley tiene que
+  // poder darles tono distinto sin tocar el otro.
+  const t = await textosDe(
+    cuota.vencida ? "recordatorioVencida" : "recordatorio",
+  );
+  const vars = {
+    alumno: alumno.nombre,
+    grupo: grupo.nombre,
+    cuota: String(cuota.numero),
+    monto: pesos(cuota.monto),
+    vence: fecha(cuota.venceEl),
+  };
+  const con = (texto: string) => render(texto, vars);
+
   return entregar(
     {
       tipo: "RECORDATORIO",
       destinatario: email,
-      asunto: cuota.vencida
-        ? `Cuota vencida — ${grupo.nombre}`
-        : `Recordatorio de cuota — ${grupo.nombre}`,
+      asunto: con(t.asunto),
       cuerpo: [
         "Hola,",
         "",
-        cuota.vencida
-          ? `La cuota ${cuota.numero} de ${alumno.nombre}, de ${pesos(cuota.monto)}, venció el ${fecha(cuota.venceEl)} y figura impaga.`
-          : `Queda pendiente la cuota ${cuota.numero} de ${alumno.nombre}, de ${pesos(cuota.monto)}, que vence el ${fecha(cuota.venceEl)}.`,
+        con(t.parrafo),
         "",
         `Pagala acá: ${linkAlumno(alumno.token)}`,
-        "",
-        "Si ya transferiste, ignorá este mensaje.",
+        ...(t.nota ? ["", con(t.nota)] : []),
         ...firma,
       ].join("\n"),
       alumnoId: alumno.id,
@@ -357,13 +394,9 @@ export async function notificarRecordatorio(
       preheader: cuota.vencida
         ? `La cuota ${cuota.numero} de ${alumno.nombre} está vencida.`
         : `Se acerca el vencimiento de la cuota ${cuota.numero} de ${alumno.nombre}.`,
-      titulo: cuota.vencida ? "Cuota vencida" : "Recordatorio de cuota",
+      titulo: con(t.titulo),
       saludo: "Hola,",
-      parrafos: [
-        cuota.vencida
-          ? `La cuota ${cuota.numero} de ${alumno.nombre} venció y figura impaga. Si se atrasa más, se le suma un recargo por mora.`
-          : `Queda pendiente la cuota ${cuota.numero} de ${alumno.nombre}. Pagando antes del vencimiento evitás recargos.`,
-      ],
+      parrafos: [con(t.parrafo)],
       destacado: {
         rotulo: `Cuota ${cuota.numero}`,
         valor: pesos(cuota.monto),
@@ -371,7 +404,7 @@ export async function notificarRecordatorio(
         alerta: cuota.vencida,
       },
       boton: { texto: "Pagar la cuota", url: linkAlumno(alumno.token) },
-      nota: "Si ya transferiste, ignorá este mensaje.",
+      nota: con(t.nota) || undefined,
       responder: true,
     }),
   );

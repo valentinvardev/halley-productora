@@ -6,6 +6,13 @@ import { enviarEmail } from "~/server/email";
 import { emailHabilitado } from "~/server/email";
 import { muestraEmail } from "~/server/email-muestras";
 import { TIPOS_MUESTRA } from "~/server/email-muestras";
+import {
+  PLANTILLAS_ORDEN,
+  guardarPlantilla,
+  restaurarPlantilla,
+  todasLasPlantillas,
+  type IdPlantilla,
+} from "~/server/plantillas";
 
 export const notificacionRouter = createTRPCRouter({
   /** Bandeja de salida: todo lo que el sistema habría enviado por email. */
@@ -67,6 +74,47 @@ export const notificacionRouter = createTRPCRouter({
         html: muestra.html,
       });
       if (!r.ok) throw new TRPCError({ code: "BAD_REQUEST", message: r.error });
+      return { ok: true };
+    }),
+
+  /* --------------------------------------------------- textos de los mails */
+
+  /**
+   * Los textos editables, con el vigente y el de fábrica.
+   *
+   * Van los dos porque el panel necesita poder mostrar "esto está editado" y
+   * ofrecer volver atrás sin pedirle otra consulta al servidor.
+   */
+  plantillas: adminProcedure.query(() => todasLasPlantillas()),
+
+  guardarPlantilla: adminProcedure
+    .input(
+      z.object({
+        id: z.enum(PLANTILLAS_ORDEN as [IdPlantilla, ...IdPlantilla[]]),
+        // El asunto y el título son de una línea; el cuerpo y la nota pueden
+        // ser largos. Los topes están para que nadie pegue un documento entero
+        // en un campo que después se manda por correo.
+        asunto: z.string().trim().min(1).max(200),
+        titulo: z.string().trim().min(1).max(200),
+        parrafo: z.string().trim().min(1).max(2000),
+        nota: z.string().trim().max(500),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...textos } = input;
+      await guardarPlantilla(id, textos);
+      return { ok: true };
+    }),
+
+  /** Vuelve una plantilla al texto del código. */
+  restaurarPlantilla: adminProcedure
+    .input(
+      z.object({
+        id: z.enum(PLANTILLAS_ORDEN as [IdPlantilla, ...IdPlantilla[]]),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await restaurarPlantilla(input.id);
       return { ok: true };
     }),
 });
