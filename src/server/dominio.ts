@@ -40,11 +40,8 @@ export type CuotaImputada = {
  */
 export const DIA_VENCIMIENTO = 20;
 
-/** El recargo arranca cuando la cuota lleva 2 meses vencida y llega al tope a los 5. */
-const MORA_DESDE_MESES = 2;
-const MORA_HASTA_MESES = 5;
-const MORA_MIN = 0.03;
-const MORA_MAX = 0.05;
+/** Lo que se le suma a una cuota por cada mes entero que lleva vencida. */
+const MORA_MENSUAL = 0.03;
 
 /** Cuántos meses enteros pasaron desde el vencimiento hasta ahora. */
 function mesesVencida(venceEl: Date, ahora: Date) {
@@ -59,18 +56,34 @@ function mesesVencida(venceEl: Date, ahora: Date) {
 /**
  * Recargo por mora, como fracción del monto.
  *
- * Sube parejo del 3% a los 2 meses vencida hasta el 5% a los 5, y ahí se
- * queda: la mora encarece, no se dispara. Antes de los 2 meses no hay recargo.
+ * Es compuesto: cada mes que la cuota sigue impaga se le aplica el 3% sobre lo
+ * que ya venía recargado, no sobre el monto original. A los tres meses no es 9%
+ * sino 9,27%; al año no es 36% sino 42,6%. Antes esto era otra cosa —subía
+ * parejo del 3% a los dos meses hasta el 5% a los cinco y ahí topaba— y lo
+ * cambió Halley: querían que la mora se acumule mes a mes y no que se planche.
+ *
+ * Sin techo. Es la contracara de que sea compuesta y hay que saberla: una cuota
+ * abandonada dos años más que se duplica sola. La decisión es de Halley y es la
+ * que hace que atrasarse duela; si algún día quieren ponerle tope, va acá.
+ *
+ * Corre desde el vencimiento, sin meses de gracia, y cuenta meses enteros: una
+ * cuota con diez días de atraso todavía no debe nada. El primer 3% aparece
+ * cuando se cumple un mes.
+ *
+ * Se aplica por cuota y sobre el monto de esa cuota, no sobre la deuda junta.
+ * Dos cuotas vencidas hace tres y hace un mes acumulan distinto, que es lo
+ * correcto: cada una se atrasó lo suyo.
+ *
+ * Vale para toda instancia de pago vencida, seña incluida. La seña no es una
+ * cuota, pero es algo que había que pagar y no se pagó.
  *
  * Es una decisión de negocio y vive en un solo lugar a propósito: se cambia acá
  * y lo toman el panel, el cobro y el aviso por igual.
  */
 export function recargoPorMora(venceEl: Date, ahora = new Date()) {
   const meses = mesesVencida(venceEl, ahora);
-  if (meses < MORA_DESDE_MESES) return 0;
-  if (meses >= MORA_HASTA_MESES) return MORA_MAX;
-  const tramo = (meses - MORA_DESDE_MESES) / (MORA_HASTA_MESES - MORA_DESDE_MESES);
-  return MORA_MIN + tramo * (MORA_MAX - MORA_MIN);
+  if (meses <= 0) return 0;
+  return Math.pow(1 + MORA_MENSUAL, meses) - 1;
 }
 
 /**
