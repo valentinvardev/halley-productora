@@ -157,6 +157,20 @@ export const grupoRouter = createTRPCRouter({
               cuotas: plan.cuotas,
               proxima: plan.proxima,
             },
+            /**
+             * Qué cuotas tiene arregladas aparte, para que el panel pueda
+             * distinguirlas del precio del grupo.
+             *
+             * El plan de arriba ya viene con los montos resueltos, así que sin
+             * esto no habría forma de saber si un $35.000 es el precio de todos
+             * o el acuerdo de esta familia — y por lo tanto tampoco de ofrecer
+             * volver al general.
+             */
+            ajustes: a.ajustesCuota.map((x) => ({
+              cuotaId: x.cuotaId,
+              monto: x.monto === null ? null : Number(x.monto),
+              venceEl: x.venceEl,
+            })),
             pagos: a.pagos.map((p) => ({
               id: p.id,
               monto: Number(p.monto),

@@ -41,6 +41,7 @@ import { EsqueletoDetalle } from "./esqueletos";
 import { AvisosGrupoAdmin } from "./avisos-grupo-admin";
 import { FotosGaleria } from "./fotos-galeria";
 import { GestionCuotas } from "./gestion-cuotas";
+import { MontosDelGrupo } from "./montos-plan";
 
 export function DetalleGrupo({ id }: { id: string }) {
   const utils = api.useUtils();
@@ -56,6 +57,7 @@ export function DetalleGrupo({ id }: { id: string }) {
   const [borrando, setBorrando] = useState(false);
   /** Si el modal de cuotas está abierto. */
   const [gestionandoCuotas, setGestionandoCuotas] = useState(false);
+  const [editandoMontos, setEditandoMontos] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   const refrescar = async (mensaje?: string) => {
@@ -172,7 +174,10 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
-      <PlanDelGrupo cuotas={grupo.cuotas} />
+      <PlanDelGrupo
+        cuotas={grupo.cuotas}
+        alEditar={() => setEditandoMontos(true)}
+      />
 
       <CuentaDePago
         grupoId={id}
@@ -349,6 +354,16 @@ export function DetalleGrupo({ id }: { id: string }) {
         </div>
       )}
 
+      <MontosDelGrupo
+        abierto={editandoMontos}
+        alCerrar={() => setEditandoMontos(false)}
+        cuotas={grupo.cuotas}
+        conPrecioPropio={
+          grupo.alumnos.filter((a) => a.ajustes.length > 0).length
+        }
+        alRefrescar={refrescar}
+      />
+
       {/* Queda siempre montado: si se desmontara al cerrar, el modal
           desaparecería de golpe en vez de irse con su animación. */}
       <AccionesAlumno
@@ -458,8 +473,10 @@ export function DetalleGrupo({ id }: { id: string }) {
  */
 function PlanDelGrupo({
   cuotas,
+  alEditar,
 }: {
   cuotas: { id: string; numero: number; monto: number; venceEl: Date }[];
+  alEditar: () => void;
 }) {
   const primera = cuotas[0];
   const ultima = cuotas[cuotas.length - 1];
@@ -505,6 +522,15 @@ function PlanDelGrupo({
         <div className="mt-1.5 font-display text-[26px] leading-none">
           {pesos(total)}
         </div>
+        {/* "Por alumno" es el del curso: el que tenga precio propio paga otra
+            cosa, y ése se edita desde su ficha. */}
+        <button
+          type="button"
+          onClick={alEditar}
+          className="mt-2 cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
+        >
+          Editar montos
+        </button>
       </div>
     </div>
   );

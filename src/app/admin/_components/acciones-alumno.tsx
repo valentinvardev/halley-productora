@@ -12,6 +12,7 @@ import {
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { PlanCuotas, type CuotaVista } from "~/app/_components/plan-cuotas";
+import { PrecioDelAlumno } from "./montos-plan";
 import {
   Boton,
   BotonTexto,
@@ -53,6 +54,8 @@ export type AlumnoAcciones = {
     recibidoEn: Date;
     refPago: string;
   }[];
+  /** Las cuotas con precio propio, para distinguirlas del precio del curso. */
+  ajustes: { cuotaId: string; monto: number | null; venceEl: Date | null }[];
 };
 
 function Seccion({
@@ -236,6 +239,15 @@ export function AccionesAlumno({
               destacar={datos.plan.proxima?.id}
             />
           </div>
+        </Seccion>
+
+        <Seccion titulo="Precio de esta familia">
+          <PrecioDelAlumno
+            alumnoId={datos.id}
+            cuotas={datos.plan.cuotas}
+            ajustes={datos.ajustes}
+            alRefrescar={alRefrescar}
+          />
         </Seccion>
 
         <Seccion titulo="Transferencias recibidas">
