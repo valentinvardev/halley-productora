@@ -13,6 +13,7 @@ import {
   linkRegistroAlumno,
   sumarPagos,
 } from "~/server/dominio";
+import { credencialesDeGrupo } from "~/server/talo";
 import { simuladorTaloActivo } from "~/server/demo";
 import { slugify } from "~/lib/slug";
 
@@ -119,6 +120,19 @@ export const grupoRouter = createTRPCRouter({
         cuentaPago: grupo.cuentaPago
           ? { id: grupo.cuentaPago.id, nombre: grupo.cuentaPago.nombre, proveedor: grupo.cuentaPago.proveedor }
           : null,
+        /**
+         * Si este grupo puede darle un CVU a un alumno nuevo.
+         *
+         * Crear un alumno le pide el CVU a Talo antes de escribir nada, y para
+         * eso hacen falta credenciales: las de la cuenta asignada al grupo, o
+         * las de la cuenta marcada por defecto, o las del entorno. Si no hay
+         * ninguna, el alta explota con un error que llega al panel como "algo se
+         * rompió" y no como "falta configurar esto".
+         *
+         * Se resuelve acá y viaja como un sí o un no. Nunca sale la credencial:
+         * lo único que el panel necesita saber es si puede o no.
+         */
+        puedeAltaDeAlumnos: (await credencialesDeGrupo(grupo.id)) !== null,
         resumen: resumir(grupo.cuotas, grupo.alumnos),
         cuotas: grupo.cuotas.map((c) => ({
           id: c.id,

@@ -21,6 +21,7 @@ import {
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { ItemAccion, MenuAcciones } from "~/app/_components/menu-acciones";
+import { Desplegable } from "~/app/_components/desplegable";
 import { Modal } from "~/app/_components/modal";
 import {
   Boton,
@@ -213,7 +214,11 @@ export function DetalleGrupo({ id }: { id: string }) {
       <Galerias grupoId={id} galerias={grupo.galerias} alGuardar={refrescar} />
 
       {grupo.tipo !== "PARTICULAR" && (
-        <AltaAlumnos grupoId={id} alTerminar={refrescar} />
+        <AltaAlumnos
+          grupoId={id}
+          habilitado={grupo.puedeAltaDeAlumnos}
+          alTerminar={refrescar}
+        />
       )}
 
       {grupo.alumnos.length === 0 ? (
@@ -624,28 +629,25 @@ function CuentaDePago({
             : "La de por defecto"}
         </div>
       </div>
-      <select
-        value={actual?.id ?? ""}
-        onChange={(e) =>
-          asignar.mutate({
-            id: grupoId,
-            cuentaPagoId: e.target.value || null,
-          })
+      <Desplegable
+        compacto
+        placeholder="La de por defecto"
+        valor={actual?.id ?? ""}
+        deshabilitado={asignar.isPending}
+        alCambiar={(v) =>
+          asignar.mutate({ id: grupoId, cuentaPagoId: v || null })
         }
-        disabled={asignar.isPending}
-        className="border border-ink bg-lienzo px-3 py-[9px] text-[13px]"
-      >
-        <option value="">La de por defecto</option>
-        {cuentas
-          ?.filter((c) => c.activa)
-          .map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre} —{" "}
-              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
-              {c.pista}
-            </option>
-          ))}
-      </select>
+        opciones={[
+          { valor: "", etiqueta: "La de por defecto" },
+          ...(cuentas ?? [])
+            .filter((c) => c.activa)
+            .map((c) => ({
+              valor: c.id,
+              etiqueta: `${c.nombre} — ${c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}`,
+              nota: c.pista,
+            })),
+        ]}
+      />
     </div>
   );
 }
@@ -769,9 +771,12 @@ function Galerias({
 
 function AltaAlumnos({
   grupoId,
+  habilitado,
   alTerminar,
 }: {
   grupoId: string;
+  /** Si el grupo tiene de dónde sacar credenciales para pedir el CVU. */
+  habilitado: boolean;
   alTerminar: (mensaje?: string) => Promise<void>;
 }) {
   const [modo, setModo] = useState<"cerrado" | "uno" | "bloque">("cerrado");
@@ -799,6 +804,44 @@ function AltaAlumnos({
       );
     },
   });
+
+  /**
+   * Sin cuenta que cobre no se puede dar de alta a nadie.
+   *
+   * Cargar un alumno le pide un CVU propio a Talo antes de escribir nada en la
+   * base, así que sin credenciales el alta falla entera: no se crea el alumno y
+   * tampoco sale su invitación. Eso llegaba al panel como un error suelto, que
+   * se lee como "se rompió" y no como "falta configurar esto" — y encima no
+   * decía dónde se configura.
+   *
+   * Se avisa antes y en lugar del formulario. Ofrecer un formulario que no
+   * puede funcionar es hacer escribir un nombre para después tirarlo.
+   */
+  if (!habilitado) {
+    return (
+      <div className="mb-8 border border-marca p-5">
+        <div className="flex items-center gap-2 font-rotulo text-[12px] tracking-[0.06em] text-marca uppercase">
+          <IconoAlerta />
+          Falta la cuenta que cobra
+        </div>
+        <p className="nota mt-2 max-w-[62ch]">
+          Este grupo no tiene una cuenta de Talo asignada, y tampoco hay una
+          marcada como <strong className="font-normal text-ink">por
+          defecto</strong> que esté activa. Cada alumno necesita su propio CVU
+          para poder cobrarle, y ese CVU lo emite la cuenta — sin una, no se
+          puede dar de alta a nadie.
+        </p>
+        <p className="nota mt-2 max-w-[62ch]">
+          Asignale una arriba, en <strong className="font-normal text-ink">
+          Cuenta que cobra</strong>, o marcá una como por defecto en{" "}
+          <Link href="/admin/cuentas" className="underline underline-offset-2">
+            Cuentas de pago
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
 
   if (modo === "cerrado") {
     return (
