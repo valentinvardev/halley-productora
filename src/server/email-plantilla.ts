@@ -49,13 +49,8 @@ export function plantillaEmail(opts: {
   destacado?: Destacado;
   boton?: { texto: string; url: string };
   nota?: string;
-  /**
-   * Invita a responder el correo. Va en los que le hablan a una familia: si no
-   * se lo decimos, nadie contesta un mail que parece automático.
-   */
-  responder?: boolean;
 }): string {
-  const logo = `${env.NEXT_PUBLIC_APP_URL}/marca/palabra-oscuro.png`;
+  const cabecera = `${env.NEXT_PUBLIC_APP_URL}/marca/email-cabecera.png`;
 
   const parrafosHtml = opts.parrafos
     .map(
@@ -116,7 +111,13 @@ export function plantillaEmail(opts: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Las dos declaraciones y no una: "color-scheme" la lee Apple Mail y
+       "supported-color-schemes" es la que mira Gmail. Piden lo mismo —que no
+       inviertan nada— y ninguna de las dos se respeta siempre, por eso además
+       la cabecera lleva su fondo adentro de la imagen. -->
   <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <style>:root{color-scheme:light;supported-color-schemes:light;}</style>
   <title>${esc(opts.titulo)}</title>
 </head>
 <body style="margin:0;padding:0;background:${CREMA};">
@@ -130,9 +131,20 @@ export function plantillaEmail(opts: {
 
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;border:1px solid ${TINTA};background:#ffffff;">
 
-        <!-- header: banda oscura con el logotipo crema -->
-        <tr><td align="center" bgcolor="${TINTA}" style="background:${TINTA};padding:26px 24px;">
-          <img src="${logo}" width="150" alt="Halley Audiovisual" style="display:block;width:150px;height:auto;border:0;">
+        <!-- Header: la banda oscura viaja adentro de la imagen.
+
+             Antes era una celda con fondo tinta y el logotipo crema encima. Se
+             veía bien en todos lados menos en el modo oscuro de Gmail en iOS,
+             que invierte los colores del correo por su cuenta: la banda pasaba a
+             clara, el PNG no —las imágenes no se invierten— y quedaba crema
+             sobre casi blanco, ilegible.
+
+             Con el fondo horneado en la imagen el problema no puede pasar,
+             invierta quien invierta. La celda mantiene su bgcolor igual, que
+             es lo que se ve mientras la imagen carga o si el cliente bloquea
+             imágenes. -->
+        <tr><td align="center" bgcolor="${TINTA}" style="background:${TINTA};font-size:0;line-height:0;">
+          <img src="${cabecera}" width="600" alt="Halley Audiovisual" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td></tr>
 
         <!-- cuerpo -->
@@ -149,11 +161,11 @@ export function plantillaEmail(opts: {
 
         <!-- footer -->
         <tr><td style="padding:20px 36px 26px;border-top:1px solid ${TINTA};background:${PAPEL};">
-          ${
-            opts.responder
-              ? `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #ded9cd;font-family:${SANS};font-size:12.5px;line-height:1.55;color:${TINTA};"><strong>¿Tenés una duda?</strong> Respondé este correo y te contestamos.</div>`
-              : ""
-          }
+          <!-- Acá decía "respondé este correo y te contestamos". Se fue porque
+               Halley no atiende la casilla: prometer una respuesta que no va a
+               llegar es peor que no ofrecerla. En su lugar se dice que es un
+               correo automático y por dónde escribir de verdad. -->
+          <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #ded9cd;font-family:${SANS};font-size:12.5px;line-height:1.55;color:${GRIS};">Este es un correo automático y no se responde. Para cualquier consulta, escribinos por WhatsApp desde <a href="${env.NEXT_PUBLIC_APP_URL}" target="_blank" style="color:${TINTA};">nuestra web</a>.</div>
           <div style="font-family:${SANS};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${GRIS};">Halley Audiovisual · Córdoba, Argentina</div>
           <div style="margin-top:6px;font-family:${SANS};font-size:11.5px;line-height:1.5;color:${GRIS};">Dron, fotografía y video. Los momentos son fugaces: Halley los hace eternos.</div>
         </td></tr>
