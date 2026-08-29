@@ -8,6 +8,7 @@ import { Ayuda } from "~/app/_components/ayuda";
 import { IconoProbeta, IconoSobre } from "~/app/_components/iconos";
 import { Boton, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
 import { fechaHora } from "~/lib/format";
+import { Desplegable } from "~/app/_components/desplegable";
 import { api } from "~/trpc/react";
 import { EsqueletoBandeja } from "./esqueletos";
 
@@ -146,22 +147,15 @@ function ProbarPlantillas() {
           </p>
 
           <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-            <label className="flex flex-col gap-1.5">
-              <span className="font-rotulo text-[10.5px] uppercase tracking-[0.06em] text-gray-70">
-                Plantilla
-              </span>
-              <select
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value as keyof typeof ROTULO)}
-                className="border border-ink bg-lienzo px-3 py-[11px] text-[14px]"
-              >
-                {Object.entries(ROTULO).map(([valor, etiqueta]) => (
-                  <option key={valor} value={valor}>
-                    {etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Desplegable
+              label="Plantilla"
+              valor={tipo}
+              alCambiar={(v) => setTipo(v as keyof typeof ROTULO)}
+              opciones={Object.entries(ROTULO).map(([valor, etiqueta]) => ({
+                valor,
+                etiqueta,
+              }))}
+            />
 
             <Campo
               label="Mandar a"

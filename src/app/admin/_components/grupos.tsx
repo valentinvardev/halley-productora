@@ -21,6 +21,7 @@ import {
   Vacio,
 } from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
+import { Desplegable } from "~/app/_components/desplegable";
 import { api } from "~/trpc/react";
 import { EsqueletoGrupos } from "./esqueletos";
 
@@ -176,25 +177,21 @@ function SelectorCuenta({
 }) {
   const { data: cuentas } = api.cuentaPago.listar.useQuery();
   return (
-    <label className="flex flex-col gap-1.5">
-      <Etiqueta>Cuenta que cobra</Etiqueta>
-      <select
-        value={valor}
-        onChange={(e) => alCambiar(e.target.value)}
-        className="border border-ink bg-lienzo px-3 py-[11px] text-[14px]"
-      >
-        <option value="">La de por defecto</option>
-        {cuentas
-          ?.filter((c) => c.activa)
-          .map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre} —{" "}
-              {c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}{" "}
-              {c.pista}
-            </option>
-          ))}
-      </select>
-    </label>
+    <Desplegable
+      label="Cuenta que cobra"
+      valor={valor}
+      alCambiar={alCambiar}
+      opciones={[
+        { valor: "", etiqueta: "La de por defecto" },
+        ...(cuentas ?? [])
+          .filter((c) => c.activa)
+          .map((c) => ({
+            valor: c.id,
+            etiqueta: `${c.nombre} — ${c.proveedor === "MERCADOPAGO" ? "Mercado Pago" : "Talo"}`,
+            nota: c.pista,
+          })),
+      ]}
+    />
   );
 }
 

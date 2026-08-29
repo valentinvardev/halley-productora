@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { IconoAlerta, IconoTilde } from "~/app/_components/iconos";
+import { Desplegable } from "~/app/_components/desplegable";
 import { Modal } from "~/app/_components/modal";
 import { Boton } from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
@@ -243,42 +244,30 @@ export function GestionCuotas({
         </ul>
 
         <div className="mt-5 grid gap-3">
-          <label className="grid gap-1.5">
-            <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-70 uppercase">
-              {modo === "marcar" ? "Qué se marca" : "Qué se deshace"}
-            </span>
-            {modo === "marcar" ? (
-              <select
-                value={cuota === null ? "todas" : String(cuota)}
-                onChange={(e) =>
-                  setCuota(
-                    e.target.value === "todas" ? null : Number(e.target.value),
-                  )
-                }
-                className="w-full border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
-              >
-                <option value="todas">Todo lo que falte</option>
-                {Array.from({ length: totalCuotas }, (_, i) => i + 1).map(
-                  (n) => (
-                    <option key={n} value={n}>
-                      Cuota {n}
-                    </option>
-                  ),
-                )}
-              </select>
-            ) : (
-              <select
-                value={todosLosManuales ? "todos" : "ultimo"}
-                onChange={(e) =>
-                  setTodosLosManuales(e.target.value === "todos")
-                }
-                className="w-full border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
-              >
-                <option value="ultimo">El último marcado de cada uno</option>
-                <option value="todos">Todos los marcados a mano</option>
-              </select>
-            )}
-          </label>
+          {modo === "marcar" ? (
+            <Desplegable
+              label="Qué se marca"
+              valor={cuota === null ? "todas" : String(cuota)}
+              alCambiar={(v) => setCuota(v === "todas" ? null : Number(v))}
+              opciones={[
+                { valor: "todas", etiqueta: "Todo lo que falte" },
+                ...Array.from({ length: totalCuotas }, (_, i) => ({
+                  valor: String(i + 1),
+                  etiqueta: `Cuota ${i + 1}`,
+                })),
+              ]}
+            />
+          ) : (
+            <Desplegable
+              label="Qué se deshace"
+              valor={todosLosManuales ? "todos" : "ultimo"}
+              alCambiar={(v) => setTodosLosManuales(v === "todos")}
+              opciones={[
+                { valor: "ultimo", etiqueta: "El último marcado de cada uno" },
+                { valor: "todos", etiqueta: "Todos los marcados a mano" },
+              ]}
+            />
+          )}
 
           {/* El total sale de los planes que ya vinieron imputados, así que es el
               monto exacto y no una estimación. */}

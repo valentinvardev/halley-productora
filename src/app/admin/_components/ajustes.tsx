@@ -9,6 +9,7 @@ import {
   SONIDOS_PAGO,
   type ClaveAjusteUI,
 } from "~/app/_datos/ajustes";
+import { Desplegable } from "~/app/_components/desplegable";
 import { api } from "~/trpc/react";
 import { probarAvisoCobro } from "./aviso-cobros";
 import { EsqueletoAjustes } from "./esqueletos";
@@ -83,23 +84,19 @@ export function Ajustes() {
                 sin deploy, y con un botón para escucharlo: elegir un sonido a
                 ciegas por su nombre no sirve de nada. */}
           <div>
-            <label className="mb-1.5 block font-rotulo text-[11.5px] tracking-[0.08em] text-gray-70 uppercase">
-              Sonido al cobrar
-            </label>
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={sonido}
-                onChange={(e) =>
-                  setValores((v) => ({ ...v!, sonidoPago: e.target.value }))
+            <div className="flex flex-wrap items-end gap-3">
+              <Desplegable
+                label="Sonido al cobrar"
+                className="min-w-[180px] flex-1"
+                valor={sonido}
+                alCambiar={(v) =>
+                  setValores((x) => ({ ...x!, sonidoPago: v }))
                 }
-                className="min-w-[180px] flex-1 border border-ink bg-lienzo px-3 py-2.5 text-[14px] text-ink"
-              >
-                {SONIDOS_PAGO.map((o) => (
-                  <option key={o.valor} value={o.valor}>
-                    {o.etiqueta}
-                  </option>
-                ))}
-              </select>
+                opciones={SONIDOS_PAGO.map((o) => ({
+                  valor: o.valor,
+                  etiqueta: o.etiqueta,
+                }))}
+              />
               {/* Ya no está deshabilitado en "silencio": probar ahora también
                   muestra el cartel, y ver dónde aparece y qué dice es la mitad
                   de lo que uno quiere saber antes de dejarlo andando. */}

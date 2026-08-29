@@ -8,6 +8,7 @@ import {
   IconoMas,
   IconoPapelera,
 } from "~/app/_components/iconos";
+import { Desplegable } from "~/app/_components/desplegable";
 import { Modal } from "~/app/_components/modal";
 import { Boton, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
@@ -325,22 +326,15 @@ function FormularioCuenta({
           onChange={(e) => setNombre(e.target.value)}
         />
 
-        <label className="flex flex-col gap-1.5">
-          <span className="font-rotulo text-[10.5px] uppercase tracking-[0.06em] text-gray-70">
-            Proveedor
-          </span>
-          <select
-            value={proveedor}
-            onChange={(e) => setProveedor(e.target.value as Proveedor)}
-            className="border border-ink bg-lienzo px-3 py-[11px] text-[14px]"
-          >
-            {PROVEEDORES.map((p) => (
-              <option key={p.valor} value={p.valor}>
-                {p.etiqueta}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Desplegable
+          label="Proveedor"
+          valor={proveedor}
+          alCambiar={(v) => setProveedor(v as Proveedor)}
+          opciones={PROVEEDORES.map((p) => ({
+            valor: p.valor,
+            etiqueta: p.etiqueta,
+          }))}
+        />
 
         <Campo
           label={

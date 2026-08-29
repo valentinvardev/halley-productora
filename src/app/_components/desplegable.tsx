@@ -29,14 +29,21 @@ export function Desplegable({
   placeholder = "Elegí una opción",
   vacio = "No hay opciones",
   className = "",
+  deshabilitado = false,
+  compacto = false,
 }: {
-  label: string;
+  /** Vacío lo deja sin rótulo, para donde el contexto ya lo dice. */
+  label?: string;
   opciones: Opcion[];
   valor: string | null;
   alCambiar: (valor: string) => void;
   placeholder?: string;
   vacio?: string;
   className?: string;
+  /** Mientras se está guardando, para que no se elija dos veces. */
+  deshabilitado?: boolean;
+  /** Un punto menos de alto y de cuerpo, para las filas apretadas. */
+  compacto?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [foco, setFoco] = useState(0);
@@ -98,21 +105,34 @@ export function Desplegable({
       className={`relative flex flex-col gap-1.5 ${className}`}
       ref={contenedor}
     >
-      <Etiqueta>{label}</Etiqueta>
+      {label && <Etiqueta>{label}</Etiqueta>}
 
       <button
         type="button"
         ref={disparador}
         onClick={() => setAbierto((a) => !a)}
+        disabled={deshabilitado}
         aria-haspopup="listbox"
         aria-expanded={abierto}
-        className="flex items-center justify-between gap-3 border border-ink bg-lienzo px-3 py-[11px] text-left text-[14px]"
+        aria-label={label ? undefined : placeholder}
+        className={`flex items-center justify-between gap-3 border border-ink bg-lienzo text-left disabled:cursor-default disabled:opacity-50 ${
+          compacto
+            ? "px-3 py-[9px] text-[13px]"
+            : "px-3 py-[11px] text-[14px]"
+        }`}
       >
         <span className={elegida ? "" : "text-gray-45"}>
           {elegida?.etiqueta ?? placeholder}
         </span>
-        <span className="font-mono text-[10px] tracking-[0.1em] text-gray-45">
-          {abierto ? "▴" : "▾"}
+        {/* El triángulo gira en vez de cambiar de glifo: son el mismo carácter
+            y así no salta de ancho al abrirse. */}
+        <span
+          aria-hidden="true"
+          className={`font-mono text-[10px] tracking-[0.1em] text-gray-45 transition-transform ${
+            abierto ? "rotate-180" : ""
+          }`}
+        >
+          ▾
         </span>
       </button>
 
