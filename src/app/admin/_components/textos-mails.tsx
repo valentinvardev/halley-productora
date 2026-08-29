@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Desplegable } from "~/app/_components/desplegable";
 import { IconoVolver } from "~/app/_components/iconos";
 import {
   Boton,
@@ -36,6 +37,10 @@ type Plantilla = RouterOutputs["notificacion"]["plantillas"][number];
 
 export function TextosMails() {
   const lista = api.notificacion.plantillas.useQuery();
+  const [elegida, setElegida] = useState<string | null>(null);
+
+  const plantillas = lista.data ?? [];
+  const actual = plantillas.find((p) => p.id === elegida) ?? plantillas[0];
 
   return (
     <>
@@ -58,11 +63,38 @@ export function TextosMails() {
       {lista.isPending ? (
         <p className="nota mt-8">Cargando…</p>
       ) : (
-        <div className="mt-8 grid gap-px bg-gray-20">
-          {(lista.data ?? []).map((p) => (
-            <Ficha key={p.id} plantilla={p} alGuardar={() => lista.refetch()} />
-          ))}
-        </div>
+        <>
+          {/* Uno a la vez. Los seis apilados eran una pared de veinticuatro
+              campos donde no se sabía dónde terminaba uno y empezaba el otro, y
+              obligaba a scrollear para encontrar el que se venía a cambiar.
+
+              El desplegable marca cuáles están editados, así que además se ve
+              de un vistazo qué se tocó — que apilados también se perdía. */}
+          <div className="mt-8 max-w-[420px]">
+            <Desplegable
+              label="Qué mail estás editando"
+              valor={actual?.id ?? null}
+              alCambiar={setElegida}
+              opciones={plantillas.map((p) => ({
+                valor: p.id,
+                etiqueta: p.nombre,
+                nota: p.editada ? "editado" : undefined,
+              }))}
+            />
+          </div>
+
+          {/* Se pintan las seis y se esconden las que no están elegidas, en vez
+              de montar sólo una. Así cambiar de mail para mirar otro no borra lo
+              que estabas escribiendo en el primero: el borrador sigue ahí
+              cuando volvés. Son seis formularios chicos, no cuesta nada. */}
+          <div className="mt-8">
+            {plantillas.map((p) => (
+              <div key={p.id} hidden={p.id !== actual?.id}>
+                <Ficha plantilla={p} alGuardar={() => lista.refetch()} />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </>
   );
@@ -81,18 +113,26 @@ function Ficha({
   const [nota, setNota] = useState(plantilla.textos.nota);
 
   /**
-   * Lo que llega del servidor manda.
+   * Lo que llega del servidor manda, pero sólo cuando de verdad cambió.
    *
-   * Sin esto, restaurar dejaba los campos con el texto viejo: la consulta
-   * volvía con el de fábrica y el formulario seguía mostrando lo editado,
-   * porque el estado se había inicializado una sola vez.
+   * Sin esto, restaurar dejaba los campos con el texto viejo: la consulta volvía
+   * con el de fábrica y el formulario seguía mostrando lo editado, porque el
+   * estado se había inicializado una sola vez.
+   *
+   * Las dependencias son los cuatro textos y no el objeto que los contiene. El
+   * objeto cambia de identidad en cada refetch, así que con él acá guardar una
+   * plantilla le borraba el borrador a las otras cinco — que están montadas
+   * justamente para no perderlo. Comparando los valores, esto sólo corre cuando
+   * el texto guardado cambió, que es cuando corresponde pisar lo escrito.
    */
+  const { asunto: gAsunto, titulo: gTitulo, parrafo: gParrafo, nota: gNota } =
+    plantilla.textos;
   useEffect(() => {
-    setAsunto(plantilla.textos.asunto);
-    setTitulo(plantilla.textos.titulo);
-    setParrafo(plantilla.textos.parrafo);
-    setNota(plantilla.textos.nota);
-  }, [plantilla.textos]);
+    setAsunto(gAsunto);
+    setTitulo(gTitulo);
+    setParrafo(gParrafo);
+    setNota(gNota);
+  }, [gAsunto, gTitulo, gParrafo, gNota]);
 
   const guardar = api.notificacion.guardarPlantilla.useMutation({
     onSuccess: alGuardar,
@@ -110,7 +150,7 @@ function Ficha({
   const trabajando = guardar.isPending || restaurar.isPending;
 
   return (
-    <section className="bg-paper p-6 sm:p-7">
+    <section className="border border-ink bg-paper p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="flex flex-wrap items-center gap-2.5 font-rotulo text-[13px] tracking-[0.08em] uppercase">
