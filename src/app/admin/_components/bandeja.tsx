@@ -50,6 +50,8 @@ export function Bandeja() {
         }
       />
 
+      <UsoDeResend />
+
       <ProbarPlantillas />
 
       {isLoading && <EsqueletoBandeja soloLista />}
@@ -106,6 +108,109 @@ export function Bandeja() {
         })}
       </div>
     </>
+  );
+}
+
+/**
+ * Cuánto queda del plan gratuito de Resend.
+ *
+ * Está acá arriba y no escondido en ajustes porque el problema que resuelve es
+ * enterarse tarde: cuando el cupo se llena, Resend deja de aceptar envíos y los
+ * pagos se siguen registrando, pero las familias no reciben ni el comprobante ni
+ * el aviso de que les falta plata. Eso se descubre cuando alguien reclama.
+ *
+ * Se ve en la pantalla donde ya se miran los correos, que es donde uno está
+ * cuando la pregunta aparece.
+ */
+function UsoDeResend() {
+  const { data } = api.notificacion.uso.useQuery(undefined, {
+    // El número cambia de a poco: no tiene sentido pedirlo cada tres segundos
+    // como la lista de al lado.
+    refetchInterval: 60_000,
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="mb-8 border border-ink">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-20 px-5 py-3">
+        <span className="font-rotulo text-[12px] tracking-[0.06em] uppercase">
+          Plan de envío
+        </span>
+        {!data.enviando && (
+          <span className="nota text-[11.5px] text-gray-45">
+            El envío real está apagado: no se está gastando cupo.
+          </span>
+        )}
+      </div>
+
+      <div className="grid gap-px bg-gray-20 sm:grid-cols-2">
+        <Medidor rotulo="Este mes" usado={data.mes} tope={data.limiteMes} />
+        <Medidor rotulo="Hoy" usado={data.dia} tope={data.limiteDia} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Un contador con su barra.
+ *
+ * La barra existe porque "412" no dice nada solo y "412 de 3.000" obliga a hacer
+ * una división mental. El color aparece recién cuando importa: en el 75% avisa y
+ * en el 90% alarma. Antes de eso es tinta, como todo el resto del panel — una
+ * barra que siempre está pintada de algo deja de señalar.
+ */
+function Medidor({
+  rotulo,
+  usado,
+  tope,
+}: {
+  rotulo: string;
+  usado: number;
+  tope: number;
+}) {
+  const parte = Math.min(usado / tope, 1);
+  const apretado = parte >= 0.75;
+  const critico = parte >= 0.9;
+
+  return (
+    <div className="bg-paper px-5 py-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-rotulo text-[11px] tracking-[0.08em] text-gray-45 uppercase">
+          {rotulo}
+        </span>
+        <span
+          className={`font-mono text-[12px] ${critico ? "text-marca" : "text-gray-45"}`}
+        >
+          quedan {Math.max(tope - usado, 0)}
+        </span>
+      </div>
+
+      <div className="mt-1.5 font-display text-[26px] leading-none tabular-nums">
+        {usado.toLocaleString("es-AR")}
+        <span className="text-[15px] text-gray-45">
+          {" "}
+          / {tope.toLocaleString("es-AR")}
+        </span>
+      </div>
+
+      {/* Fondo gris con la parte usada en tinta. Un píxel de alto mínimo para
+          que el primer envío del mes se vea en vez de dar una barra vacía. */}
+      <div className="mt-3 h-1.5 w-full bg-gray-20">
+        <div
+          className={`h-full ${critico ? "bg-marca" : "bg-ink"}`}
+          style={{ width: `${Math.max(parte * 100, usado > 0 ? 1 : 0)}%` }}
+        />
+      </div>
+
+      {apretado && (
+        <p className={`nota mt-2 ${critico ? "text-marca" : ""}`}>
+          {critico
+            ? "Casi sin cupo. Si se llena, los correos dejan de salir."
+            : "Se está acercando al tope."}
+        </p>
+      )}
+    </div>
   );
 }
 
