@@ -109,9 +109,19 @@ export default async function AdminLayout({
           />
         </div>
 
-        <main className="mx-auto max-w-[1080px] px-6 py-12 sm:px-8">
-          {children}
-        </main>
+        {/* Sin tope de ancho.
+
+            Cortaba en 1080px, y en un monitor de escritorio el sidebar ya se
+            lleva su parte: lo que quedaba era la grilla de contenidos encajonada
+            en el medio con el fondo del panel a los costados. En una pantalla de
+            fotos eso es espacio que se está tirando, porque lo que se hace ahí es
+            mirar muchas a la vez y compararlas.
+
+            Lo que necesita ancho corto no depende de este tope y ya lo resuelve
+            cada uno: el encabezado corta su bajada en 62 caracteres, los
+            formularios traen su propio ancho y las tablas largas van adentro de
+            su scroll horizontal. */}
+        <main className="px-6 py-12 sm:px-8">{children}</main>
 
         {/* Va en el layout y no en una pantalla: el aviso tiene que sonar se
             esté donde se esté dentro del panel. */}
