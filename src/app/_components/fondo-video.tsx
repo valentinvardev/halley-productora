@@ -23,6 +23,10 @@ import { useEffect, useRef } from "react";
  * cámara retrocede. En el teléfono no rebobina: cuando la tarjeta sale de
  * pantalla no hay nadie mirándola, y seekear cuadro por cuadro en un celular
  * cuesta más de lo que rinde.
+ *
+ * Los clips van con un keyframe cada quince cuadros. Es lo que hace que el
+ * rebobinado sea posible: con uno solo por clip, pedir el cuadro 80 obliga a
+ * decodificar los 80 anteriores, y eso no se sostiene sesenta veces por segundo.
  */
 
 /** Cuánto más rápido vuelve de lo que fue. Volver tiene que costar menos. */
@@ -39,7 +43,7 @@ export function FondoVideo({
   const video = useRef<HTMLVideoElement>(null);
   const caja = useRef<HTMLDivElement>(null);
   /** El rebobinado en curso, para poder cortarlo si vuelve el cursor. */
-  const cuadro = useRef<number | null>(null);
+  const rebobinando = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const v = video.current;
@@ -51,8 +55,8 @@ export function FondoVideo({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const frenar = () => {
-      if (cuadro.current !== null) cancelAnimationFrame(cuadro.current);
-      cuadro.current = null;
+      if (rebobinando.current) v.removeEventListener("seeked", rebobinando.current);
+      rebobinando.current = null;
     };
 
     const arrancar = () => {
@@ -64,10 +68,24 @@ export function FondoVideo({
      * Volver al principio yendo para atrás.
      *
      * `playbackRate` no acepta negativos en ningún navegador, así que el
-     * retroceso se hace moviendo `currentTime` a mano contra el reloj de los
-     * cuadros. Anda porque los clips duran tres o cuatro segundos y para cuando
-     * alguien saca el cursor ya están enteros en memoria: buscar dentro de lo
-     * que está cargado no vuelve a pedir nada a la red.
+     * retroceso se hace moviendo `currentTime` a mano. Anda porque los clips
+     * duran tres o cuatro segundos y para cuando alguien saca el cursor ya están
+     * enteros en memoria: buscar dentro de lo que está cargado no vuelve a pedir
+     * nada a la red.
+     *
+     * Cada paso espera a que el anterior haya terminado de buscar, y no a que
+     * pase el cuadro siguiente. Antes iba contra `requestAnimationFrame`, o sea
+     * sesenta pedidos por segundo sin mirar si el decodificador venía
+     * cumpliendo: cuando no daba abasto los pedidos se encimaban, la imagen se
+     * quedaba clavada y después pegaba un salto. Encadenado al `seeked`, si el
+     * decodificador tarda los pasos se hacen más largos pero siguen siendo
+     * parejos, que es lo que el ojo lee como fluido. La velocidad la sigue
+     * marcando el reloj, así que el retroceso dura lo mismo en una máquina
+     * rápida que en una lenta: cambia en cuántos tramos se divide.
+     *
+     * Lo otro que hacía falta estaba en los videos y no acá: venían con un solo
+     * keyframe, así que pedir el cuadro 80 obligaba a decodificar los 80
+     * anteriores. Se recodificaron con uno cada quince.
      */
     const rebobinar = () => {
       frenar();
@@ -75,20 +93,24 @@ export function FondoVideo({
       if (v.currentTime <= 0) return;
 
       let previo = performance.now();
-      const paso = (ahora: number) => {
+
+      const paso = () => {
+        const ahora = performance.now();
         const dt = (ahora - previo) / 1000;
         previo = ahora;
 
         const t = v.currentTime - dt * RETROCESO;
         if (t <= 0) {
+          v.removeEventListener("seeked", paso);
           v.currentTime = 0;
-          cuadro.current = null;
           return;
         }
         v.currentTime = t;
-        cuadro.current = requestAnimationFrame(paso);
       };
-      cuadro.current = requestAnimationFrame(paso);
+
+      rebobinando.current = paso;
+      v.addEventListener("seeked", paso);
+      paso();
     };
 
     // Donde hay cursor manda el cursor; donde no lo hay, entrar en pantalla.

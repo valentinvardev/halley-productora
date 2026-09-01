@@ -292,3 +292,47 @@ empiezan con `texto:`.
 la primera vez que se mueve una pieza. Revertir el código saca las flechas, pero
 el orden nuevo queda: es un dato, no código. No hay nada que arreglar, sólo
 conviene saberlo.
+
+---
+
+## Punto 1. El rebobinado de las portadas, ahora fluido
+
+**Pedido original:** "que tengan la animación invertida cuando el cursor pase a
+otro lado, porque si no se ve como un corte muy en seco".
+
+**Lo que en realidad pasaba.** La animación invertida ya existía: al sacar el
+cursor el video volvía hacia atrás en vez de cortar. Lo que no funcionaba era
+cómo volvía. Se trababa, y trabado se lee como roto.
+
+**La causa, que no estaba en el código.** Los tres videos tenían **un solo
+keyframe cada uno**. En un video comprimido, sólo los keyframes se pueden mostrar
+de forma directa; el resto de los cuadros se reconstruyen a partir del anterior.
+Con un único keyframe al principio, pedir el cuadro 80 obliga al navegador a
+reconstruir los 80 anteriores. El rebobinado pide un cuadro distinto sesenta
+veces por segundo, así que estaba pidiendo lo más caro posible al ritmo más
+exigente posible.
+
+**Qué se hizo con los videos.** Se recodificaron con un keyframe cada quince
+cuadros. Ahora el peor caso es reconstruir catorce, no ochenta. El costo es
+tamaño: los tres pasaron de 884 KB a 2,2 MB en conjunto, porque un keyframe pesa
+bastante más que un cuadro intermedio. Es un costo aceptable acá porque los
+videos no se bajan hasta que la tarjeta está por entrar en pantalla: quien nunca
+scrollea hasta los servicios no paga nada.
+
+**Verificación de calidad.** Los originales sin comprimir ya no existen, así que
+la recodificación partió de los archivos comprimidos y podía degradar la imagen.
+Se comparó un recorte al 100% del cuadro 60 de quince, que es el más difícil de
+los tres por ser escena oscura con luces, y no se distingue del anterior.
+
+**Qué se hizo con el código.** El rebobinado pedía un cuadro nuevo en cada cuadro
+de pantalla, sin mirar si el navegador había terminado de servir el anterior.
+Cuando no daba abasto los pedidos se encimaban: la imagen se quedaba clavada y
+después pegaba un salto. Ahora cada paso espera a que el anterior haya terminado.
+Si el navegador tarda, los pasos se hacen más largos pero siguen siendo parejos,
+que es lo que el ojo lee como fluido. La velocidad la sigue marcando el reloj, así
+que el retroceso dura lo mismo en una máquina rápida que en una lenta: lo que
+cambia es en cuántos tramos se divide.
+
+**Lo que sigue igual.** En el teléfono no rebobina, y es a propósito: la
+animación se dispara al entrar en pantalla, y cuando la tarjeta sale no hay nadie
+mirándola.
