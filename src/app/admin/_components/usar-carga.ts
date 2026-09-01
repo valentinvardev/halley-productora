@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { api } from "~/trpc/react";
-import { derivar, LADO_MINIATURA, LADO_MOSTRAR } from "./derivar";
+import { derivar, LADO_MINIATURA, LADO_MOSTRAR, medir } from "./derivar";
 
 /**
  * La cola de subida a S3, compartida por el resumen y la galería.
@@ -55,7 +55,8 @@ function subirConProgreso(
     xhr.open("PUT", url);
     xhr.setRequestHeader("Content-Type", file.type);
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) alProgreso(Math.round((e.loaded / e.total) * 100));
+      if (e.lengthComputable)
+        alProgreso(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
@@ -105,6 +106,11 @@ export function useCargaContenido(categoria: string, alCompletar: () => void) {
           try {
             parche(item.id, { estado: "subiendo", progreso: 0 });
 
+            // Las medidas se toman del original, antes de tocarlo. Es lo que
+            // después le deja a la vitrina reservarle el lugar a la foto sin
+            // haberla bajado todavía.
+            const medidas = await medir(file);
+
             // Se achica antes de firmar: la firma va atada al tipo de archivo, y
             // el derivado sale WebP aunque haya entrado un JPEG.
             const paraMostrar = await derivar(file, LADO_MOSTRAR);
@@ -133,7 +139,14 @@ export function useCargaContenido(categoria: string, alCompletar: () => void) {
               }
             }
 
-            await guardar.mutateAsync({ categoria, s3Key: key, s3KeyMini, tipo });
+            await guardar.mutateAsync({
+              categoria,
+              s3Key: key,
+              s3KeyMini,
+              tipo,
+              ancho: medidas?.ancho,
+              alto: medidas?.alto,
+            });
             parche(item.id, { estado: "listo", progreso: 100 });
             entroAlguna = true;
           } catch {

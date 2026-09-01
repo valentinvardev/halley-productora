@@ -501,3 +501,93 @@ preferencia clara, que es justamente el caso que antes fallaba:
 **Lo que no se tocó.** Los mails, que arman su propio HTML y ya se declaran claros
 por su cuenta. Y la vista de documento del panel, que fuerza la hoja blanca y
 sigue haciéndolo igual.
+
+---
+
+## Punto 2b. La vitrina deja de recortar las fotos
+
+**Pedido:** "quieren una galería como VSCO para las fotos verticales y
+horizontales". Es la respuesta al punto que había quedado abierto esperando
+justamente esta definición.
+
+**Antes.** El portfolio de cada servicio era una grilla de casilleros iguales de
+4:3, y cada foto entraba recortada al casillero. A una horizontal apenas se le
+notaba. A una vertical le cortaba la cabeza y los pies, que en fotos de gente es
+donde está la foto. Puestas una al lado de la otra no se distinguía cuál había
+sido vertical: todas terminaban siendo la misma foto apaisada.
+
+**Ahora.** La columna fija el ancho y cada foto se lleva el alto que le
+corresponde por su forma. Nada se recorta.
+
+**Por qué columnas y no una grilla.** Una grilla con piezas de alto distinto deja
+agujeros al final de cada fila. Las columnas apilan sin huecos, que es lo que da
+el aspecto compacto de VSCO. El costo es el orden de lectura: se lee bajando por
+una columna y no cruzando la fila. Es el mismo trato que hace VSCO, y el orden
+que se puso desde el panel se sigue respetando, empezando arriba a la izquierda.
+
+**Dos columnas en el teléfono, tres en pantalla grande.** Antes era una sola
+columna en el teléfono, o sea una foto por pantalla. Dos es lo que hace VSCO y lo
+que deja recorrer el trabajo en vez de mirarlo de a una.
+
+**El problema de fondo: había que saber la forma antes de tener la foto.** Sin
+eso la columna arranca en cero y se estira a los tirones a medida que cada foto
+llega, y la página salta bajo el dedo justo mientras alguien la está mirando. Por
+eso ahora se guardan el ancho y el alto de cada pieza.
+
+**Las fotos nuevas se miden solas al subirlas.** El navegador ya abre la imagen
+para hacerle la miniatura, así que preguntarle cuánto mide no cuesta nada. Se
+mide con la rotación del EXIF ya aplicada, que es lo que evita que una vertical
+de teléfono entre registrada como horizontal.
+
+**Las fotos que ya estaban se miden solas también.** La primera vez que alguien
+abre una categoría, el servidor le lee el encabezado a las que no tengan medidas
+y las guarda. Corre después de contestar, así que nadie espera por eso, y a la
+segunda visita ya no hay nada que medir.
+
+Se hizo así en vez de con un script de migración a propósito. Un script hay que
+acordarse de correrlo, y de volver a correrlo el día que aparezca una pieza vieja
+traída de otro lado. Esto se ocupa solo y no deja nada anotado en ninguna parte
+que después haya que recordar.
+
+**Cómo se le lee el tamaño a una foto sin bajarla.** Los formatos guardan el
+ancho y el alto en los primeros bytes, antes de los píxeles, así que se pide sólo
+el principio del archivo. Una foto de ocho megas cuesta lo que cuesta una de
+cien kilobytes. Están cubiertos PNG, JPEG, WebP y GIF, que es todo lo que la
+subida acepta y produce; AVIF queda afuera porque su contenedor obliga a recorrer
+cajas anidadas, y una pieza sin medir no rompe nada, sólo no reserva su lugar.
+
+No se usó una librería. `sharp` está en el árbol de dependencias porque lo
+arrastra Next, pero este proyecto no la declara: apoyarse en eso es construir
+sobre algo que un cambio de lockfile puede llevarse. Y son varios megas de
+librería nativa para leer dos enteros.
+
+**Un tope, que es un pasamanos y no una política.** Nada más alto que tres veces
+su ancho. Una vertical de teléfono, una de cámara y una cuadrada pasan sin que se
+les toque un píxel, que es todo el punto. Lo único que ataja es lo que no es una
+foto: una captura de pantalla larga o un panorama girado, que sin tope se llevan
+la columna entera y empujan al resto fuera de la vista.
+
+**Lo que no cambió.** La galería de entrega a la familia sigue con su grilla de
+cuadrados parejos, y es a propósito: ahí no se mira una vitrina, se busca una
+foto puntual entre cientos, y para eso las celdas iguales dejan barrer con la
+vista en línea recta. Los videos del portfolio también siguen en 16:9, que es la
+forma que tienen.
+
+**Cómo se verificó.** Con doce fotos de las dos orientaciones, la marcación real
+de la galería y la hoja de estilos compilada del proyecto, mirando cuatro casos:
+cómo se veía antes, cómo se ve ahora, cómo se ve en el teléfono y cómo se ve una
+categoría cuyas piezas todavía no fueron medidas. El lector de encabezados se
+probó contra los cuatro formatos, incluidas las tres variantes de WebP, y contra
+tres imágenes del repo cuyas medidas ya se conocían por otro lado.
+
+**Y contra la base de verdad.** Con las columnas ya aplicadas, las tres páginas
+de servicio se abrieron una por una. La medición de fondo corrió sola y dejó las
+noventa fotos medidas en la primera visita: veintiocho de bodas, cuarenta de
+egresados y veintidós de quince. Los nueve videos del hero quedaron afuera, como
+corresponde.
+
+Ahí apareció el tamaño real del problema que se venía arrastrando: **veintiuna de
+esas noventa fotos son verticales**, y a las veintiuna se les estaba cortando
+cabeza y pies para meterlas en el casillero apaisado. Mirando la página de
+egresados antes y después con las fotos reales se ve derecho: los retratos que
+salían cortados a la altura de las piernas ahora salen enteros.

@@ -21,6 +21,8 @@
  */
 
 /** El lado más largo, en píxeles, de cada versión. */
+export type Medidas = { ancho: number; alto: number };
+
 export const LADO_MOSTRAR = 2400;
 export const LADO_MINIATURA = 640;
 
@@ -61,7 +63,9 @@ export async function derivar(archivo: File, lado: number): Promise<File> {
     // fotos verticales de teléfono entran acostadas: al redibujarlas en un canvas
     // se pierde el EXIF, así que la rotación tiene que quedar horneada en los
     // píxeles.
-    bitmap = await createImageBitmap(archivo, { imageOrientation: "from-image" });
+    bitmap = await createImageBitmap(archivo, {
+      imageOrientation: "from-image",
+    });
   } catch {
     return archivo;
   }
@@ -112,5 +116,32 @@ export async function derivar(archivo: File, lado: number): Promise<File> {
     return archivo;
   } finally {
     bitmap.close();
+  }
+}
+
+/**
+ * Cuánto mide la foto, con la rotación del EXIF ya aplicada.
+ *
+ * Se mide acá y no en el servidor porque acá el archivo ya está decodificado
+ * para hacerle la miniatura: preguntarle el ancho y el alto al bitmap que ya
+ * existe no cuesta nada. Y se mide sobre el original y no sobre el derivado
+ * porque son la misma forma, y el original es el que el visor muestra.
+ *
+ * `from-image` importa tanto como en `derivar`: una foto vertical de teléfono
+ * viene con los píxeles acostados y la instrucción de girarla en el EXIF. Sin
+ * esto entraría como horizontal y la vitrina le reservaría el lugar al revés,
+ * que es exactamente el error que estas medidas vienen a evitar.
+ */
+export async function medir(archivo: File): Promise<Medidas | null> {
+  if (!archivo.type.startsWith("image/")) return null;
+  try {
+    const bitmap = await createImageBitmap(archivo, {
+      imageOrientation: "from-image",
+    });
+    const medidas = { ancho: bitmap.width, alto: bitmap.height };
+    bitmap.close();
+    return medidas.ancho > 0 && medidas.alto > 0 ? medidas : null;
+  } catch {
+    return null;
   }
 }

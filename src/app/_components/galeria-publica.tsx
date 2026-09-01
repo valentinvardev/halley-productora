@@ -7,7 +7,18 @@ import { Lightbox, type PiezaLightbox } from "./lightbox";
 import { Marca } from "./marca";
 import { botonFantasma, botonWhatsApp } from "./ui";
 
-export type PiezaPublica = PiezaLightbox;
+/**
+ * Una pieza de la vitrina, con lo que la grilla necesita de más: la forma.
+ *
+ * `ancho` y `alto` son del original, en píxeles. La grilla no los usa como
+ * tamaño sino como proporción, para reservarle el lugar a la foto antes de que
+ * la foto llegue. Vienen sin valor en las piezas viejas, que se miden solas la
+ * primera vez que alguien abre la categoría.
+ */
+export type PiezaPublica = PiezaLightbox & {
+  ancho?: number | null;
+  alto?: number | null;
+};
 
 /**
  * Elegir favoritas.
@@ -54,6 +65,27 @@ export function ProveedorSeleccion({ children }: { children: ReactNode }) {
   };
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
+}
+
+/**
+ * El lugar que hay que reservarle a una foto, antes de tenerla.
+ *
+ * Devuelve la proporción para que el navegador sepa qué alto va a ocupar la
+ * foto sabiendo sólo el ancho de la columna. Las piezas todavía sin medir no
+ * devuelven nada y se acomodan al llegar: se ve un salto, y desaparece la
+ * primera vez que el servidor las mide.
+ *
+ * El tope es un pasamanos, no una política de recorte. Una vertical de teléfono
+ * (9:16), una de cámara (2:3) y una cuadrada pasan sin que se les toque un
+ * píxel, que es todo el punto de este cambio. Lo único que ataja es lo que no es
+ * una foto: una captura de pantalla larga o un panorama girado, que sin tope se
+ * llevan la columna entera y empujan al resto fuera de la vista.
+ */
+const MAS_ALTA = 1 / 3;
+
+function proporcion(p: PiezaPublica) {
+  if (!p.ancho || !p.alto) return undefined;
+  return { aspectRatio: String(Math.max(p.ancho / p.alto, MAS_ALTA)) };
 }
 
 /** El "pedir presupuesto" de la categoría: enciende el modo de elegir. */
@@ -116,7 +148,21 @@ export function GaleriaPublica({
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* La vitrina, en columnas.
+
+              Antes era una grilla de casilleros iguales de 4:3 y cada foto
+              entraba recortada al casillero. A una vertical le cortaba la cabeza
+              y los pies, que en fotos de gente es donde está la foto. Ahora es al
+              revés: la columna fija el ancho y cada foto se lleva el alto que le
+              corresponde por su forma.
+
+              Son columnas de CSS y no una grilla porque una grilla, con piezas de
+              alto distinto, deja agujeros al final de cada fila; las columnas
+              apilan sin huecos. El costo es el orden: se lee bajando por una
+              columna y no cruzando la fila. Es el mismo trato que hace VSCO, que
+              es lo que se pidió, y el orden que puso el admin se sigue
+              respetando: la primera foto abre arriba a la izquierda. */}
+          <div className="columns-2 gap-4 lg:columns-3">
             {fotos.map((p, i) => {
               const marcada = gustaron.has(p.id);
               return (
@@ -133,13 +179,22 @@ export function GaleriaPublica({
                   }}
                   aria-label={eligiendo ? "Me gusta esta foto" : "Ver la foto"}
                   aria-pressed={eligiendo ? marcada : undefined}
-                  className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden border border-gray-20 bg-paper-dim"
+                  // La proporción va acá y no en la imagen para que el lugar
+                  // quede reservado desde el primer pintado: sin esto la columna
+                  // arranca en cero y se estira a los tirones a medida que cada
+                  // foto llega, que es lo que hace saltar la página bajo el dedo.
+                  style={proporcion(p)}
+                  className="group relative mb-4 block w-full cursor-pointer overflow-hidden border border-gray-20 bg-paper-dim break-inside-avoid"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.urlMini ?? p.url}
                     alt={nombre}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    loading="lazy"
+                    // `cover` y no `contain`: con la proporción de la propia foto
+                    // los dos dan lo mismo, y en las viejas todavía sin medir
+                    // `cover` evita que quede un marco vacío alrededor.
+                    className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
 
                   {/* En modo elegir, el velo baja para que el corazón se lea. */}

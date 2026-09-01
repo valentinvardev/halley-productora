@@ -77,7 +77,10 @@ export const contenidoRouter = createTRPCRouter({
         });
       }
       if (!esSubible(input.categoria)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Categoría inválida." });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Categoría inválida.",
+        });
       }
       const tipo = TIPOS[input.contentType];
       if (!tipo) {
@@ -115,6 +118,11 @@ export const contenidoRouter = createTRPCRouter({
         s3Key: z.string(),
         s3KeyMini: z.string().nullish(),
         tipo: z.enum(["imagen", "video"]),
+        // Las mide el navegador al subir. Opcionales porque un formato que no
+        // sepa decodificar deja la pieza sin medidas, y ahí la mide el servidor
+        // la primera vez que alguien abre la categoría.
+        ancho: z.number().int().positive().max(100_000).optional(),
+        alto: z.number().int().positive().max(100_000).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -132,6 +140,8 @@ export const contenidoRouter = createTRPCRouter({
           s3Key: input.s3Key,
           s3KeyMini: input.s3KeyMini ?? null,
           tipo: input.tipo,
+          ancho: input.ancho ?? null,
+          alto: input.alto ?? null,
           orden: (ultimo?.orden ?? -1) + 1,
         },
       });
@@ -318,7 +328,9 @@ export const contenidoRouter = createTRPCRouter({
   eliminarHero: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const fila = await ctx.db.contenido.findUnique({ where: { id: input.id } });
+      const fila = await ctx.db.contenido.findUnique({
+        where: { id: input.id },
+      });
       if (!fila || fila.categoria !== HERO) return { ok: true };
       await borrarObjetos([fila.s3Key]);
       await ctx.db.contenido.delete({ where: { id: fila.id } });
@@ -327,7 +339,9 @@ export const contenidoRouter = createTRPCRouter({
 
   /** Vuelve la portada al video de respaldo que vive en el repo. */
   quitarHero: adminProcedure.mutation(async ({ ctx }) => {
-    const previas = await ctx.db.contenido.findMany({ where: { categoria: HERO } });
+    const previas = await ctx.db.contenido.findMany({
+      where: { categoria: HERO },
+    });
     if (previas.length === 0) return { ok: true };
     await borrarObjetos(previas.flatMap(clavesDe));
     await ctx.db.contenido.deleteMany({

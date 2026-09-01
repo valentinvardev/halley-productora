@@ -91,7 +91,10 @@ export async function urlDeLectura(key: string, expiraSeg = 3600) {
   if (!key || !bucket()) return null;
 
   if (env.CLOUDFRONT_DOMAIN) {
-    const dominio = env.CLOUDFRONT_DOMAIN.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const dominio = env.CLOUDFRONT_DOMAIN.replace(/^https?:\/\//, "").replace(
+      /\/$/,
+      "",
+    );
     return `https://${dominio}/${conPrefijo(key)}`;
   }
 
@@ -132,7 +135,9 @@ export async function borrarObjetos(keys: string[]) {
   const objetivos = keys.filter(Boolean);
   await Promise.all(
     objetivos.map((k) =>
-      s3().send(new DeleteObjectCommand({ Bucket: bucket(), Key: conPrefijo(k) })),
+      s3().send(
+        new DeleteObjectCommand({ Bucket: bucket(), Key: conPrefijo(k) }),
+      ),
     ),
   );
 }
@@ -146,5 +151,32 @@ export async function objetoExiste(key: string) {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Los primeros bytes de un objeto, sin bajarlo entero.
+ *
+ * Se usa para leerle las medidas a una foto: el ancho y el alto viven en el
+ * encabezado, así que pedir el principio alcanza y una foto de ocho megas
+ * cuesta lo que cuesta una de cien kilobytes.
+ *
+ * Devuelve null ante cualquier error, incluido que el objeto no exista: quien
+ * llama está completando un dato que se puede no tener, no haciendo algo que
+ * tenga que salir bien.
+ */
+export async function primerosBytes(key: string, cuantos: number) {
+  try {
+    const salida = await s3().send(
+      new GetObjectCommand({
+        Bucket: bucket(),
+        Key: conPrefijo(key),
+        Range: `bytes=0-${cuantos - 1}`,
+      }),
+    );
+    const cuerpo = await salida.Body?.transformToByteArray();
+    return cuerpo ?? null;
+  } catch {
+    return null;
   }
 }

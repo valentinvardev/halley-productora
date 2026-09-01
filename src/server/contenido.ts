@@ -1,5 +1,9 @@
+import { after } from "next/server";
+
 import { HERO as HERO_SLUG } from "~/app/_datos/categorias";
 import { db } from "~/server/db";
+import { BYTES_DE_ENCABEZADO, medidasDeBuffer } from "~/server/medidas-imagen";
+import { primerosBytes, s3Configurado } from "~/server/s3";
 
 // La lista de categorías es dato puro y vive aparte para que el cliente pueda
 // leerla sin arrastrar Prisma. Se re-exporta para los consumidores de servidor
@@ -30,6 +34,9 @@ export async function contenidoDe(categoria: string) {
     orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
   });
 
+  // Las que todavía no tienen medidas se miden solas, después de contestar.
+  medirLoQueFalte(filas);
+
   return filas.map((c) => ({
     id: c.id,
     // En la base es texto libre; acá vuelve al par que consume la UI.
@@ -38,8 +45,67 @@ export async function contenidoDe(categoria: string) {
     // Para las grillas, donde la pieza se dibuja del tamaño de una estampilla.
     // Las que se subieron antes de que existieran las miniaturas no tienen, y
     // ahí se cae al archivo grande: se ve igual, sólo que pesa lo que pesaba.
-    urlMini: c.s3KeyMini ? `/api/contenido/${c.id}?m=1` : `/api/contenido/${c.id}`,
+    urlMini: c.s3KeyMini
+      ? `/api/contenido/${c.id}?m=1`
+      : `/api/contenido/${c.id}`,
+    // Para reservarle el lugar a cada foto antes de que llegue. Las viejas
+    // vienen en null hasta que la medición de fondo las alcanza.
+    ancho: c.ancho,
+    alto: c.alto,
   }));
+}
+
+/**
+ * Le completa las medidas a las piezas que no las tienen.
+ *
+ * Va con `after`, así que corre una vez despachada la respuesta: el que entró a
+ * mirar la vitrina no espera por esto. La primera visita a una categoría la deja
+ * medida y las siguientes no hacen nada, porque ya no queda ninguna sin medir.
+ *
+ * Es el reemplazo de un script de migración. Un script habría que acordarse de
+ * correrlo, y correrlo de nuevo el día que aparezca una pieza vieja traída de
+ * otro lado; esto se ocupa solo y no deja nada que recordar.
+ *
+ * Mide la miniatura y no el original: pesa cuarenta veces menos y tiene la
+ * misma forma, que es lo único que se busca. Los videos quedan afuera porque
+ * sus medidas no se leen así, y la vitrina igual los dibuja en 16:9.
+ */
+function medirLoQueFalte(
+  filas: {
+    id: string;
+    tipo: string;
+    s3Key: string;
+    s3KeyMini: string | null;
+    ancho: number | null;
+  }[],
+) {
+  const faltan = filas.filter((c) => c.tipo !== "video" && c.ancho === null);
+  if (faltan.length === 0 || !s3Configurado()) return;
+
+  // `after` sólo existe dentro de un pedido. Hoy las dos páginas que llegan acá
+  // son dinámicas, así que siempre lo hay; el seguro es para el día que llame un
+  // script o un render de build, donde medir importa menos que no romper.
+  try {
+    after(medir);
+  } catch {
+    // Sin pedido no hay medición, y la vitrina sigue andando sin ella.
+  }
+
+  async function medir() {
+    for (const c of faltan) {
+      const bytes = await primerosBytes(
+        c.s3KeyMini ?? c.s3Key,
+        BYTES_DE_ENCABEZADO,
+      );
+      const m = bytes ? medidasDeBuffer(bytes) : null;
+      if (!m) continue;
+      // Si dos visitas coinciden, las dos escriben lo mismo. Y si la pieza se
+      // borró en el medio, esto se cae solo y no hay nada que arreglar.
+      await db.contenido
+        .update({ where: { id: c.id }, data: { ancho: m.ancho, alto: m.alto } })
+        .catch(() => undefined);
+    }
+  }
 }
 
 /**
@@ -98,7 +164,9 @@ export async function muestraDe(categoria: string, cuantas: number) {
  * visita abre con uno distinto.
  */
 export async function heroAleatorio() {
-  const filas = await db.contenido.findMany({ where: { categoria: HERO_SLUG } });
+  const filas = await db.contenido.findMany({
+    where: { categoria: HERO_SLUG },
+  });
   const elegida = mezclar(filas)[0];
   if (!elegida) return null;
   return {

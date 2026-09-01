@@ -532,6 +532,13 @@ model Contenido {
     /// existiera no la tienen, y ahí se cae a `s3Key`.
     s3KeyMini String?
     tipo      String   @default("imagen")
+    /// Medidas del original, en píxeles y con la rotación del EXIF ya
+    /// aplicada. Existen para que la vitrina pueda reservarle a cada foto su
+    /// forma antes de que la foto llegue, y así no se acomode sola a la vista
+    /// del que mira. Opcionales: las piezas viejas no las tienen y se miden
+    /// solas la primera vez que alguien abre su categoría.
+    ancho     Int?
+    alto      Int?
     orden     Int      @default(0)
     creadoEn  DateTime @default(now())
 
