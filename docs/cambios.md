@@ -412,3 +412,83 @@ misma llamada que la pantalla del panel, con el mismo contenido, y esa ya está 
 uso. Verifiqué que la portada marca sus doce textos sólo en modo edición, que un
 visitante sin la cookie no ve nada aunque escriba `?editar=1`, y que las reglas de
 estilo del modo llegan a la hoja compilada.
+
+---
+
+## El tema base pasa a ser el nocturno
+
+**Pedido:** "el theme base tiene que ser el nocturno, osea el oscuro".
+
+**Antes.** El oscuro ya era lo que veía todo el mundo, pero no era la base: era
+una corrección. La paleta escrita en el CSS era la clara, y el oscuro se aplicaba
+por dos caminos que corrían en paralelo, la preferencia del sistema operativo y
+un script que ponía un atributo en el HTML antes de pintar. Eso funcionaba en el
+caso normal y fallaba en los bordes: sin JavaScript, con el script bloqueado, o
+con `localStorage` tirando una excepción, alguien con el sistema en claro se
+quedaba con la web blanca para siempre.
+
+**Ahora.** La paleta escrita en el CSS es la nocturna. El claro quedó abajo, como
+lo que hay que pedir con el botón. El HTML que manda el servidor ya viene oscuro,
+sin esperar a que corra nada.
+
+**Lo que se ve no cambió.** Y eso es a propósito. La portada renderizada con el
+código nuevo salió idéntica, píxel por píxel, a la renderizada con el anterior:
+lo que cambió es de dónde sale el oscuro, no cómo se ve. Quien ya estaba viendo
+la web no se entera de nada.
+
+**La preferencia del sistema deja de participar.** Antes, un teléfono configurado
+en claro empujaba hacia la versión clara y el script lo corregía. Ahora el tema lo
+decide la marca y punto: el trabajo de Halley son fotos y videos, y sobre papel
+oscuro se ven como en una sala y no como en una hoja. El botón sigue estando para
+quien prefiera el claro, y su elección se sigue guardando en ese navegador.
+
+**Qué se dio vuelta.** No alcanzaba con cambiar nueve colores. El oscuro vivía
+repartido en seis bloques condicionales, cada uno escrito dos veces (una por
+preferencia del sistema y otra por el atributo). Los doce se reemplazaron por seis
+pares limpios de base más excepción: los colores, el color-scheme, los tintes de
+cuota saldada y vencida, los dos dibujos del logo, el sol y la luna del botón, la
+paleta propia de la landing y el cometa.
+
+**Un arreglo que apareció en el camino: los controles del navegador.** El
+`color-scheme`, que es lo que le avisa al navegador de qué color dibujar los
+desplegables, los checkboxes, el autorrelleno y la selección de texto, colgaba del
+atributo. Como el atributo ahora sólo existe para quien tocó el botón, el resto se
+habría quedado con la página pintada en oscuro y el navegador convencido de que es
+clara, dibujando chapa clara encima de las pantallas negras. Ahora se declara en la
+raíz, junto con los colores.
+
+**Otro que apareció al imprimir.** El `color-scheme` se hereda, así que el oscuro
+de la pantalla llegaba al papel: en un PDF de prueba los checkboxes salían como
+cuadrados negros sobre la hoja blanca. El bloque de impresión ya declaraba que en
+papel no hay tema, así que ahora también lo declara para lo que dibuja el
+navegador y no el CSS.
+
+**Por qué el PDF no se puso negro.** Es la parte que más fácil se rompía y la
+razón por la que no se rompió merece quedar escrita. El bloque de impresión y la
+vista de documento del panel están fuera de toda capa de CSS, y en la cascada lo
+que no está en una capa le gana a lo que sí, sin siquiera mirar especificidad. Los
+colores del tema están todos dentro de capas. Por eso la hoja sigue saliendo
+blanca aunque la pantalla esté negra, y por eso el comentario del CSS avisa que
+sacar una de esas reglas de su capa rompería el PDF en silencio.
+
+**Lo único que sí cambia en el papel.** Los tintes de cuota saldada y vencida se
+imprimen ahora con los valores del nocturno en vez de los del diurno. Son verde y
+rojo muy tenues en los dos casos y sobre blanco quedan igual de pálidos; lo miré
+impreso y se lee bien. No se agregó una regla para volver a los viejos porque la
+diferencia no se percibe.
+
+**Cómo se verificó.** Con Chrome sin interfaz, que en esta máquina reporta
+preferencia clara, que es justamente el caso que antes fallaba:
+
+- La portada por defecto sale oscura, y es byte por byte la misma imagen que salía
+  antes del cambio.
+- Un banco de pruebas estático, sin servidor ni JavaScript de por medio, sale
+  oscuro sin el atributo y claro con él, con los controles del navegador siguiendo
+  al tema en los dos casos.
+- El PDF impreso se abrió y se le leyeron los colores uno por uno: papel blanco,
+  tinta negra, bordes grises y nada del tema oscuro adentro.
+- El panel y el simulador se miraron enteros.
+
+**Lo que no se tocó.** Los mails, que arman su propio HTML y ya se declaran claros
+por su cuenta. Y la vista de documento del panel, que fuerza la hoja blanca y
+sigue haciéndolo igual.

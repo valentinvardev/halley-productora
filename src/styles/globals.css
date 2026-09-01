@@ -7,30 +7,40 @@
    los likes del portfolio (--color-marca), reservado para eso.
 --------------------------------------------------------------------------- */
 
+/* La paleta base es la nocturna.
+
+   El trabajo de Halley son fotos y videos, y sobre papel oscuro se ven como en
+   una sala y no como en una hoja. Por eso el oscuro no es una variante que se
+   enciende: es el sitio. El claro quedó abajo, como lo que hay que pedir.
+
+   Que el oscuro viva acá y no en una regla condicional es lo que hace que el
+   HTML que manda el servidor ya venga oscuro, sin esperar a que corra un script
+   y sin destello, incluso con el JavaScript apagado. */
 @theme {
-  --color-ink: #0a0a0a;
-  --color-paper: #f6f5f0;
-  --color-paper-dim: #eeece4;
-  --color-paper-dimmer: #e2e0d5;
+  --color-ink: #f2f0e9;
+  --color-paper: #121210;
+  --color-paper-dim: #1c1c19;
+  --color-paper-dimmer: #0b0b0a;
   /**
    * Los grises del texto.
    *
-   * Sobre el papel (#f6f5f0), el gris-45 viejo (#8c8a80) daba 3,2:1 — abajo del
-   * 4,5:1 que pide la WCAG para texto normal, y se notaba: las notas al pie y
-   * los rótulos chicos se leían con esfuerzo. Ahora dan 5,0:1 y 10:1, y el
-   * gris-45 sigue arriba de 4,5:1 incluso sobre la superficie más oscura
-   * (paper-dim, 4,65:1). El negativo tenía el mismo problema al revés —su
-   * gris-45 daba 4,1:1 sobre el lienzo— y se corrigió igual, más arriba en vez
-   * de más abajo.
+   * Medidos contra la WCAG, que pide 4,5:1 para texto normal. Sobre el papel
+   * (#121210) el gris-45 da 5,6:1 y el gris-70 8,4:1. El peor caso del negativo
+   * no es el papel sino paper-dim, que es la superficie más clara y por lo tanto
+   * la que menos contrasta con un texto claro: ahí el gris-45 todavía da 5,1:1.
+   *
+   * Los dos venían de abajo del mínimo y se corrigieron a la vez, cada uno para
+   * su lado: el claro más oscuro, el oscuro más claro. En diurno quedaron en
+   * 5,0:1 y 10:1 sobre su propio papel.
    *
    * Gris-20 no se toca: es estructural (bordes y divisores), no texto.
    */
-  --color-gray-70: #3d3d38;
-  --color-gray-45: #6b6960;
-  --color-gray-20: #d5d3c7;
-  --color-marca: #d0342c;
+  --color-gray-70: #b0ada2;
+  --color-gray-45: #8f8d83;
+  --color-gray-20: #35352f;
+  --color-marca: #e2564c;
   /** Superficie de los campos y las tarjetas tipo placa. */
-  --color-lienzo: #ffffff;
+  --color-lienzo: #191916;
 
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -59,40 +69,34 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Negativo (modo oscuro)
+   Positivo (modo claro)
 
-   No hay una paleta oscura aparte: se invierten los mismos tokens, como el
-   negativo de la copia. Todos los componentes usan las variables, así que dan
-   vuelta juntos sin tocar una sola clase.
+   No hay dos paletas: son los mismos tokens dados vuelta, como el positivo de
+   un negativo. Todos los componentes usan las variables, así que cambian juntos
+   sin tocar una sola clase.
 
-   Se aplica por preferencia del sistema, salvo que el usuario haya elegido
-   explícitamente (data-tema), que siempre gana.
+   Se aplica sólo si el usuario lo pidió con el botón. La preferencia del
+   sistema no participa: el tema lo decidió la marca, no el sistema operativo de
+   cada uno. Antes sí participaba, y eso quería decir que la mitad de las visitas
+   veía la versión clara porque su teléfono venía así de fábrica.
+
+   Todas estas reglas viven dentro de `@layer base` a propósito. El bloque de
+   impresión y `.como-documento` están fuera de toda capa, y en la cascada lo que
+   no está en una capa le gana a lo que sí, sin mirar especificidad. Es lo que
+   mantiene la hoja blanca aunque la pantalla esté negra. Sacar una de estas
+   reglas de la capa rompería eso en silencio.
 --------------------------------------------------------------------------- */
 @layer base {
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-tema="claro"]) {
-      --color-ink: #f2f0e9;
-      --color-paper: #121210;
-      --color-paper-dim: #1c1c19;
-      --color-paper-dimmer: #0b0b0a;
-      --color-gray-70: #b0ada2;
-      --color-gray-45: #8f8d83;
-      --color-gray-20: #35352f;
-      --color-marca: #e2564c;
-      --color-lienzo: #191916;
-    }
-  }
-
-  :root[data-tema="oscuro"] {
-    --color-ink: #f2f0e9;
-    --color-paper: #121210;
-    --color-paper-dim: #1c1c19;
-    --color-paper-dimmer: #0b0b0a;
-    --color-gray-70: #b0ada2;
-    --color-gray-45: #8f8d83;
-    --color-gray-20: #35352f;
-    --color-marca: #e2564c;
-    --color-lienzo: #191916;
+  :root[data-tema="claro"] {
+    --color-ink: #0a0a0a;
+    --color-paper: #f6f5f0;
+    --color-paper-dim: #eeece4;
+    --color-paper-dimmer: #e2e0d5;
+    --color-gray-70: #3d3d38;
+    --color-gray-45: #6b6960;
+    --color-gray-20: #d5d3c7;
+    --color-marca: #d0342c;
+    --color-lienzo: #ffffff;
   }
 
   /* -------------------------------------------------------------------------
@@ -136,12 +140,19 @@
     }
   }
 
-  /* Que los controles nativos —barras incluidas— sepan en qué tema están. */
+  /* Que los controles nativos —barras incluidas— sepan en qué tema están.
+
+     Va en la raíz pelada y no colgando del atributo, que es donde estaba. El
+     atributo sólo existe cuando alguien tocó el botón, así que colgado de ahí
+     dejaba a todo el que nunca lo tocó sin ningún color-scheme declarado: la
+     página pintada en oscuro por CSS y el navegador convencido de que es clara,
+     dibujando los desplegables, los checkboxes, el autorrelleno y la selección
+     de texto en chapa clara sobre las pantallas negras. */
+  :root {
+    color-scheme: dark;
+  }
   :root[data-tema="claro"] {
     color-scheme: light;
-  }
-  :root[data-tema="oscuro"] {
-    color-scheme: dark;
   }
 
   /* -------------------------------------------------------------------------
@@ -153,25 +164,17 @@
      par oscuro para no encandilar en negativo.
   ------------------------------------------------------------------------- */
   .fila-pagada {
-    background: rgb(31 122 60 / 0.1);
-  }
-  .fila-vencida {
-    background: rgb(208 52 44 / 0.09);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-tema="claro"]) .fila-pagada {
-      background: rgb(120 200 140 / 0.13);
-    }
-    :root:not([data-tema="claro"]) .fila-vencida {
-      background: rgb(226 86 76 / 0.16);
-    }
-  }
-  :root[data-tema="oscuro"] .fila-pagada {
     background: rgb(120 200 140 / 0.13);
   }
-  :root[data-tema="oscuro"] .fila-vencida {
+  .fila-vencida {
     background: rgb(226 86 76 / 0.16);
+  }
+
+  :root[data-tema="claro"] .fila-pagada {
+    background: rgb(31 122 60 / 0.1);
+  }
+  :root[data-tema="claro"] .fila-vencida {
+    background: rgb(208 52 44 / 0.09);
   }
 
   /* -------------------------------------------------------------------------
@@ -181,29 +184,29 @@
      selectores que los colores de arriba. Así el ícono correcto ya viene
      pintado en el primer frame: no hay estado que hidratar ni parpadeo.
 
-     Se muestra el destino, no el estado — en claro se ve la luna.
+     Se muestra el destino, no el estado: en nocturno, que es lo que se ve por
+     defecto, el botón muestra el sol.
   ------------------------------------------------------------------------- */
-  /* El logo tiene dos dibujos; se apaga el que no contrasta con el fondo. Las
-     mismas reglas que el sol y la luna, por la misma razón: que el correcto ya
-     esté puesto en el primer frame. */
+  /* El logo va primero porque funciona igual: tiene dos dibujos y se apaga el
+     que no contrasta con el fondo, con los mismos selectores y por la misma
+     razón, que el correcto ya esté puesto en el primer frame.
+
+     Se declaran los dos y no sólo el que se apaga. Antes alcanzaba con apagar
+     uno, porque el otro venía prendido de fábrica; ahora el que viene prendido
+     es el otro, así que el par tiene que ser simétrico o quien elige el claro se
+     queda con el dibujo del oscuro. */
+  .logo-claro {
+    opacity: 0;
+  }
   .logo-oscuro {
-    opacity: 0;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-tema="claro"]) .logo-claro {
-      opacity: 0;
-    }
-    :root:not([data-tema="claro"]) .logo-oscuro {
-      opacity: 1;
-    }
-  }
-
-  :root[data-tema="oscuro"] .logo-claro {
-    opacity: 0;
-  }
-  :root[data-tema="oscuro"] .logo-oscuro {
     opacity: 1;
+  }
+
+  :root[data-tema="claro"] .logo-claro {
+    opacity: 1;
+  }
+  :root[data-tema="claro"] .logo-oscuro {
+    opacity: 0;
   }
 
   .icono-tema {
@@ -214,33 +217,22 @@
   }
 
   .icono-sol {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.4);
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
   }
 
   .icono-luna {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-tema="claro"]) .icono-sol {
-      opacity: 1;
-      transform: rotate(0deg) scale(1);
-    }
-    :root:not([data-tema="claro"]) .icono-luna {
-      opacity: 0;
-      transform: rotate(90deg) scale(0.4);
-    }
-  }
-
-  :root[data-tema="oscuro"] .icono-sol {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
-  :root[data-tema="oscuro"] .icono-luna {
     opacity: 0;
     transform: rotate(90deg) scale(0.4);
+  }
+
+  :root[data-tema="claro"] .icono-sol {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.4);
+  }
+  :root[data-tema="claro"] .icono-luna {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -529,14 +521,14 @@
 --------------------------------------------------------------------------- */
 @layer base {
   .landing {
-    --color-paper: #ffffff;
-    --color-paper-dim: #f4f1ea;
-    --color-paper-dimmer: #e3dac9;
-    --color-lienzo: #ffffff;
-    --color-ink: #1c1c1c;
-    --color-gray-70: #4a4740;
-    --color-gray-45: #6f6a60;
-    --color-gray-20: rgb(28 28 28 / 0.16);
+    --color-paper: #1c1c1c;
+    --color-paper-dim: #131313;
+    --color-paper-dimmer: #000000;
+    --color-lienzo: #131313;
+    --color-ink: #ffffff;
+    --color-gray-70: #c9c3b6;
+    --color-gray-45: #948d80;
+    --color-gray-20: rgb(227 218 201 / 0.18);
 
     --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
     /* Acá el rótulo también es Montserrat: el manual tiene dos familias y la
@@ -548,28 +540,15 @@
     font-family: var(--font-sans);
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-tema="claro"]) .landing {
-      --color-paper: #1c1c1c;
-      --color-paper-dim: #131313;
-      --color-paper-dimmer: #000000;
-      --color-lienzo: #131313;
-      --color-ink: #ffffff;
-      --color-gray-70: #c9c3b6;
-      --color-gray-45: #948d80;
-      --color-gray-20: rgb(227 218 201 / 0.18);
-    }
-  }
-
-  :root[data-tema="oscuro"] .landing {
-    --color-paper: #1c1c1c;
-    --color-paper-dim: #131313;
-    --color-paper-dimmer: #000000;
-    --color-lienzo: #131313;
-    --color-ink: #ffffff;
-    --color-gray-70: #c9c3b6;
-    --color-gray-45: #948d80;
-    --color-gray-20: rgb(227 218 201 / 0.18);
+  :root[data-tema="claro"] .landing {
+    --color-paper: #ffffff;
+    --color-paper-dim: #f4f1ea;
+    --color-paper-dimmer: #e3dac9;
+    --color-lienzo: #ffffff;
+    --color-ink: #1c1c1c;
+    --color-gray-70: #4a4740;
+    --color-gray-45: #6f6a60;
+    --color-gray-20: rgb(28 28 28 / 0.16);
   }
 }
 
@@ -1138,32 +1117,15 @@
    tampoco hace falta pintarle un fondo propio: mezcla contra el que haya, y no
    queda un color duplicado que mantener igual al de la sección.
 --------------------------------------------------------------------------- */
+/* El archivo viene con trazo claro sobre negro, que es lo que hace falta en
+   nocturno: `screen` deja pasar lo claro y el negro desaparece. En diurno hay
+   que darlo vuelta con `invert`, y ahí `multiply` es el que borra el blanco. */
 .cometa {
-  mix-blend-mode: multiply;
+  mix-blend-mode: screen;
 }
 
 .cometa video,
 .cometa img {
-  filter: invert(1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) .cometa {
-    mix-blend-mode: screen;
-  }
-
-  :root:not([data-tema="claro"]) .cometa video,
-  :root:not([data-tema="claro"]) .cometa img {
-    filter: none;
-  }
-}
-
-:root[data-tema="oscuro"] .cometa {
-  mix-blend-mode: screen;
-}
-
-:root[data-tema="oscuro"] .cometa video,
-:root[data-tema="oscuro"] .cometa img {
   filter: none;
 }
 
@@ -1555,6 +1517,11 @@ video:not([controls])::-webkit-media-controls-start-playback-button {
   body,
   .landing {
     background: #ffffff !important;
+    /* En papel no hay tema, y eso incluye lo que dibuja el navegador y no el
+       CSS: sin esta línea el color-scheme oscuro de la pantalla se hereda a la
+       impresión y los checkboxes salen como cuadrados negros sobre la hoja
+       blanca. */
+    color-scheme: light;
     --color-paper: #ffffff;
     --color-paper-dim: #ffffff;
     --color-paper-dimmer: #ffffff;
