@@ -251,6 +251,37 @@
 }
 
 @layer base {
+  /* ---------------------------------------------------------------------------
+     Los links del menú bajan en vez de teletransportarse.
+
+     "Servicios", "Cómo trabajamos" y "Contacto" saltaban de golpe al ancla, y un
+     salto instantáneo no se lee como haber llegado a otra parte de la misma
+     página sino como haber cargado otra: se pierde de dónde se venía y cuánto
+     había en el medio. Bajando se entiende que es la misma página y dónde queda
+     cada sección.
+
+     La cabecera es pegajosa y mide 80px, así que sin margen de scroll el
+     título de la sección quedaría escondido detrás de ella justo al llegar. El
+     margen va en los destinos y no en el ancla para que valga igual si alguien
+     entra con el `#servicios` puesto en la URL.
+
+     Quien pidió menos movimiento vuelve al salto: para eso pidió lo que pidió.
+  --------------------------------------------------------------------------- */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  :target,
+  section[id] {
+    scroll-margin-top: 96px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
   html,
   body {
     margin: 0;
