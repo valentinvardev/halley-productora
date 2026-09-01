@@ -277,6 +277,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | 1 | `50d9d11` | Vuelve al rebobinado a saltos (los videos siguen recodificados) |
 | edición sobre la página | `f62188c` | Los textos se siguen editando, pero sólo desde el panel |
 | tema base nocturno | `3cf46d2` | Vuelve a la base clara, con el oscuro por sistema y por script |
+| 2b | `d72b7f9` | La vitrina vuelve a la grilla de 4:3 y a recortar las verticales |
 
 ## Los dos casos que necesitan un paso más
 
@@ -288,6 +289,13 @@ dos deja todo como estaba.
 editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
 nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
 empiezan con `texto:`.
+
+**Punto 2b.** Revertir el commit devuelve la grilla de 4:3, pero las columnas
+`ancho` y `alto` quedan en la base con sus datos. No molestan: nadie las lee y
+el esquema vuelve a mencionarlas apenas se rehaga el cambio. Para dejarlo
+prolijo del todo hay que correr `npx prisma db push` después de revertir, que es
+lo que las saca. Y si se revierte y se rehace, las fotos no se vuelven a medir
+porque las medidas siguen ahí.
 
 **Tema base nocturno.** Revertirlo devuelve las dos vías viejas, la preferencia
 del sistema y el script, así que quien tenga el teléfono en claro vuelve a ver la
