@@ -9,6 +9,7 @@ import {
   IconoEngranaje,
   IconoGrupos,
   IconoImagen,
+  IconoLista,
   IconoSobre,
 } from "~/app/_components/iconos";
 import { SidebarPanel } from "~/app/_components/sidebar-panel";
@@ -26,6 +27,7 @@ const ENLACES = [
   { href: "/admin/contenidos", texto: "Contenidos" },
   { href: "/admin/galerias", texto: "Galerías" },
   { href: "/admin/cuentas", texto: "Cuentas" },
+  { href: "/admin/textos", texto: "Textos" },
   { href: "/admin/ajustes", texto: "Ajustes" },
 ];
 
@@ -46,6 +48,7 @@ const ENLACES_CON_ICONO = [
   { href: "/admin/contenidos", texto: "Contenidos", icono: <IconoImagen /> },
   { href: "/admin/galerias", texto: "Galerías", icono: <IconoCandado /> },
   { href: "/admin/cuentas", texto: "Cuentas", icono: <IconoBillete /> },
+  { href: "/admin/textos", texto: "Textos", icono: <IconoLista /> },
   { href: "/admin/ajustes", texto: "Ajustes", icono: <IconoEngranaje /> },
 ];
 

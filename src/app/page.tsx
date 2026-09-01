@@ -25,6 +25,7 @@ import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import { eventoDeServicio } from "./_datos/presupuesto";
 import { SERVICIOS } from "./_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
+import { textosDeBloque } from "~/server/textos-sitio";
 
 export const metadata: Metadata = {
   title: "Halley Audiovisual — Productora en Córdoba",
@@ -48,28 +49,9 @@ const CELDAS_GRILLA = 8;
 const VIDEO_PORTADA = "/portada/portada.mp4";
 const POSTER_PORTADA = "/portada/portada.jpg";
 
-const NO_NEGOCIABLES = [
-  {
-    titulo: "Cercanía con oficio",
-    texto:
-      "Trabajás con la persona especializada en tu tipo de evento, que además va a estar el día de la cobertura. No hay intermediarios ni distancia de empresa.",
-  },
-  {
-    titulo: "Cámaras Sony, todo el equipo igual",
-    texto:
-      "El mismo estándar técnico en cada cámara y cada persona, sin excepciones. Trabajamos al 100% de nuestra capacidad técnica o no lo hacemos.",
-  },
-  {
-    titulo: "Innovación constante",
-    texto:
-      "Miramos lo que se está haciendo y lo que se viene, para llegar a tu evento con algo más que el año pasado.",
-  },
-  {
-    titulo: "Nos encontrás",
-    texto:
-      "Por WhatsApp, por redes o en la oficina. Preguntar algo no debería llevar tres días.",
-  },
-];
+/* Los textos de estas dos secciones ya no viven acá: se editan desde el panel y
+   salen de `textos-sitio.ts`, que guarda lo cambiado y cae al texto de fábrica
+   cuando no hay nada guardado. */
 
 export default async function Landing() {
   // Los datos de contacto salen del panel, no del codigo.
@@ -500,22 +482,35 @@ async function Servicios() {
 
 /* --------------------------------------------------------------------- cómo */
 
-function Como() {
+async function Como() {
+  const t = await textosDeBloque("noNegociamos");
+
+  // Los cuatro pares se arman acá y no en el módulo de textos: allá son campos
+  // sueltos porque el editor del panel los pinta uno por uno, y acá son una
+  // lista porque la grilla los recorre. Es la misma información con la forma que
+  // necesita cada lado.
+  const puntos = [
+    { titulo: t.titulo1, texto: t.texto1 },
+    { titulo: t.titulo2, texto: t.texto2 },
+    { titulo: t.titulo3, texto: t.texto3 },
+    { titulo: t.titulo4, texto: t.texto4 },
+  ];
+
   return (
     <section id="como" className="border-b border-gray-20">
       <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
         <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
-          Cómo trabajamos
+          {t.rotulo}
         </p>
         <h2 className="mt-4 max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.6rem)] leading-[0.92] uppercase">
-          Lo que no negociamos
+          {t.titulo}
         </h2>
 
         {/* Cuatro cosas que sostenemos a la vez, no cuatro pasos: por eso no
             van numeradas. */}
         <div className="mt-11 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2">
-          {NO_NEGOCIABLES.map((n) => (
-            <div key={n.titulo} className="bg-paper p-7 sm:p-9">
+          {puntos.map((n, i) => (
+            <div key={i} className="bg-paper p-7 sm:p-9">
               <h3 className="font-titulo text-[clamp(1.4rem,2.6vw,1.9rem)] leading-tight uppercase">
                 {n.titulo}
               </h3>
@@ -532,21 +527,22 @@ function Como() {
 
 /* ----------------------------------------------------------------- contacto */
 
-function Contacto({
+async function Contacto({
   datos,
 }: {
   datos: { whatsapp: string; instagram: string; mail: string };
 }) {
+  const t = await textosDeBloque("contacto");
+
   return (
     <section id="contacto" className="border-b border-gray-20">
       <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <h2 className="max-w-[16ch] font-titulo text-[clamp(2.2rem,6vw,4.4rem)] leading-[0.9] uppercase">
-            Contanos qué día es
+            {t.titulo}
           </h2>
           <p className="mt-6 max-w-[48ch] text-[15.5px] leading-relaxed text-gray-70">
-            Escribinos la fecha y el tipo de evento. Te respondemos con una
-            propuesta y, si querés, nos juntamos a verla.
+            {t.bajada}
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3.5">
