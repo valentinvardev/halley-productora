@@ -4,9 +4,12 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import {
   IconoAlerta,
+  IconoCalendario,
   IconoCruz,
   IconoImagen,
+  IconoMas,
   IconoRegalo,
+  IconoReproducir,
   IconoTilde,
 } from "~/app/_components/iconos";
 import {
@@ -274,6 +277,13 @@ export function Detalle({
     );
   }
 
+  // Qué es cada línea, deducido de cómo se relacionan entre sí y no de cómo se
+  // llaman. Una línea es un momento si alguna otra cuelga de ella; es una
+  // cobertura si ella cuelga de otra; y si no es ninguna de las dos, es un
+  // complemento. Así el símbolo sigue siendo el correcto el día que Halley
+  // cargue un ítem nuevo desde el panel con un nombre que nadie previó.
+  const conHijas = new Set(lineas.map((l) => l.bajo).filter(Boolean));
+
   return (
     <div className={className}>
       <ul className="divide-y divide-gray-20 border-y border-gray-20">
@@ -288,15 +298,22 @@ export function Detalle({
             }`}
           >
             <span
-              className={`min-w-0 ${l.bajo ? "text-[13px]" : "text-[14px]"}`}
+              className={`flex min-w-0 items-baseline gap-2 ${l.bajo ? "text-[13px]" : "text-[14px]"}`}
             >
-              {l.bajo && <span aria-hidden="true">· </span>}
-              {l.nombre}
-              {l.detalle && (
-                <span className="block text-[12.5px] text-gray-45">
-                  {l.detalle}
-                </span>
-              )}
+              <span
+                aria-hidden="true"
+                className="shrink-0 translate-y-[2px] text-gray-45"
+              >
+                <SimboloLinea linea={l} esMomento={conHijas.has(l.id)} />
+              </span>
+              <span className="min-w-0">
+                {l.nombre}
+                {l.detalle && (
+                  <span className="block text-[12.5px] text-gray-45">
+                    {l.detalle}
+                  </span>
+                )}
+              </span>
             </span>
             {muestraMonto(l) && (
               <span className="text-[14px] tabular-nums whitespace-nowrap">
@@ -415,4 +432,43 @@ export function AvisoFlotante({
       </div>
     </div>
   );
+}
+
+/**
+ * El símbolo de una línea del presupuesto.
+ *
+ * Sale del rol de la línea dentro del plan y no de su nombre. Un momento es el
+ * que tiene coberturas colgando, una cobertura es la que cuelga de un momento, y
+ * lo que no es ninguna de las dos es un complemento. Eso lo dice la estructura,
+ * así que un ítem nuevo cargado desde el panel con cualquier nombre entra por la
+ * puerta correcta sin que haya que tocar acá.
+ *
+ * La única excepción mira el nombre de la opción, y es la que hace falta: las
+ * dos coberturas son fotografía y video, y ahí sí conviene que se distingan de
+ * un vistazo, porque es lo que la persona acaba de elegir momento por momento.
+ */
+function SimboloLinea({
+  linea,
+  esMomento,
+}: {
+  linea: Linea;
+  esMomento: boolean;
+}) {
+  const clase = "h-3.5 w-3.5";
+
+  if (linea.bajo) {
+    const esVideo = (linea.opcion ?? "").includes("video");
+    return esVideo ? (
+      <IconoReproducir className={clase} />
+    ) : (
+      <IconoImagen className={clase} />
+    );
+  }
+
+  // El momento es un rato del día: el calendario es lo que lo nombra sin
+  // inventarle un ícono propio a cada uno.
+  if (esMomento) return <IconoCalendario className={clase} />;
+
+  // Complemento: se suma sobre la cobertura, y el más es exactamente eso.
+  return <IconoMas className={clase} />;
 }
