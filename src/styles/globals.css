@@ -282,6 +282,30 @@
     }
   }
 
+  /* -------------------------------------------------------------------------
+     El desenfoque mientras la página baja.
+
+     El de verdad —el que promedia los cuadros intermedios— no existe en la web.
+     Esto lo simula: dos píxeles de borrón mientras dura el recorrido, que se van
+     al llegar. Alcanza para que se lea "esto se está moviendo" en vez de "esto
+     parpadeó", y es poco: de más, marea y tapa el contenido en vez de acompañarlo.
+
+     La cabecera queda afuera. Es pegajosa, no se mueve respecto de la pantalla, y
+     borronear algo quieto sería mentir sobre lo que está pasando.
+
+     La vuelta es más lenta que la ida a propósito. Entrando rápido el borrón
+     aparece con el arranque; saliendo despacio, la página "se asienta" en vez de
+     recuperar el foco de golpe.
+  ------------------------------------------------------------------------- */
+  .landing > *:not(header) {
+    transition: filter 260ms ease-out;
+  }
+
+  html.desplazando .landing > *:not(header) {
+    filter: blur(2px);
+    transition-duration: 120ms;
+  }
+
   html,
   body {
     margin: 0;

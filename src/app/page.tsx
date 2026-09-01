@@ -12,6 +12,7 @@ import {
   IconoWhatsApp,
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
+import { DesplazamientoSuave } from "./_components/desplazamiento";
 import { FondoVideo } from "./_components/fondo-video";
 import { LogoAnimado } from "./_components/logo-animado";
 import { TarjetaServicio } from "./_components/tarjeta-servicio";
@@ -78,6 +79,8 @@ export default async function Landing() {
 
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
+      {/* No pinta nada: engancha el desenfoque de los anclajes. */}
+      <DesplazamientoSuave />
       <NavPublica secciones={SECCIONES} />
 
       <Hero whatsapp={datos.whatsapp} hero={hero} />
