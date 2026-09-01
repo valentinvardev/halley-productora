@@ -164,3 +164,127 @@ queda de esos dos puntos es inventario, no ingeniería.
 escribir ahí cambiaría el texto del sitio en vivo. Verifiqué que la portada lee
 del módulo nuevo y cae correctamente al texto de fábrica, y que la pantalla del
 panel responde.
+
+---
+
+## Punto 3. El panel usa la pantalla entera
+
+**Pedido:** "que la cuadrícula de contenido ocupe toda la pantalla y no sobren
+bordes negros (pc)".
+
+**Antes.** El contenedor del panel de administración cortaba en 1080 píxeles. En
+un monitor de escritorio el sidebar ya se lleva su parte, así que la grilla de
+contenidos quedaba encajonada en el medio con el fondo del panel visible a los
+dos costados. Eso es lo que se veía como bordes.
+
+**Ahora.** El contenedor no tiene tope de ancho. La grilla de fotos llega hasta
+donde llega la pantalla.
+
+**Por qué se puede sacar sin romper el resto.** Lo que necesita ancho corto no
+dependía de ese tope: el encabezado de cada pantalla ya corta su bajada en 62
+caracteres, los formularios traen su propio ancho y las tablas largas viven
+adentro de su propio scroll horizontal. Por eso soltar el contenedor no estira
+ninguna línea de texto.
+
+---
+
+## Punto 15. Símbolos en el detalle del presupuesto
+
+**Pedido:** "al haberlo personalizado a tu gusto, que aparezca el precio final y
+todos los ítems incluidos (con símbolos)".
+
+**Antes.** El precio final y la lista de ítems ya estaban. Lo que faltaba eran
+los símbolos: las coberturas llevaban un punto medio de viñeta, que decía "esto
+cuelga de aquello" pero no decía qué era, y los momentos y complementos no
+llevaban nada.
+
+**Ahora.** Cada línea lleva el suyo: calendario para los momentos del día, imagen
+para la cobertura de fotografía, reproducir para la de video, y un más para los
+complementos, que es exactamente lo que son, algo que se suma sobre la cobertura.
+
+**La decisión que importa.** El símbolo sale del rol de la línea dentro del plan,
+no de su nombre. Una línea es un momento si alguna otra cuelga de ella; es una
+cobertura si ella cuelga de otra; y si no es ninguna de las dos, es un
+complemento. Eso lo dice la estructura del presupuesto. La alternativa era una
+tabla de nombre a ícono, que se rompe en silencio el día que Halley carga un ítem
+nuevo desde el panel: quedaría sin símbolo o con el equivocado y nadie se
+enteraría hasta verlo en un presupuesto emitido.
+
+**La única excepción** mira el nombre de la opción, y es la que hace falta: entre
+las dos coberturas conviene distinguir foto de video de un vistazo, porque es
+justamente lo que la persona vino eligiendo momento por momento.
+
+---
+
+## Punto 13. Sin resolver, y por qué
+
+**Pedido:** "revisar el formato del panel 'mi panel' en pc, hay un espacio vacío
+blanco".
+
+**Lo que busqué.** Revisé la estructura de la pantalla buscando una causa
+concreta: un contenedor con alto fijo, una grilla que dejara celdas huérfanas, un
+bloque condicional que se ocultara dejando su espacio. No hay ninguna. La tira de
+datos usa celdas flexibles que se estiran para llenar la fila, así que tampoco
+deja huecos.
+
+**Lo que queda como hipótesis.** El contenido está en una columna de 760 píxeles
+centrada, así que en un monitor ancho quedan márgenes grandes a los costados.
+
+**Por qué no lo cambié igual.** Ensanchar esa columna empeoraría lo que hay
+adentro: el plan de cuotas son filas con el concepto a la izquierda y el monto a
+la derecha, y a 1080 píxeles quedarían separados por un vacío largo que hace más
+difícil leer qué monto corresponde a qué cuota. Es el caso opuesto al del punto
+3, donde el ancho suma porque lo que se muestra son fotos.
+
+**Qué necesito para resolverlo.** Una captura, o saber si el hueco aparece con
+una sola familia o con varias. Con eso se resuelve en minutos y sin adivinar.
+
+---
+
+# Cómo revertir
+
+Cada punto está en un commit propio, y el número de punto va en el cuerpo del
+mensaje. Para encontrarlo:
+
+```
+git log --grep="Punto 6" --oneline
+```
+
+Para deshacer un punto sin tocar los demás, `git revert` sobre su commit. Genera
+un commit nuevo que deshace ese cambio, así que no reescribe historial y se puede
+volver a aplicar después:
+
+```
+git revert 82a66e5        # deshace el desenfoque de movimiento
+git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
+```
+
+## Tabla de puntos y commits
+
+| Punto | Commit | Qué revierte |
+|---|---|---|
+| 8 | `5211221` | Vuelve al tema por hora del día |
+| 6a | `b6452b0` | Vuelve al salto instantáneo en los links del menú |
+| 6b | `82a66e5` | Saca el desenfoque, deja el scroll suave |
+| 2a | `19a7db3` | Saca las flechas de reordenar fotos |
+| 4 y 5 | `ce65dc0` | Los textos de la portada vuelven al código |
+| 3 | `651fc35` | El panel vuelve a cortar en 1080 |
+| 15 | `23fe7ad` | Saca los símbolos del detalle |
+
+## Los dos casos que necesitan un paso más
+
+**Punto 6.** Son dos commits. Revirtiendo sólo `82a66e5` se va el desenfoque y
+queda el scroll suave, que es lo que resuelve el problema reportado. Revertir los
+dos deja todo como estaba.
+
+**Puntos 4 y 5.** El commit devuelve los textos al código, pero si alguien ya
+editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
+nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
+empiezan con `texto:`.
+
+## Lo que no se revierte con git
+
+**El reordenamiento de fotos (punto 2a)** deja la categoría renumerada de 0 a N
+la primera vez que se mueve una pieza. Revertir el código saca las flechas, pero
+el orden nuevo queda: es un dato, no código. No hay nada que arreglar, sólo
+conviene saberlo.
