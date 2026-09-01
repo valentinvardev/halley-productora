@@ -42,6 +42,20 @@ export function TextosSitio() {
         bajada="Lo que dicen las secciones de la portada. Se guarda al instante y sale sin esperar un deploy. Lo que se edita son las palabras: el diseño, el orden y los botones siguen siendo del sitio."
       />
 
+      {/* La otra puerta a lo mismo.
+
+          Esta pantalla sirve para repasar todo junto y para encontrar un texto
+          cuando no se sabe bien en qué parte de la página estaba. Pero cuando lo
+          que hay es una frase puntual que no gusta, lo natural es ir a la página,
+          tocarla y escribirla ahí. El link lleva a la portada con el modo
+          prendido; sin `?editar=1` la portada se ve como la ve cualquiera. */}
+      <a
+        href="/?editar=1"
+        className="mt-6 inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase hover:bg-ink hover:text-paper"
+      >
+        Editar sobre la página
+      </a>
+
       {lista.isPending ? (
         <p className="nota mt-8">Cargando…</p>
       ) : (
@@ -82,9 +96,9 @@ function Ficha({
   bloque: Bloque;
   alGuardar: () => void;
 }) {
-  const [valores, setValores] = useState<Record<string, string>>(
-    () => ({ ...bloque.textos }),
-  );
+  const [valores, setValores] = useState<Record<string, string>>(() => ({
+    ...bloque.textos,
+  }));
 
   /**
    * Lo guardado manda, pero sólo cuando de verdad cambió.

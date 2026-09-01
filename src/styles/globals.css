@@ -296,14 +296,69 @@
      La vuelta es más lenta que la ida a propósito. Entrando rápido el borrón
      aparece con el arranque; saliendo despacio, la página "se asienta" en vez de
      recuperar el foco de golpe.
+
+     El editor de textos también queda afuera, y por una razón más fuerte que la
+     estética: un `filter` distinto de `none` convierte al elemento en el marco
+     de referencia de sus hijos fijos. La barra y el panel del editor son hijos
+     de la portada, así que al desenfocarse dejarían de estar fijos respecto de
+     la pantalla y se irían con el scroll justo mientras alguien escribe.
   ------------------------------------------------------------------------- */
-  .landing > *:not(header) {
+  .landing > *:not(header):not([data-editor]) {
     transition: filter 260ms ease-out;
   }
 
-  html.desplazando .landing > *:not(header) {
+  html.desplazando .landing > *:not(header):not([data-editor]) {
     filter: blur(2px);
     transition-duration: 120ms;
+  }
+
+  /* -------------------------------------------------------------------------
+     Modo edición: qué se puede tocar
+
+     Sólo existe cuando el editor prendió la clase en el body, así que un
+     visitante nunca ve nada de esto.
+
+     El punteado va por fuera del texto y no lo empuja: `outline` no ocupa lugar
+     en el armado, así que la página en modo edición mide exactamente lo mismo
+     que la página publicada. Un borde la correría unos píxeles y uno terminaría
+     ajustando un texto contra una maqueta que no es la real.
+
+     El separado de dos píxeles es para que se lea como "esto es editable" y no
+     como un recuadro que forma parte del diseño.
+  ------------------------------------------------------------------------- */
+  body.editando {
+    /* La barra fija del editor tapa el arranque de la página. */
+    padding-top: 40px;
+  }
+  /* La cabecera del sitio es pegajosa y se pega arriba de todo. Con la barra
+     del editor ocupando esos primeros cuarenta píxeles se metería abajo y
+     quedaría medio tapada, así que en modo edición se pega más abajo. */
+  body.editando .landing > header {
+    top: 40px;
+  }
+
+  body.editando section[id] {
+    scroll-margin-top: 136px;
+  }
+
+  body.editando [data-texto] {
+    cursor: text;
+    outline: 1px dashed var(--color-gray-45);
+    outline-offset: 2px;
+    transition: outline-color 140ms ease-out;
+  }
+
+  body.editando [data-texto]:hover {
+    outline-color: var(--color-marca);
+  }
+
+  /* Un texto vacío no se puede tocar si no ocupa lugar. Con esto el hueco
+     queda visible y clickeable, que es justo cuando más falta hace entrar a
+     escribir. */
+  body.editando [data-texto]:empty {
+    display: block;
+    min-height: 1.4em;
+    min-width: 8ch;
   }
 
   html,

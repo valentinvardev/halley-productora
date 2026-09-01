@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -13,6 +14,7 @@ import {
 } from "./_components/iconos";
 import { Aparecer } from "./_components/aparecer";
 import { DesplazamientoSuave } from "./_components/desplazamiento";
+import { EditorLanding } from "./_components/editor-landing";
 import { FondoVideo } from "./_components/fondo-video";
 import { LogoAnimado } from "./_components/logo-animado";
 import { TarjetaServicio } from "./_components/tarjeta-servicio";
@@ -25,6 +27,7 @@ import { botonFantasma, botonSolido, botonWhatsApp } from "./_components/ui";
 import { eventoDeServicio } from "./_datos/presupuesto";
 import { SERVICIOS } from "./_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
+import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
 import { textosDeBloque } from "~/server/textos-sitio";
 
 export const metadata: Metadata = {
@@ -53,26 +56,64 @@ const POSTER_PORTADA = "/portada/portada.jpg";
    salen de `textos-sitio.ts`, que guarda lo cambiado y cae al texto de fábrica
    cuando no hay nada guardado. */
 
-export default async function Landing() {
+/**
+ * Quién puede editar los textos tocándolos en la página.
+ *
+ * Se pide con `?editar=1` y además hay que ser administrador. Las dos
+ * condiciones hacen falta: sin la cookie cualquiera entraría al modo escribiendo
+ * la query, y sin la query un administrador no podría ver nunca su propio sitio
+ * como lo ve un cliente, con la página llena de punteados.
+ *
+ * La consulta de la cookie no le cuesta nada al visitante común: la portada ya
+ * era dinámica porque lee la vitrina en cada visita.
+ */
+async function enModoEdicion(pedido: boolean) {
+  if (!pedido) return false;
+  const galleta = await cookies();
+  return cookieValida(galleta.get(COOKIE_ADMIN)?.value);
+}
+
+export default async function Landing({
+  searchParams,
+}: {
+  searchParams: Promise<{ editar?: string }>;
+}) {
   // Los datos de contacto salen del panel, no del codigo.
   const datos = await contacto();
   // La portada que subió el admin manda; si no hay, el archivo del repo.
   const hero = await heroAleatorio();
 
+  const { editar } = await searchParams;
+  const editando = await enModoEdicion(editar === "1");
+
   return (
     <div className={`landing ${FUENTES_MARCA}`}>
       {/* No pinta nada: engancha el desenfoque de los anclajes. */}
       <DesplazamientoSuave />
+      {editando && <EditorLanding />}
       <NavPublica secciones={SECCIONES} />
 
       <Hero whatsapp={datos.whatsapp} hero={hero} />
       <Concepto />
       <Servicios />
-      <Como />
-      <Contacto datos={datos} />
+      <Como editando={editando} />
+      <Contacto datos={datos} editando={editando} />
       <Pie />
     </div>
   );
+}
+
+/**
+ * Marca un texto como editable, para que el editor sepa cuál es.
+ *
+ * Devuelve un atributo y nada más. Fuera del modo edición devuelve un objeto
+ * vacío, así que la página que ve un cliente sale exactamente igual que antes:
+ * ni un nodo de más, ni una clase de más. El punteado que se ve al editar lo
+ * pone el CSS enganchado a este atributo, no una clase que haya que ir sumando
+ * a cada elemento.
+ */
+function editable(campo: string, editando: boolean) {
+  return editando ? { "data-texto": campo } : {};
 }
 
 /* --------------------------------------------------------------------- hero */
@@ -482,7 +523,7 @@ async function Servicios() {
 
 /* --------------------------------------------------------------------- cómo */
 
-async function Como() {
+async function Como({ editando }: { editando: boolean }) {
   const t = await textosDeBloque("noNegociamos");
 
   // Los cuatro pares se arman acá y no en el módulo de textos: allá son campos
@@ -490,19 +531,25 @@ async function Como() {
   // lista porque la grilla los recorre. Es la misma información con la forma que
   // necesita cada lado.
   const puntos = [
-    { titulo: t.titulo1, texto: t.texto1 },
-    { titulo: t.titulo2, texto: t.texto2 },
-    { titulo: t.titulo3, texto: t.texto3 },
-    { titulo: t.titulo4, texto: t.texto4 },
+    { titulo: t.titulo1, texto: t.texto1, n: 1 },
+    { titulo: t.titulo2, texto: t.texto2, n: 2 },
+    { titulo: t.titulo3, texto: t.texto3, n: 3 },
+    { titulo: t.titulo4, texto: t.texto4, n: 4 },
   ];
 
   return (
     <section id="como" className="border-b border-gray-20">
       <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
-        <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
+        <p
+          {...editable("noNegociamos.rotulo", editando)}
+          className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70"
+        >
           {t.rotulo}
         </p>
-        <h2 className="mt-4 max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.6rem)] leading-[0.92] uppercase">
+        <h2
+          {...editable("noNegociamos.titulo", editando)}
+          className="mt-4 max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.6rem)] leading-[0.92] uppercase"
+        >
           {t.titulo}
         </h2>
 
@@ -511,10 +558,16 @@ async function Como() {
         <div className="mt-11 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2">
           {puntos.map((n, i) => (
             <div key={i} className="bg-paper p-7 sm:p-9">
-              <h3 className="font-titulo text-[clamp(1.4rem,2.6vw,1.9rem)] leading-tight uppercase">
+              <h3
+                {...editable(`noNegociamos.titulo${n.n}`, editando)}
+                className="font-titulo text-[clamp(1.4rem,2.6vw,1.9rem)] leading-tight uppercase"
+              >
                 {n.titulo}
               </h3>
-              <p className="mt-3 max-w-[46ch] text-[14.5px] leading-relaxed text-gray-70">
+              <p
+                {...editable(`noNegociamos.texto${n.n}`, editando)}
+                className="mt-3 max-w-[46ch] text-[14.5px] leading-relaxed text-gray-70"
+              >
                 {n.texto}
               </p>
             </div>
@@ -529,8 +582,10 @@ async function Como() {
 
 async function Contacto({
   datos,
+  editando,
 }: {
   datos: { whatsapp: string; instagram: string; mail: string };
+  editando: boolean;
 }) {
   const t = await textosDeBloque("contacto");
 
@@ -538,10 +593,16 @@ async function Contacto({
     <section id="contacto" className="border-b border-gray-20">
       <div className="mx-auto grid max-w-[1140px] gap-12 px-6 py-20 sm:px-10 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
-          <h2 className="max-w-[16ch] font-titulo text-[clamp(2.2rem,6vw,4.4rem)] leading-[0.9] uppercase">
+          <h2
+            {...editable("contacto.titulo", editando)}
+            className="max-w-[16ch] font-titulo text-[clamp(2.2rem,6vw,4.4rem)] leading-[0.9] uppercase"
+          >
             {t.titulo}
           </h2>
-          <p className="mt-6 max-w-[48ch] text-[15.5px] leading-relaxed text-gray-70">
+          <p
+            {...editable("contacto.bajada", editando)}
+            className="mt-6 max-w-[48ch] text-[15.5px] leading-relaxed text-gray-70"
+          >
             {t.bajada}
           </p>
 

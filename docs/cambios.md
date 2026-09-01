@@ -336,3 +336,72 @@ cambia es en cuántos tramos se divide.
 **Lo que sigue igual.** En el teléfono no rebobina, y es a propósito: la
 animación se dispara al entrar en pantalla, y cuando la tarjeta sale no hay nadie
 mirándola.
+
+---
+
+## Editar los textos tocándolos en la página
+
+**Pedido:** "para editar el contenido de la landing se me viene a la cabeza
+integrarles una feature de web builder, que esencialmente sea un sidebar para
+cambiar aspectos importantes, pero más que nada cuando hacemos click en un
+párrafo que en el sidebar nos aparezca para modificar el mismo".
+
+**Antes.** Los textos de la portada ya se podían editar, pero desde una pantalla
+aparte del panel. Para cambiar una frase había que acordarse de en qué sección de
+la página estaba, encontrarla en un desplegable que la nombra con el nombre que
+alguien le puso en un catálogo, y después volver a la portada a ver cómo quedó.
+
+**Ahora.** Se entra a la portada con el modo prendido, se toca la frase, y el
+panel de la derecha abre justo ese campo. Se escribe, se guarda, y el texto
+cambia en la página misma.
+
+**Por qué sobre la página de verdad y no sobre una vista previa.** Una vista
+previa adentro del panel reintroduce la duda que venía a sacar, que es si lo que
+se ve es lo que va a quedar. Acá no hay copia: es la portada, con sus fuentes, su
+ancho real y el tema que tenga puesto el navegador. Si el título entra en dos
+renglones, se ve entrando en dos renglones.
+
+**Quién lo ve.** Hacen falta las dos cosas: ser administrador y pedirlo con
+`?editar=1`. Sin la cookie no alcanza con escribir la dirección; sin el `?editar=1`
+un administrador ve la portada igual que cualquiera, que es lo que hay que poder
+hacer para revisar el sitio. Del panel, en Textos, sale un botón que ya lleva el
+modo puesto.
+
+**Qué cuesta cuando nadie está editando.** Nada. Los textos se marcan con un
+atributo que sólo se agrega en modo edición, así que el HTML que recibe un
+visitante es exactamente el de antes: ni un nodo de más, ni una clase de más. La
+consulta de la cookie no agrega trabajo porque la portada ya se armaba en cada
+visita, que es lo que le permite mostrar la vitrina actualizada.
+
+**Detalles que se resolvieron en el camino.**
+
+- El punteado que marca qué se puede tocar va por fuera del texto y no lo empuja,
+  así que la página en modo edición mide exactamente lo mismo que la publicada. Un
+  borde la correría unos píxeles y uno terminaría ajustando un texto contra una
+  maqueta que no es la real.
+- Un texto que quedó vacío no se podría tocar, porque no ocupa lugar. En modo
+  edición se le reserva un hueco visible, que es justo cuando más falta hace poder
+  entrar a escribirlo.
+- El desenfoque que aparece al bajar por los links del menú deja afuera al editor.
+  No es estética: desenfocar un elemento lo convierte en el marco de referencia de
+  sus hijos fijos, así que la barra y el panel habrían dejado de estar fijos y se
+  habrían ido con el scroll en medio de una edición.
+- La cabecera del sitio es pegajosa y se pega arriba de todo. En modo edición se
+  pega cuarenta píxeles más abajo, para no meterse debajo de la barra del editor.
+
+**Lo que no cambió.** La pantalla de Textos del panel sigue estando y sigue
+sirviendo, para repasar todo junto y para encontrar un texto cuando no se sabe en
+qué parte de la página estaba. Son dos puertas a lo mismo: el almacenamiento es el
+que ya existía, cada texto ya era un campo con nombre. Esto sólo agrega cómo
+encontrarlo.
+
+**Lo que esto habilita.** Los puntos 7 y 16 piden lo mismo para el resto de la web
+y para el simulador. A medida que esos textos entren al catálogo, quedan editables
+sobre la página sin escribir nada nuevo: alcanza con marcarlos.
+
+**Lo que no verifiqué.** El guardado contra la base de producción, por lo mismo de
+siempre: escribir ahí cambiaría el texto del sitio en vivo. El guardado usa la
+misma llamada que la pantalla del panel, con el mismo contenido, y esa ya está en
+uso. Verifiqué que la portada marca sus doce textos sólo en modo edición, que un
+visitante sin la cookie no ve nada aunque escriba `?editar=1`, y que las reglas de
+estilo del modo llegan a la hoja compilada.
