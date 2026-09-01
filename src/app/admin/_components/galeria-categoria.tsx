@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import {
+  IconoBajar,
   IconoEstrella,
   IconoPapelera,
   IconoVolver,
@@ -65,6 +66,10 @@ export function GaleriaCategoria({
   });
 
   const marcarPortada = api.contenido.marcarPortada.useMutation({
+    onSuccess: () => utils.contenido.listar.invalidate({ categoria: slug }),
+  });
+
+  const moverPieza = api.contenido.moverContenido.useMutation({
     onSuccess: () => utils.contenido.listar.invalidate({ categoria: slug }),
   });
 
@@ -289,6 +294,30 @@ export function GaleriaCategoria({
                       <IconoEstrella className="h-3.5 w-3.5" />
                     </button>
                   )}
+
+                  {/* Mover un lugar. Abajo y no arriba porque arriba ya viven la
+                      selección y la portada, y tres controles en la misma
+                      esquina se tocan entre sí con el dedo.
+
+                      "Poner al frente" sigue estando y hace otra cosa: salta
+                      hasta la primera posición. Esto acomoda de a uno, que es lo
+                      que hace falta cuando la foto ya está cerca de su lugar. */}
+                  <div className="absolute right-1.5 bottom-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <BotonMover
+                      direccion="sube"
+                      deshabilitado={i === 0 || moverPieza.isPending}
+                      alMover={() =>
+                        moverPieza.mutate({ id: p.id, direccion: "sube" })
+                      }
+                    />
+                    <BotonMover
+                      direccion="baja"
+                      deshabilitado={i === piezas.length - 1 || moverPieza.isPending}
+                      alMover={() =>
+                        moverPieza.mutate({ id: p.id, direccion: "baja" })
+                      }
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -361,5 +390,43 @@ export function GaleriaCategoria({
 
       <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
     </>
+  );
+}
+
+/**
+ * Una flecha para mover la pieza un lugar.
+ *
+ * `data-no-marquee` la saca del arrastre que dibuja el rectángulo de selección:
+ * sin eso, apretar la flecha empezaría a seleccionar en vez de mover.
+ *
+ * En los bordes se deshabilita en lugar de esconderse. Que el control esté y no
+ * responda dice "es la primera"; que desaparezca deja al ojo buscándolo.
+ */
+function BotonMover({
+  direccion,
+  deshabilitado,
+  alMover,
+}: {
+  direccion: "sube" | "baja";
+  deshabilitado: boolean;
+  alMover: () => void;
+}) {
+  const sube = direccion === "sube";
+  return (
+    <button
+      type="button"
+      data-no-marquee
+      onClick={(e) => {
+        e.stopPropagation();
+        alMover();
+      }}
+      disabled={deshabilitado}
+      aria-label={sube ? "Mover antes" : "Mover después"}
+      className="grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink transition-colors hover:bg-ink hover:text-paper disabled:cursor-default disabled:opacity-30 disabled:hover:bg-paper/70 disabled:hover:text-ink"
+    >
+      <IconoBajar
+        className={`h-3 w-3 ${sube ? "rotate-180" : ""}`}
+      />
+    </button>
   );
 }

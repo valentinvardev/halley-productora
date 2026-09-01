@@ -194,6 +194,76 @@ export const contenidoRouter = createTRPCRouter({
     }),
 
   /**
+   * Mueve una pieza un lugar dentro de su categoría.
+   *
+   * El orden importa: la vitrina muestra las fotos en este orden y la primera es
+   * la portada. Hasta ahora lo único que se podía hacer era subir una pieza —que
+   * cae al final— y ascender una a portada de un salto. Poner la tercera antes
+   * que la segunda no tenía forma.
+   *
+   * Renumera la categoría entera en vez de intercambiar el `orden` de dos
+   * piezas. Intercambiar es más barato y fue lo primero que escribí, pero contra
+   * los datos reales no funciona: en la vitrina hay categorías donde las treinta
+   * y una piezas tienen `orden = 0` —se subieron antes de que el campo se usara
+   * en serio— y ahí no hay nada que intercambiar. Correr una de ellas un lugar
+   * exigía darle un número por debajo o por encima de todo el bloque empatado, y
+   * eso no la movía un lugar: la mandaba al principio o al final de la lista.
+   *
+   * Renumerando, el resultado es siempre exactamente "un lugar", haya empates,
+   * huecos o los negativos que mete `marcarPortada`. Son cuarenta escrituras en
+   * el peor caso, dentro de una transacción, en una acción que hace una persona
+   * mirando una grilla: no es un camino caliente.
+   *
+   * De paso deja la categoría ordenada de 0 a N, así que el segundo movimiento
+   * ya parte de datos sanos.
+   *
+   * Sin vecino no pasa nada. Es el borde de la lista, no un error: la primera no
+   * puede subir más y la última no puede bajar.
+   */
+  moverContenido: adminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        direccion: z.enum(["sube", "baja"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const pieza = await ctx.db.contenido.findUnique({
+        where: { id: input.id },
+        select: { id: true, categoria: true },
+      });
+      if (!pieza) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // El mismo orden que ve el panel: `creadoEn` desempata a los que comparten
+      // número, para que la lista de acá y la de la pantalla sean la misma.
+      const lista = await ctx.db.contenido.findMany({
+        where: { categoria: pieza.categoria },
+        orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
+        select: { id: true },
+      });
+
+      const desde = lista.findIndex((c) => c.id === pieza.id);
+      const hasta = desde + (input.direccion === "sube" ? -1 : 1);
+      if (desde === -1 || hasta < 0 || hasta >= lista.length) {
+        return { ok: true, movido: false };
+      }
+
+      const reordenada = [...lista];
+      [reordenada[desde], reordenada[hasta]] = [
+        reordenada[hasta]!,
+        reordenada[desde]!,
+      ];
+
+      await ctx.db.$transaction(
+        reordenada.map((c, i) =>
+          ctx.db.contenido.update({ where: { id: c.id }, data: { orden: i } }),
+        ),
+      );
+
+      return { ok: true, movido: true };
+    }),
+
+  /**
    * Los clips de portada. Son varios a propósito: la landing elige uno al azar
    * en cada visita, así el sitio no abre siempre igual.
    */
