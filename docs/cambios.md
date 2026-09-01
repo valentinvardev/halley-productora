@@ -274,6 +274,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | 4 y 5 | `ce65dc0` | Los textos de la portada vuelven al código |
 | 3 | `651fc35` | El panel vuelve a cortar en 1080 |
 | 15 | `23fe7ad` | Saca los símbolos del detalle |
+| 1 | `50d9d11` | Vuelve al rebobinado a saltos (los videos siguen recodificados) |
+| edición sobre la página | `f62188c` | Los textos se siguen editando, pero sólo desde el panel |
 
 ## Los dos casos que necesitan un paso más
 
@@ -285,6 +287,11 @@ dos deja todo como estaba.
 editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
 nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
 empiezan con `texto:`.
+
+**Edición sobre la página.** Revertirla no toca ningún texto guardado. Lo único
+que se va es la forma de editarlos tocándolos; la pantalla de Textos del panel
+queda intacta y sigue editando los mismos campos. Es la revertida más barata de
+la lista.
 
 ## Lo que no se revierte con git
 
