@@ -276,6 +276,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | 15 | `23fe7ad` | Saca los símbolos del detalle |
 | 1 | `50d9d11` | Vuelve al rebobinado a saltos (los videos siguen recodificados) |
 | edición sobre la página | `f62188c` | Los textos se siguen editando, pero sólo desde el panel |
+| tema base nocturno | `3cf46d2` | Vuelve a la base clara, con el oscuro por sistema y por script |
 
 ## Los dos casos que necesitan un paso más
 
@@ -287,6 +288,14 @@ dos deja todo como estaba.
 editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
 nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
 empiezan con `texto:`.
+
+**Tema base nocturno.** Revertirlo devuelve las dos vías viejas, la preferencia
+del sistema y el script, así que quien tenga el teléfono en claro vuelve a ver la
+web blanca hasta que corra el JavaScript. Las elecciones guardadas en los
+navegadores siguen valiendo en las dos versiones: la clave de `localStorage` y los
+valores no cambiaron. Lo único que hay que mirar si se revierte es que el
+`color-scheme` vuelve a colgar del atributo, que es el agujero que este cambio
+tapó.
 
 **Edición sobre la página.** Revertirla no toca ningún texto guardado. Lo único
 que se va es la forma de editarlos tocándolos; la pantalla de Textos del panel
