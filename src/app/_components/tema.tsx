@@ -1,22 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { IconoLuna, IconoSol } from "./iconos";
 
 /**
  * Positivo / negativo — el modo oscuro del sistema.
  *
- * Por defecto sigue la hora del día: de noche entra en negativo solo. Si el
- * usuario toca el botón, su elección manda y queda guardada — la hora deja de
- * decidir para siempre en ese navegador.
+ * Arranca en oscuro y ahí se queda hasta que alguien diga otra cosa. Si el
+ * usuario toca el botón, su elección manda y queda guardada en ese navegador.
+ *
+ * Antes lo decidía la hora: negativo de 19 a 7, positivo el resto del día, y una
+ * pestaña abierta desde la tarde se oscurecía sola al cruzar las siete. Era
+ * lindo y se fue igual, porque la web es una pieza de marca antes que una
+ * herramienta: el trabajo de Halley son fotos y videos, y sobre papel oscuro se
+ * ven como en una sala y no como en una hoja. Que la mitad de las visitas vieran
+ * la versión clara era dejar esa decisión en manos del reloj de cada uno.
  */
 
 const CLAVE = "halley-tema";
 
-/** A partir de las 19 y hasta las 7 se ve de noche. */
-const NOCHE_DESDE = 19;
-const NOCHE_HASTA = 7;
+/** Lo que ve quien todavía no eligió nada. */
+const POR_DEFECTO = "oscuro";
 
 /**
  * Corre antes del primer pintado para que la página no arranque en claro y
@@ -28,33 +31,16 @@ const NOCHE_HASTA = 7;
 export const scriptTema = `
 try {
   var g = localStorage.getItem("${CLAVE}");
-  var h = new Date().getHours();
   document.documentElement.dataset.tema =
-    (g === "claro" || g === "oscuro")
-      ? g
-      : (h >= ${NOCHE_DESDE} || h < ${NOCHE_HASTA} ? "oscuro" : "claro");
+    (g === "claro" || g === "oscuro") ? g : "${POR_DEFECTO}";
 } catch (e) {}
 `;
 
-/** Lo que corresponde por la hora, si nadie eligió nada. */
-export function temaPorHora(ahora = new Date()): "claro" | "oscuro" {
-  const h = ahora.getHours();
-  return h >= NOCHE_DESDE || h < NOCHE_HASTA ? "oscuro" : "claro";
-}
-
-function eligioElUsuario() {
-  try {
-    const g = localStorage.getItem(CLAVE);
-    return g === "claro" || g === "oscuro";
-  } catch {
-    return false;
-  }
-}
 
 function temaActual(): "claro" | "oscuro" {
   const puesto = document.documentElement.dataset.tema;
   if (puesto === "claro" || puesto === "oscuro") return puesto;
-  return temaPorHora();
+  return POR_DEFECTO;
 }
 
 /**
@@ -66,22 +52,9 @@ function temaActual(): "claro" | "oscuro" {
  * parpadeo durante la hidratación.
  */
 export function BotonTema({ className = "" }: { className?: string }) {
-  // Una pestaña abierta desde la tarde hasta la noche tiene que oscurecerse
-  // sola al cruzar la hora. Sólo mientras el usuario no haya elegido: el
-  // momento en que toca el botón, la hora deja de opinar.
-  useEffect(() => {
-    if (eligioElUsuario()) return;
-
-    const reloj = setInterval(() => {
-      if (eligioElUsuario()) return;
-      const toca = temaPorHora();
-      if (document.documentElement.dataset.tema !== toca) {
-        document.documentElement.dataset.tema = toca;
-      }
-    }, 60_000);
-
-    return () => clearInterval(reloj);
-  }, []);
+  // Acá vivía un reloj que revisaba la hora cada minuto para oscurecer una
+  // pestaña abierta desde la tarde. Con el tema fijo no hay nada que vigilar:
+  // el default no cambia solo y la elección del usuario tampoco.
 
   function alternar() {
     const nuevo = temaActual() === "oscuro" ? "claro" : "oscuro";
