@@ -250,6 +250,10 @@ mensaje. Para encontrarlo:
 git log --grep="Punto 6" --oneline
 ```
 
+Ojo con uno: el commit de los puntos 4 y 5 los cierra juntos y dice "Puntos" en
+plural, así que hay que buscarlo como `--grep="Puntos 4"`. La tabla de abajo es
+el índice confiable; el grep es la comodidad.
+
 Para deshacer un punto sin tocar los demás, `git revert` sobre su commit. Genera
 un commit nuevo que deshace ese cambio, así que no reescribe historial y se puede
 volver a aplicar después:
