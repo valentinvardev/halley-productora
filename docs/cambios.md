@@ -693,3 +693,64 @@ izquierda. Se eligió por la medición y no de ojo.
 
 **Queda anotado en el código** por qué esas filas van centradas. Es de las cosas
 que se "arreglan" de vuelta al revés si no está dicho.
+
+---
+
+## El visor deja de hacer esperar para pasar de foto
+
+**Pedido:** "estaría tardando mucho el lightbox de la galería de los servicios en
+cambiar a la siguiente foto rápido, no es optimista esa parte de la interfaz".
+
+**Antes.** Al tocar la flecha cambiaba la dirección de la imagen y la pantalla se
+quedaba con la foto anterior hasta que la nueva terminara de bajar: un pedido a
+nuestro servidor, un redirigido a S3 y unos megas de archivo. El contador ya
+decía el número nuevo mientras se seguía viendo la foto vieja, así que con el
+dedo apurado se sentía trabado, como si el clic no hubiera entrado.
+
+**Ahora.** Aparece al instante la miniatura, que ya está en el navegador porque
+es la que se venía mirando en la grilla, y la foto grande entra encima cuando
+llega. Además, mientras se mira una, se van bajando la anterior y la siguiente.
+
+**Cuánto cambió.** Medido en el navegador, con la caché vacía y la red frenada a
+algo parecido a un teléfono con mala señal, contando desde el clic hasta que se ve
+la foto que se pidió:
+
+| Paso | Antes | Ahora |
+|---|---|---|
+| primero | 16.117 ms | 9 ms |
+| segundo | 4.432 ms | 7 ms |
+| tercero | 5.716 ms | 5 ms |
+
+**Primero la miniatura de la vecina, después la grande.** El adelanto empezó
+pidiendo sólo las fotos grandes, y con eso el tercer paso todavía tardaba un
+segundo y medio: era el caso donde la miniatura de esa foto tampoco estaba
+bajada. La miniatura pesa unas cuarenta veces menos, así que pedirla primero es lo
+que hace que el próximo paso se vea al instante; pedirla después la dejaba
+esperando detrás de varios megas que en ese momento no hacían falta.
+
+**Detalles que se resolvieron en el camino.**
+
+- La miniatura es la que fija el tamaño de la caja, y la grande se acomoda encima.
+  Va así porque la grande no mide nada hasta que baja, y una caja que crece cuando
+  llega la foto es el mismo salto que se estaba tratando de sacar.
+- La estructura es siempre la misma, esté cargada o no, y lo único que cambia son
+  los estilos. Cambiar la estructura justo en el momento en que la foto llega es
+  pedir un parpadeo.
+- Una foto que ya estaba en el navegador puede terminar de cargar antes de que el
+  código alcance a escuchar el aviso, y ahí el aviso no llega nunca y la foto se
+  quedaría borrosa para siempre. Se pregunta por el estado del elemento en vez de
+  confiar en haber llegado a tiempo.
+- Volver a una foto ya vista no la muestra borrosa de nuevo: se recuerda cuáles ya
+  bajaron. Desenfocar una foto que ya está en el navegador sería inventar una
+  espera que no existe.
+
+**Las piezas viejas sin miniatura** siguen esperando la grande, como siempre. No
+hay nada que mostrar antes.
+
+**Una medición que estuvo mal y se corrigió.** El primer intento preguntaba si
+había algo pintado en el visor, y daba veinte milisegundos en las dos versiones.
+Estaba midiendo mal: en la versión vieja la foto anterior sigue en pantalla, así
+que siempre había algo pintado. Ese es justamente el defecto. La medición buena
+pregunta si lo que se ve corresponde a la foto que se pidió. Y el primer par de
+corridas compartió caché entre las dos versiones, lo que le regalaba a la vieja
+todo lo que la nueva había bajado; se repitió con el navegador limpio cada vez.
