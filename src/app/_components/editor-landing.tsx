@@ -101,6 +101,9 @@ export function EditorLanding() {
           bloque={bloque}
           campo={campo}
           alCerrar={() => setElegido(null)}
+          alElegirCampo={(nombre) =>
+            setElegido({ bloque: elegido.bloque, campo: nombre })
+          }
           alGuardar={() => {
             // El texto lo pinta el servidor, así que refrescar es lo que hace
             // que el cambio se vea en la página y no sólo en el panel.
@@ -120,11 +123,13 @@ function Panel({
   campo,
   alCerrar,
   alGuardar,
+  alElegirCampo,
 }: {
   bloque: Bloque;
   campo: Bloque["campos"][number];
   alCerrar: () => void;
   alGuardar: () => void;
+  alElegirCampo: (nombre: string) => void;
 }) {
   const [valor, setValor] = useState(bloque.textos[campo.nombre] ?? "");
 
@@ -132,6 +137,7 @@ function Panel({
 
   const original = bloque.textos[campo.nombre] ?? "";
   const sucio = valor !== original;
+  const otros = bloque.campos.filter((c) => c.nombre !== campo.nombre);
 
   return (
     <aside
@@ -170,6 +176,43 @@ function Panel({
         <p className="nota mt-2 text-[11.5px]">
           Vacío vuelve al texto original.
         </p>
+
+        {/* Los demás textos de la sección.
+
+            No todo lo que se puede editar se puede tocar en la página. El
+            mensaje con el que se abre el WhatsApp, por ejemplo, no se ve en
+            ningún lado: está adentro del link. Sin esta lista habría campos que
+            sólo existen en la pantalla del panel, y el editor sobre la página
+            dejaría de ser una puerta completa.
+
+            Se esconde mientras hay cambios sin guardar. Cambiar de campo
+            desmonta el que estaba, y perder lo escrito por tocar un link es la
+            clase de cosa que hace desconfiar de un editor. */}
+        {otros.length > 0 && (
+          <div className="mt-5 border-t border-gray-20 pt-4">
+            <div className="font-rotulo text-[10.5px] tracking-[0.1em] text-gray-45 uppercase">
+              Más de esta sección
+            </div>
+            {sucio ? (
+              <p className="nota mt-1.5 text-[11.5px]">
+                Guardá para poder pasar a otro texto.
+              </p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
+                {otros.map((c) => (
+                  <button
+                    key={c.nombre}
+                    type="button"
+                    onClick={() => alElegirCampo(c.nombre)}
+                    className="cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
+                  >
+                    {c.etiqueta}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {valor !== campo.porDefecto && (
           <div className="mt-5 border-t border-gray-20 pt-4">

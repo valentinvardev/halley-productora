@@ -599,3 +599,54 @@ esas noventa fotos son verticales**, y a las veintiuna se les estaba cortando
 cabeza y pies para meterlas en el casillero apaisado. Mirando la página de
 egresados antes y después con las fotos reales se ve derecho: los retratos que
 salían cortados a la altura de las piernas ahora salen enteros.
+
+---
+
+## Punto 7. El hero, el cometa y el encabezado de servicios, editables
+
+**Pedido:** "en el web builder faltan varios campos de texto que sean editables,
+desde el hero hasta cuatro tipos de día".
+
+**Antes.** Se podían editar doce textos: los de "Lo que no negociamos" y los de
+contacto. Todo lo que está arriba de eso seguía escrito en el código, o sea que
+cambiar el eslogan de la portada pedía un deploy.
+
+**Ahora.** Son veintiséis. Se sumaron tres secciones enteras: el hero, la del
+cometa y el encabezado de los servicios.
+
+**El titular del hero son tres campos y no uno.** Podría haber sido un solo texto
+con saltos de línea, y estaría peor. El eslogan corta donde corta a propósito, y
+en un campo único ese corte pasaría a depender de dónde termine la palabra y de
+cuán ancha sea la pantalla. Además el tercer renglón se pinta distinto, que en un
+campo único no se podría. Lo mismo con el título del cometa, que son dos
+renglones y el segundo va en gris.
+
+**También se pueden editar los dos botones del hero**, y el mensaje con el que se
+abre el WhatsApp cuando alguien toca el primero.
+
+**Ese mensaje destapó un hueco del editor.** No se ve en ninguna parte de la
+página: vive adentro del link. Así que era un campo que existía en el catálogo y
+no había forma de tocarlo sobre la página, sólo desde la pantalla del panel. El
+editor sobre la página dejaba de ser una puerta completa.
+
+Se resolvió listando, abajo del campo abierto, los demás campos de esa misma
+sección. Se toca cualquier texto de la portada y desde ahí se llega a todos los
+de su bloque, se vean o no. La lista se esconde mientras hay cambios sin guardar:
+cambiar de campo desmonta el que estaba, y perder lo escrito por tocar un link es
+la clase de cosa que hace desconfiar de un editor.
+
+**Lo que sigue en el código.** El nombre y la línea de cada una de las cuatro
+tarjetas. No es un olvido: esos textos los comparten la portada y la página de
+cada categoría, y tienen que decir lo mismo en los dos lados, así que moverlos es
+un trabajo aparte y no una entrada más en el catálogo.
+
+**Cómo se verificó.** Manejando el editor de verdad desde el navegador, con la
+cookie de administrador puesta: la portada marca sus veintiséis campos, tocar la
+bajada del hero abre su campo, la lista de al lado ofrece los otros siete del
+bloque, y tocar el del mensaje de WhatsApp lo abre con su texto adentro aunque no
+se vea en la página. Escribiendo sin guardar, la lista se reemplaza por el aviso.
+Un visitante sin la cookie sigue sin recibir un solo atributo de más.
+
+Y se comparó el titular renderizado antes y después: los tres renglones ahora van
+envueltos en etiquetas propias, que son de las que no cambian cómo se corta una
+línea, y el estilo del titular no tiene ninguna regla que dependa de eso.

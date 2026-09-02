@@ -93,9 +93,9 @@ export default async function Landing({
       {editando && <EditorLanding />}
       <NavPublica secciones={SECCIONES} />
 
-      <Hero whatsapp={datos.whatsapp} hero={hero} />
-      <Concepto />
-      <Servicios />
+      <Hero whatsapp={datos.whatsapp} hero={hero} editando={editando} />
+      <Concepto editando={editando} />
+      <Servicios editando={editando} />
       <Como editando={editando} />
       <Contacto datos={datos} editando={editando} />
       <Pie />
@@ -118,13 +118,16 @@ function editable(campo: string, editando: boolean) {
 
 /* --------------------------------------------------------------------- hero */
 
-function Hero({
+async function Hero({
   whatsapp,
   hero,
+  editando,
 }: {
   whatsapp: string;
   hero: { url: string; tipo: "imagen" | "video" } | null;
+  editando: boolean;
 }) {
+  const t = await textosDeBloque("hero");
   const hayVideo = existeEnPublico(VIDEO_PORTADA);
   const hayPoster = existeEnPublico(POSTER_PORTADA);
   // Con cualquiera de los tres el fondo pasa a ser oscuro, y eso es lo que
@@ -200,24 +203,37 @@ function Hero({
           Hasta `lg` sigue centrado, que en pantallas angostas es lo correcto. */}
       <div className="relative mx-auto w-full max-w-[1140px] px-6 sm:px-10 lg:mx-0 lg:max-w-[1560px] lg:pl-16 xl:pl-24">
         <div className="negativo lg:max-w-[52ch]">
-          <p className="font-rotulo text-[12px] uppercase tracking-[0.22em] sm:text-[12.5px]">
-            Córdoba · Dron, fotografía y video
+          <p
+            {...editable("hero.rotulo", editando)}
+            className="font-rotulo text-[12px] uppercase tracking-[0.22em] sm:text-[12.5px]"
+          >
+            {t.rotulo}
           </p>
 
-          {/* El titular es el eslogan del manual, tal cual. */}
+          {/* El titular es el eslogan del manual, tal cual.
+
+              Los tres renglones son tres campos y no un texto con saltos. Un
+              texto con saltos deja el corte de línea en manos de dónde termine
+              la palabra, y acá el corte es parte del eslogan. Además el tercero
+              se pinta distinto, que en un solo campo no se podría. */}
           <h1 className="titular-hero mt-6">
-            Los momentos
+            <span {...editable("hero.titular1", editando)}>{t.titular1}</span>
             <br />
-            son fugaces.
+            <span {...editable("hero.titular2", editando)}>{t.titular2}</span>
             <br />
-            {/* El remate del eslogan, un punto más pesado que las dos líneas
-                que lo preparan. */}
-            <span className="titular-remate">Halley los hace eternos.</span>
+            <span
+              {...editable("hero.remate", editando)}
+              className="titular-remate"
+            >
+              {t.remate}
+            </span>
           </h1>
 
-          <p className="mt-7 max-w-[46ch] text-[14.5px] leading-relaxed">
-            Productora audiovisual de Córdoba. Egresados, bodas, quince años y
-            marcas. El día pasa una sola vez: nos ocupamos de que puedas volver.
+          <p
+            {...editable("hero.bajada", editando)}
+            className="mt-7 max-w-[46ch] text-[14.5px] leading-relaxed"
+          >
+            {t.bajada}
           </p>
         </div>
 
@@ -225,23 +241,24 @@ function Hero({
             un error de render, no como una decisión. */}
         <div className="mt-9 flex flex-wrap gap-3.5">
           <a
-            href={linkWhatsApp(
-              whatsapp,
-              "Hola Halley, quiero pedir un presupuesto.",
-            )}
+            href={linkWhatsApp(whatsapp, t.mensajeWhatsapp)}
             target="_blank"
             rel="noreferrer"
             className={botonWhatsApp}
           >
             <IconoWhatsApp />
-            Pedir presupuesto
+            {/* La marca va en el texto y no en el botón: adentro del botón el
+                clic navegaría antes de que el editor lo agarre. */}
+            <span {...editable("hero.boton", editando)}>{t.boton}</span>
           </a>
           <a
             href="#servicios"
             className={hayFondo ? botonSobreVideoFantasma : botonFantasma}
           >
             <IconoFlecha />
-            Ver servicios
+            <span {...editable("hero.botonSecundario", editando)}>
+              {t.botonSecundario}
+            </span>
           </a>
         </div>
       </div>
@@ -309,7 +326,9 @@ function Estela() {
 
 /* ----------------------------------------------------------------- concepto */
 
-function Concepto() {
+async function Concepto({ editando }: { editando: boolean }) {
+  const t = await textosDeBloque("concepto");
+
   return (
     <section
       id="concepto"
@@ -365,9 +384,14 @@ function Concepto() {
 
         <Aparecer>
           <h2 className="font-titulo text-[clamp(1.9rem,4.4vw,3.4rem)] leading-[0.96] uppercase">
-            Hay quien lo ve una vez en la vida.
+            <span {...editable("concepto.titulo1", editando)}>{t.titulo1}</span>
             <br />
-            <span className="text-gray-70">Con suerte, dos.</span>
+            <span
+              {...editable("concepto.titulo2", editando)}
+              className="text-gray-70"
+            >
+              {t.titulo2}
+            </span>
           </h2>
         </Aparecer>
 
@@ -375,20 +399,10 @@ function Concepto() {
           demora={0.12}
           className="max-w-[54ch] space-y-5 text-[15px] leading-relaxed text-gray-70"
         >
-          <p>
-            El cometa Halley orbita el Sol y se ve desde la Tierra cada 75 años.
-            Es historia viva de la astronomía, pero para dejarse ver pide algo
-            simple: estar ahí, atentos, en el momento justo.
-          </p>
-          <p>
-            De eso se trata nuestro trabajo. Captamos lo que no se repite —esa
-            mirada, ese abrazo, esa emoción—, y cuando queda registrado en el
-            instante preciso deja de ser sólo un recuerdo: se vuelve un punto de
-            regreso.
-          </p>
-          <p className="text-ink">
-            La posibilidad de volver a sentir, de volver a mirar, de volver a
-            abrazar.
+          <p {...editable("concepto.parrafo1", editando)}>{t.parrafo1}</p>
+          <p {...editable("concepto.parrafo2", editando)}>{t.parrafo2}</p>
+          <p {...editable("concepto.parrafo3", editando)} className="text-ink">
+            {t.parrafo3}
           </p>
         </Aparecer>
       </div>
@@ -406,7 +420,8 @@ function Concepto() {
  * pantalla entera, queda clavada mientras se recorre su tramo y la siguiente
  * entra deslizándose por encima.
  */
-async function Servicios() {
+async function Servicios({ editando }: { editando: boolean }) {
+  const t = await textosDeBloque("servicios");
   // El fondo de cada panel es una grilla de trabajos al azar de esa categoría;
   // si no hay ninguno, el relleno. Se resuelve en el servidor, por pedido, así
   // que cada visita ve otras fotos.
@@ -417,11 +432,17 @@ async function Servicios() {
   return (
     <section id="servicios" className="border-b border-gray-20">
       <div className="mx-auto max-w-[1140px] px-6 pt-20 pb-14 sm:px-10 sm:pt-24">
-        <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
-          Qué hacemos
+        <p
+          {...editable("servicios.rotulo", editando)}
+          className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70"
+        >
+          {t.rotulo}
         </p>
-        <h2 className="mt-4 max-w-[18ch] font-titulo text-[clamp(2rem,5.5vw,4rem)] leading-[0.92] uppercase">
-          Cuatro tipos de día
+        <h2
+          {...editable("servicios.titulo", editando)}
+          className="mt-4 max-w-[18ch] font-titulo text-[clamp(2rem,5.5vw,4rem)] leading-[0.92] uppercase"
+        >
+          {t.titulo}
         </h2>
       </div>
 

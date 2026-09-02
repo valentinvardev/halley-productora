@@ -37,9 +37,93 @@ type Bloque = {
 };
 
 export const TEXTOS_SITIO = {
+  hero: {
+    nombre: "Portada, lo primero que se ve",
+    donde:
+      "Arriba de todo, sobre el video o la foto de portada. El titular va en tres renglones: los dos primeros preparan y el tercero remata, y por eso el tercero se pinta distinto. Se editan por separado justamente para que el corte de línea no dependa de dónde termine la palabra.",
+    campos: {
+      rotulo: {
+        etiqueta: "Rótulo",
+        porDefecto: "Córdoba · Dron, fotografía y video",
+      },
+      titular1: {
+        etiqueta: "Titular, primer renglón",
+        porDefecto: "Los momentos",
+      },
+      titular2: {
+        etiqueta: "Titular, segundo renglón",
+        porDefecto: "son fugaces.",
+      },
+      remate: {
+        etiqueta: "Titular, remate",
+        porDefecto: "Halley los hace eternos.",
+      },
+      bajada: {
+        etiqueta: "Bajada",
+        largo: true,
+        porDefecto:
+          "Productora audiovisual de Córdoba. Egresados, bodas, quince años y marcas. El día pasa una sola vez: nos ocupamos de que puedas volver.",
+      },
+      boton: { etiqueta: "Botón de WhatsApp", porDefecto: "Pedir presupuesto" },
+      botonSecundario: {
+        etiqueta: "Botón que baja a servicios",
+        porDefecto: "Ver servicios",
+      },
+      mensajeWhatsapp: {
+        etiqueta: "Mensaje con el que se abre el WhatsApp",
+        largo: true,
+        porDefecto: "Hola Halley, quiero pedir un presupuesto.",
+      },
+    },
+  },
+
+  concepto: {
+    nombre: "El cometa",
+    donde:
+      "Portada, la sección que sigue al hero, la del dibujo del cometa. El segundo renglón del título va en gris: es el remate de la frase, no una frase aparte.",
+    campos: {
+      titulo1: {
+        etiqueta: "Título, primer renglón",
+        porDefecto: "Hay quien lo ve una vez en la vida.",
+      },
+      titulo2: {
+        etiqueta: "Título, segundo renglón",
+        porDefecto: "Con suerte, dos.",
+      },
+      parrafo1: {
+        etiqueta: "Primer párrafo",
+        largo: true,
+        porDefecto:
+          "El cometa Halley orbita el Sol y se ve desde la Tierra cada 75 años. Es historia viva de la astronomía, pero para dejarse ver pide algo simple: estar ahí, atentos, en el momento justo.",
+      },
+      parrafo2: {
+        etiqueta: "Segundo párrafo",
+        largo: true,
+        porDefecto:
+          "De eso se trata nuestro trabajo. Captamos lo que no se repite —esa mirada, ese abrazo, esa emoción—, y cuando queda registrado en el instante preciso deja de ser sólo un recuerdo: se vuelve un punto de regreso.",
+      },
+      parrafo3: {
+        etiqueta: "Cierre",
+        largo: true,
+        porDefecto:
+          "La posibilidad de volver a sentir, de volver a mirar, de volver a abrazar.",
+      },
+    },
+  },
+
+  servicios: {
+    nombre: "Encabezado de los servicios",
+    donde:
+      "Portada, justo arriba de las cuatro tarjetas. Los nombres y las líneas de cada tarjeta no se editan desde acá: van con la página de cada categoría, para que digan lo mismo en los dos lados.",
+    campos: {
+      rotulo: { etiqueta: "Rótulo", porDefecto: "Qué hacemos" },
+      titulo: { etiqueta: "Título", porDefecto: "Cuatro tipos de día" },
+    },
+  },
   noNegociamos: {
     nombre: "Lo que no negociamos",
-    donde: "Portada, sección 'Cómo trabajamos'. Son cuatro cosas que se sostienen a la vez, no cuatro pasos, por eso no van numeradas.",
+    donde:
+      "Portada, sección 'Cómo trabajamos'. Son cuatro cosas que se sostienen a la vez, no cuatro pasos, por eso no van numeradas.",
     campos: {
       rotulo: { etiqueta: "Rótulo", porDefecto: "Cómo trabajamos" },
       titulo: { etiqueta: "Título", porDefecto: "Lo que no negociamos" },
@@ -83,7 +167,8 @@ export const TEXTOS_SITIO = {
 
   contacto: {
     nombre: "Contanos qué día es",
-    donde: "Portada, sección de contacto, arriba de los botones de WhatsApp y correo.",
+    donde:
+      "Portada, sección de contacto, arriba de los botones de WhatsApp y correo.",
     campos: {
       titulo: { etiqueta: "Título", porDefecto: "Contanos qué día es" },
       bajada: {
