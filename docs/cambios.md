@@ -279,6 +279,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | tema base nocturno | `3cf46d2` | Vuelve a la base clara, con el oscuro por sistema y por script |
 | 2b | `d72b7f9` | La vitrina vuelve a la grilla de 4:3 y a recortar las verticales |
 | 7 | `fbe6909` | El hero, el cometa y el encabezado de servicios vuelven al código |
+| alineación de los botones | `fc6a011` | Las filas de montos vuelven a alinearse abajo |
+| visor optimista | `bf19a41` | El visor vuelve a esperar la foto grande antes de mostrar algo |
 
 ## Los dos casos que necesitan un paso más
 
