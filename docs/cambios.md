@@ -656,3 +656,40 @@ Un visitante sin la cookie sigue sin recibir un solo atributo de más.
 Y se comparó el titular renderizado antes y después: los tres renglones ahora van
 envueltos en etiquetas propias, que son de las que no cambian cómo se corta una
 línea, y el estilo del titular no tiene ninguna regla que dependa de eso.
+
+---
+
+## Los botones que quedaban debajo de su campo
+
+**Reportado con una captura:** el botón "Aplicar a todas" flotando más abajo que
+el campo que le corresponde, sin llegar a tocarlo. Y la aclaración de que pasaba
+en varios lugares.
+
+**Por qué pasaba.** Un campo del panel son tres cosas apiladas: la etiqueta
+arriba, el campo, y la nota abajo. Esas filas estaban alineadas por abajo, así
+que el botón se ponía a la altura de lo último que hay en la columna, que es la
+nota y no el campo. Un renglón más abajo.
+
+Por eso pasaba en algunos y no en todos: los campos sin nota terminan en el
+campo, y ahí alinear por abajo daba lo correcto. El desfasaje aparecía sólo donde
+había una nota, que es justamente donde estaba la captura.
+
+**Qué se cambió.** Esas filas ahora se alinean por el centro. El desfasaje pasó de
+veintiséis píxeles a cero, y no por casualidad: la etiqueta de arriba y la nota de
+abajo son del mismo cuerpo de letra, así que el centro de la columna cae justo en
+el centro del campo. De yapa acomoda el bloque de la izquierda de cada fila de
+cuota, que también estaba pegado abajo.
+
+**Cuántos eran.** Tres filas, todas en la pantalla de montos de un alumno. Se
+buscaron por todo el panel con un barrido que marca cualquier fila alineada por
+abajo que tenga adentro un campo con nota, y después del arreglo el barrido no
+encuentra ninguna.
+
+**Cómo se verificó.** Antes de elegir se midieron las tres alternativas en el
+navegador, con la hoja de estilos real, comparando el centro del botón contra el
+centro del campo: alineado abajo daba 26 píxeles, centrado daba 0, y una tercera
+opción con un espaciador invisible daba 2 pero desacomodaba el bloque de la
+izquierda. Se eligió por la medición y no de ojo.
+
+**Queda anotado en el código** por qué esas filas van centradas. Es de las cosas
+que se "arreglan" de vuelta al revés si no está dicho.

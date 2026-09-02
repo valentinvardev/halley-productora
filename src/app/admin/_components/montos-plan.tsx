@@ -70,8 +70,8 @@ export function MontosDelGrupo({
               {conPrecioPropio === 1 ? "alumno tiene" : "alumnos tienen"} precio
               propio
             </strong>{" "}
-            y no se {conPrecioPropio === 1 ? "ve afectado" : "ven afectados"} por
-            lo que cambies acá.
+            y no se {conPrecioPropio === 1 ? "ve afectado" : "ven afectados"}{" "}
+            por lo que cambies acá.
           </>
         )}
       </p>
@@ -102,8 +102,19 @@ function FilaGrupo({
   const valor = aNumero(monto);
   const sucio = valor !== cuota.monto && valor > 0;
 
+  /* La fila va centrada y no alineada abajo.
+
+     Un `Campo` son tres cosas apiladas: la etiqueta, el campo y la nota.
+     Alineando la fila por abajo, el botón se pone a la altura de la nota, que
+     es un renglón más abajo que el campo, y queda flotando al costado sin
+     tocarlo. Medido daba veintiséis píxeles de desfasaje.
+
+     Centrando da cero, y no por casualidad: la etiqueta de arriba y la nota de
+     abajo son del mismo cuerpo, así que el centro del `Campo` cae justo en el
+     centro del campo. De paso acomoda el bloque de la izquierda, que también
+     estaba pegado abajo. */
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-gray-20 px-4 py-3 last:border-b-0">
+    <div className="flex flex-wrap items-center gap-3 border-b border-gray-20 px-4 py-3 last:border-b-0">
       <div className="w-20 shrink-0">
         <div className="font-rotulo text-[11.5px] tracking-[0.06em] text-gray-45 uppercase">
           Cuota {String(cuota.numero).padStart(2, "0")}
@@ -181,7 +192,9 @@ export function PrecioDelAlumno({
         precio del curso, y cambiarlo allá lo arrastra.
       </p>
 
-      <div className="flex flex-wrap items-end gap-3">
+      {/* Centrada por lo mismo que las filas de abajo: con la fila alineada
+          abajo, el botón se va a la altura de la nota del campo. */}
+      <div className="flex flex-wrap items-center gap-3">
         <Campo
           label="Todas las cuotas a"
           className="min-w-[150px] flex-1"
@@ -245,8 +258,19 @@ function FilaAlumno({
   const valor = aNumero(monto);
   const sucio = valor !== cuota.monto && valor > 0;
 
+  /* La fila va centrada y no alineada abajo.
+
+     Un `Campo` son tres cosas apiladas: la etiqueta, el campo y la nota.
+     Alineando la fila por abajo, el botón se pone a la altura de la nota, que
+     es un renglón más abajo que el campo, y queda flotando al costado sin
+     tocarlo. Medido daba veintiséis píxeles de desfasaje.
+
+     Centrando da cero, y no por casualidad: la etiqueta de arriba y la nota de
+     abajo son del mismo cuerpo, así que el centro del `Campo` cae justo en el
+     centro del campo. De paso acomoda el bloque de la izquierda, que también
+     estaba pegado abajo. */
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-gray-20 px-3.5 py-3 last:border-b-0">
+    <div className="flex flex-wrap items-center gap-3 border-b border-gray-20 px-3.5 py-3 last:border-b-0">
       <div className="w-24 shrink-0">
         <div className="font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase">
           Cuota {String(cuota.numero).padStart(2, "0")}
@@ -305,4 +329,3 @@ function FilaAlumno({
     </div>
   );
 }
-
