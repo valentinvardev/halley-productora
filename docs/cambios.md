@@ -278,6 +278,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | edición sobre la página | `f62188c` | Los textos se siguen editando, pero sólo desde el panel |
 | tema base nocturno | `3cf46d2` | Vuelve a la base clara, con el oscuro por sistema y por script |
 | 2b | `d72b7f9` | La vitrina vuelve a la grilla de 4:3 y a recortar las verticales |
+| 7 | `fbe6909` | El hero, el cometa y el encabezado de servicios vuelven al código |
 
 ## Los dos casos que necesitan un paso más
 
@@ -289,6 +290,11 @@ dos deja todo como estaba.
 editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
 nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
 empiezan con `texto:`.
+
+**Punto 7.** Mismo caso que los puntos 4 y 5: el commit devuelve esos textos al
+código, pero si alguien ya editó y guardó, quedan filas en la tabla de ajustes que
+nadie va a leer. No molestan. Para dejarlo limpio se borran las claves `texto:hero`,
+`texto:concepto` y `texto:servicios`.
 
 **Punto 2b.** Revertir el commit devuelve la grilla de 4:3, pero las columnas
 `ancho` y `alto` quedan en la base con sus datos. No molestan: nadie las lee y
