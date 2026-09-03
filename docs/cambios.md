@@ -289,6 +289,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | H | `f3b0022` | Las cuotas vuelven a tener sólo el tinte de fondo |
 | F | `f8cea3c` | El presupuesto deja de guardarse a medias |
 | I | `c3b61a0` | Vuelve el cuadro de película en el costado del acceso |
+| J | `752dabe` | Las páginas de servicio vuelven al código, y las tarjetas con ellas |
+| K | `cba99df` | Se van los corazones; la columna likes queda en la base sin uso |
 
 ## Los dos casos que necesitan un paso más
 
@@ -964,3 +966,65 @@ así la cara de adelante queda en el plano de la celda.
 distintas y ninguna rota; un cubo giró dentro de los cinco segundos; y una
 captura a mitad de giro muestra las dos caras a la vista y las líneas de la
 grilla entre celdas.
+
+### J. Las páginas de servicio se editan tocándolas
+
+**Pedido:** el mismo web builder de la portada para las páginas de servicio, y
+editar el contenido de la página de servicios.
+
+**Qué cambió.** Cada página de servicio tiene su bloque en el catálogo: nombre,
+línea, titular, entrada, las cuatro cosas que incluye con título y texto, y la
+aclaración. Con `?editar=1` y la cookie de administrador se tocan y se cambian
+igual que en la portada; sin eso el HTML es el de siempre.
+
+**Lo que se destrabó de paso.** El nombre y la línea de cada servicio habían
+quedado en el código en el punto 7, porque los comparten la portada y la página
+de cada categoría y tenían que decir lo mismo en los dos lados. Ahora los dos
+lados leen el mismo bloque: se cambia una vez y se ve en los dos. El mensaje de
+WhatsApp de la página usa el nombre editado también.
+
+**Los cuatro bloques se arman con una función y no a mano**, para que tengan
+exactamente los mismos campos: es lo que deja que la página los lea sin
+preguntar de cuál se trata. Y salir del modo edición vuelve a la página en la
+que se estaba, no a la portada.
+
+**Cómo se verificó.** Con la cookie de administrador, la página de bodas marca
+sus doce campos y muestra la barra del editor; sin la cookie, cero marcas. La
+portada marca ahora también el nombre y la línea de las cuatro tarjetas:
+treinta y cuatro campos en total.
+
+### K. Un corazón con contador en cada foto
+
+**Pedido:** contador de likes para las galerías, sin sesión, que suba con cada
+toque al corazón, asegurado con rate limiting para que no se pueda explotar.
+
+**Qué cambió.** Un corazón chico abajo a la izquierda de cada foto del
+portfolio, siempre a la vista, con la cuenta al lado. Se toca y sube. El número
+sube apenas se toca y el servidor confirma después; esperar la respuesta para
+moverlo es lo que hace sentir que el toque no entró.
+
+**El corazón deja de significar dos cosas.** Elegir fotos para el presupuesto
+usaba también un corazón. Decidimos entre las opciones que el corazón sea el
+like público y que elegir marque con un tilde.
+
+**El freno.** Es un contador público y anónimo, así que la única defensa contra
+un bucle que lo infle es el freno por origen: treinta likes por minuto por IP, y
+un solo like por foto por IP por hora. Ninguno es infranqueable (una red de
+teléfonos comparte IP; un atacante puede rotarla), pero suben el costo de hacer
+trampa muy por encima de lo que vale un número en una vitrina. Si el freno lo
+para, el servidor devuelve la cuenta sin tocar y la pantalla la corrige. Además
+el navegador recuerda qué fotos ya likeó, que es lo que evita el doble toque
+accidental y deja el corazón pintado al volver.
+
+**Cómo se verificó**, contra el servidor y la base de verdad: un toque suma uno
+en pantalla y en la base y no abre el visor; el segundo toque no suma; treinta y
+un pedidos seguidos a fotos distintas desde la misma IP cuentan treinta y
+frenan el resto; volver a intentar con las mismas fotos frena los treinta y uno.
+Los likes de prueba se devolvieron a cero: ninguna foto quedó con un número que
+nadie le dio.
+
+**En el camino.** La columna nueva pidió regenerar el cliente de la base, y el
+archivo del motor estaba tomado por tres servidores de desarrollo que habían
+quedado zombis de corridas anteriores, que además tenían agotadas las quince
+conexiones del pool. Se mataron sólo esos tres, identificados por su línea de
+comando, sin tocar los procesos de otros proyectos.
