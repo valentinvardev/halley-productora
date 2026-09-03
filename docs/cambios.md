@@ -285,6 +285,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
 | D y E | `1c285b9` | La fecha vuelve a ser obligatoria y se ofrecen todos los planes |
+| G | `72c899e` | Vuelven las flechas de subir y bajar en todos lados |
+| H | `f3b0022` | Las cuotas vuelven a tener sólo el tinte de fondo |
 
 ## Los dos casos que necesitan un paso más
 
@@ -841,3 +843,63 @@ sólo el pago único; eligiendo una fecha a cinco meses llega con la explicació
 "con el evento a 5 meses" y el pago único a la vista. La segunda fila de esa
 lista quedó debajo del pie fijo en la captura; que sea "3 cuotas" y nada más lo
 sostienen la regla probada y que el plan elegido no era el pago único.
+
+### G. Las fotos de la vitrina se reordenan arrastrando
+
+**Pedido:** cambiar las flechas de subir y bajar por arrastrar y soltar.
+
+**Qué cambió.** Con cursor, cada foto tiene un tirador abajo a la derecha: se
+agarra, se lleva y se suelta. La que se lleva se atenúa y el lugar donde caería
+se marca. Las flechas quedan sólo en pantallas táctiles, donde arrastrar con el
+dedo tapa justo lo que se mueve y compite con el scroll; fue la decisión que
+tomamos entre las dos opciones.
+
+**Por qué eventos de puntero y no el arrastrar nativo.** El nativo ya lo usa la
+zona de subida para recibir archivos, y los dos se pisarían. Y el tirador queda
+fuera de la selección por rectángulo, que es lo que empieza al bajar el mouse en
+cualquier otra parte de la grilla.
+
+**La lista se acomoda apenas se suelta**, antes de que el servidor conteste.
+Esperar la respuesta para ver la foto en su lugar es lo que hace que un arrastre
+se sienta como si no hubiera entrado. Si el servidor rechaza, vuelve el orden
+anterior.
+
+**El servidor recibe la lista entera ya ordenada** y la numera de cero en
+adelante. Describir el resultado y no "esta pieza va al lugar N" es lo que evita
+que dos arrastres seguidos se pisen; si la categoría cambió en el medio, rechaza
+entero.
+
+**Y numera en una sola sentencia.** La primera versión hacía treinta
+actualizaciones seguidas dentro de una transacción, y contra una base que está
+lejos eso tardaba entre cinco y ocho segundos por arrastre. Ahora es un solo
+UPDATE con la tabla de valores adentro, y tarda menos de un segundo. En el camino
+apareció un problema del bundle de desarrollo: los helpers de SQL de Prisma y el
+cliente salían de dos copias del módulo generado, y el fragmento llegaba a la
+base como texto literal. Se resolvió armando la consulta con marcadores
+numerados; cada valor viaja como parámetro, nada del usuario entra al SQL.
+
+**Cómo se verificó.** Con el mouse de verdad sobre el panel: una foto llevada del
+primer lugar al tercero aparece tercera en la base, y llevada de vuelta queda
+como estaba, así que la vitrina real no cambió. Fingiendo un dispositivo sin
+cursor aparecen las 28 flechas y ningún tirador. El UPDATE se probó además aparte
+contra la base: toca las 28 filas en 368 milisegundos.
+
+### H. Cada cuota lleva un rótulo de color
+
+**Pedido:** colores que representen los estados de cuotas para los clientes,
+como el de admin pero para usuarios.
+
+**Lo que encontré.** El listado de cuotas ya era el mismo componente en el panel
+y en la pantalla de la familia, con los mismos tintes verde y rojo. Pregunté qué
+faltaba y la respuesta fue un rótulo por cuota.
+
+**Qué cambió.** Cada fila lleva un rótulo con la palabra y el color: verde
+"Pagada", rojo "Vencida", gris "Pendiente". Los tintes eran tenues a propósito,
+y en el tema oscuro un tinte al trece por ciento es casi nada; el rótulo lo dice
+sin depender de que el ojo distinga un fondo apenas verdoso de uno apenas rojizo.
+La pendiente va con rótulo y no sin él: si sólo dos estados llevaran etiqueta, la
+fila sin etiqueta se leería como "falta información".
+
+**El verde entra al sistema como token**, con su valor para cada tema. Es la
+segunda excepción al blanco y negro, por la misma razón que el rojo: el color
+informa, no decora. Verificado en los dos temas con la hoja de estilos compilada.
