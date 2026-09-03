@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
+import { Modal } from "~/app/_components/modal";
 import {
   IconoAlerta,
   IconoBajar,
@@ -23,6 +24,7 @@ import {
   EVENTOS,
   EVENTOS_ORDEN,
   PLANES,
+  esEvento,
   mesesHasta,
   planesDisponibles,
   SELECCION_VACIA,
@@ -115,6 +117,51 @@ export type Retomar = {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * Lo que se guarda en el navegador mientras se arma, para poder retomar.
+ *
+ * Cerrar la pestaña sin querer, tocar atrás, que se corte el teléfono: hasta
+ * ahora cualquiera de esas cosas tiraba a la basura diez minutos de elegir.
+ * Ahora el armado se va guardando a medida que avanza, y al volver la página
+ * pregunta si se sigue con eso o se empieza de nuevo.
+ *
+ * Va en el navegador y no en el servidor porque todavía no hay nadie del otro
+ * lado: no se pidió nombre ni mail hasta el paso tres. Y caduca a la semana:
+ * un borrador de hace dos meses es más molestia que ayuda.
+ */
+type Borrador = {
+  guardadoEl: number;
+  evento: Evento;
+  paso: IdPaso;
+  seleccion: Seleccion;
+  datos: Datos;
+  fechaEvento: string;
+  sinFecha: boolean;
+  plan: string;
+};
+
+const CLAVE_BORRADOR = "halley-presupuesto-borrador";
+const DIAS_BORRADOR = 7;
+
+function leerBorrador(): Borrador | null {
+  try {
+    const crudo = localStorage.getItem(CLAVE_BORRADOR);
+    if (!crudo) return null;
+    const b = JSON.parse(crudo) as Partial<Borrador>;
+    const vivo =
+      typeof b.guardadoEl === "number" &&
+      Date.now() - b.guardadoEl < DIAS_BORRADOR * 24 * 3600 * 1000;
+    // Sin nada elegido no hay nada que retomar: se limpia y listo.
+    if (!vivo || !esEvento(b.evento ?? "") || !b.seleccion?.items?.length) {
+      localStorage.removeItem(CLAVE_BORRADOR);
+      return null;
+    }
+    return b as Borrador;
+  } catch {
+    return null;
+  }
+}
+
 export function Simulador({
   catalogos,
   parametros,
@@ -178,6 +225,64 @@ export function Simulador({
   );
   const [plan, setPlan] = useState(retomar?.plan ?? "3");
 
+  /** El borrador encontrado al entrar, mientras se decide qué hacer con él. */
+  const [borrador, setBorrador] = useState<Borrador | null>(null);
+  useEffect(() => {
+    // Editando un presupuesto ya emitido no se ofrece nada: eso ya tiene su
+    // código y su página, y un borrador viejo encima sería ruido.
+    if (retomar) return;
+    setBorrador(leerBorrador());
+  }, [retomar]);
+
+  /**
+   * Se guarda en cada cambio, sin botón. Un "guardar borrador" que hay que
+   * apretar es justamente lo que nadie aprieta antes de cerrar sin querer.
+   *
+   * Recién desde que hay algo elegido: un borrador vacío no vale la pregunta.
+   */
+  useEffect(() => {
+    if (retomar || !evento || !paso || sel.items.length === 0) return;
+    const b: Borrador = {
+      guardadoEl: Date.now(),
+      evento,
+      paso,
+      seleccion: sel,
+      datos,
+      fechaEvento,
+      sinFecha,
+      plan,
+    };
+    try {
+      localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(b));
+    } catch {
+      // Sin storage no hay borrador, y el armado sigue igual.
+    }
+  }, [retomar, evento, paso, sel, datos, fechaEvento, sinFecha, plan]);
+
+  function seguirBorrador() {
+    if (!borrador) return;
+    setEvento(borrador.evento);
+    setSel(borrador.seleccion);
+    setDatos(borrador.datos);
+    setFechaEvento(borrador.fechaEvento);
+    setSinFecha(borrador.sinFecha);
+    setPlan(borrador.plan);
+    setPaso(borrador.paso);
+    // Todo lo anterior al paso guardado cuenta como visitado.
+    const hasta = PASOS.indexOf(borrador.paso);
+    setVistos(new Set(PASOS.slice(0, hasta + 1)));
+    setBorrador(null);
+  }
+
+  function descartarBorrador() {
+    try {
+      localStorage.removeItem(CLAVE_BORRADOR);
+    } catch {
+      // Nada que limpiar.
+    }
+    setBorrador(null);
+  }
+
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   /** Se muestra recién al intentar avanzar: nadie quiere un error antes de escribir. */
   const [reclamo, setReclamo] = useState<string | null>(null);
@@ -205,6 +310,12 @@ export function Simulador({
 
   const generar = api.presupuesto.generar.useMutation({
     onSuccess: ({ codigo }) => {
+      // Ya tiene código y página: el borrador cumplió.
+      try {
+        localStorage.removeItem(CLAVE_BORRADOR);
+      } catch {
+        // Nada que limpiar.
+      }
       // El resultado tiene página propia: así el presupuesto emitido se puede
       // compartir, volver a abrir e imprimir, y no vive sólo en esta pestaña.
       router.push(`/presupuesto/codigo/${codigo}`);
@@ -395,6 +506,25 @@ export function Simulador({
           alElegir={elegirEvento}
           preciosConfirmados={parametros.preciosConfirmados}
         />
+        <Modal
+          abierto={borrador !== null}
+          alCerrar={descartarBorrador}
+          eyebrow="Presupuesto"
+          titulo="Tenías uno a medias"
+        >
+          <div className="px-6 py-5">
+            <p className="text-[14.5px] leading-relaxed text-gray-70">
+              Quedó guardado en este navegador un presupuesto que empezaste y no
+              terminaste. ¿Seguimos con ése o empezás de nuevo?
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Boton onClick={seguirBorrador}>Seguir con ése</Boton>
+              <Boton variante="fantasma" onClick={descartarBorrador}>
+                Empezar de nuevo
+              </Boton>
+            </div>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -403,6 +533,25 @@ export function Simulador({
 
   return (
     <div ref={arriba} className="scroll-mt-20">
+      <Modal
+        abierto={borrador !== null}
+        alCerrar={descartarBorrador}
+        eyebrow="Presupuesto"
+        titulo="Tenías uno a medias"
+      >
+        <div className="px-6 py-5">
+          <p className="text-[14.5px] leading-relaxed text-gray-70">
+            Quedó guardado en este navegador un presupuesto que empezaste y no
+            terminaste. ¿Seguimos con ése o empezás de nuevo?
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Boton onClick={seguirBorrador}>Seguir con ése</Boton>
+            <Boton variante="fantasma" onClick={descartarBorrador}>
+              Empezar de nuevo
+            </Boton>
+          </div>
+        </div>
+      </Modal>
       {/* La barra de progreso queda pegada arriba: en un wizard de seis pasos,
           saber cuántos faltan es lo que decide si alguien lo termina. */}
       <div className="sticky top-20 z-20 border-b border-gray-20 bg-paper/95 backdrop-blur">
