@@ -4,7 +4,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { HERO, esCategoria, esSubible } from "~/app/_datos/categorias";
-import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
+import { muestraDe } from "~/server/contenido";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
 
 /**
@@ -40,6 +45,31 @@ const EXT: Record<string, string> = {
 export const contenidoRouter = createTRPCRouter({
   /** ¿Está S3 configurado? El panel muestra el aviso si no. */
   estado: adminProcedure.query(() => ({ s3: s3Configurado() })),
+
+  /**
+   * Fotos para el costado de las pantallas de acceso.
+   *
+   * Es pública porque las pantallas de acceso son públicas: quien todavía no
+   * entró es justamente quien la ve. No expone nada nuevo, son las mismas fotos
+   * y las mismas direcciones que la portada muestra a cualquiera. Sólo
+   * miniaturas y sólo imágenes: un cubo que gira no es lugar para un video.
+   *
+   * Se toman de a seis de cada tipo de evento y se entremezclan, así el mosaico
+   * no sale con las nueve primeras del mismo casamiento.
+   */
+  muestraAcceso: publicProcedure.query(async () => {
+    const porCategoria = await Promise.all(
+      ["egresados", "bodas", "quince"].map((c) => muestraDe(c, 6)),
+    );
+    const salida: { id: string; url: string }[] = [];
+    for (let i = 0; i < 6; i++) {
+      for (const lista of porCategoria) {
+        const p = lista[i];
+        if (p && p.tipo === "imagen") salida.push({ id: p.id, url: p.urlMini });
+      }
+    }
+    return salida;
+  }),
 
   /** El contenido cargado de una categoría, para administrarlo. */
   listar: adminProcedure

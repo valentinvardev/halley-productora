@@ -2,114 +2,139 @@
 
 import { useEffect, useState } from "react";
 
+import { api } from "~/trpc/react";
+
 /**
- * Muestra de trabajos: las diapositivas del costado de las pantallas de acceso.
+ * Muestra de trabajos: el costado de las pantallas de acceso.
  *
- * Mientras no estén las fotos reales, cada diapositiva se dibuja como un cuadro
- * de película —grano, perforaciones de 35 mm, número de cuadro—, que es el mismo
- * lenguaje de la hoja de contacto. Para poner las fotos de Halley: dejar los
- * archivos en `public/muestras/` y completar `src` acá abajo. No hay que tocar
- * nada más.
+ * Un mosaico de cubos que giran para cambiar de foto, con las fotos reales de
+ * la vitrina. Antes eran diapositivas con un cuadro de película dibujado como
+ * marcador, esperando que alguien dejara archivos en una carpeta; nunca pasó, y
+ * el costado se veía en blanco. Ahora se alimenta solo de lo que Halley sube.
+ *
+ * Sólo existe en pantalla grande: en el teléfono el marco lo esconde.
  */
 
-type Diapositiva = {
-  cuadro: string;
-  titulo: string;
-  pie: string;
-  /** Ej. "/muestras/egresados-01.jpg". Sin esto se dibuja el marcador. */
-  src?: string;
-};
-
-const DIAPOSITIVAS: Diapositiva[] = [
-  {
-    cuadro: "01A",
-    titulo: "Egresados 2027",
-    pie: "Colegio San Martín — Córdoba",
-  },
-  { cuadro: "07B", titulo: "Bodas", pie: "Estancia La Paz — 2026" },
-  { cuadro: "12A", titulo: "Quince años", pie: "Sesión de estudio" },
-  { cuadro: "03C", titulo: "Comuniones", pie: "Parroquia del Carmen" },
-  { cuadro: "21B", titulo: "Egresados 2026", pie: "Instituto Belgrano" },
-];
-
-const SEGUNDOS = 5;
+/**
+ * Cuántos cubos y cada cuánto gira uno.
+ *
+ * Nueve en tres por tres llena el costado sin que cada foto quede chica. Gira
+ * uno por vez y no todos juntos: nueve cubos girando a la vez es una máquina
+ * tragamonedas, uno cada dos segundos es una pared que respira.
+ */
+const CUBOS = 9;
+const CARAS = 4;
+const CADA_MS = 2200;
 
 export function Muestra() {
-  const [actual, setActual] = useState(0);
+  const fotos = api.contenido.muestraAcceso.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+
+  /**
+   * Cuántos cuartos de vuelta lleva cada cubo. Un número que sólo sube: la cara
+   * de adelante es `giros % 4`, y girar siempre para el mismo lado evita que el
+   * cubo vuelva sobre sus pasos.
+   */
+  const [giros, setGiros] = useState<number[]>(() => Array(CUBOS).fill(0));
   const [pausado, setPausado] = useState(false);
 
   useEffect(() => {
-    // Quien pidió menos movimiento se queda con una sola imagen fija.
-    const menosMovimiento = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (menosMovimiento || pausado) return;
-
-    const id = setInterval(
-      () => setActual((i) => (i + 1) % DIAPOSITIVAS.length),
-      SEGUNDOS * 1000,
-    );
+    // Quien pidió menos movimiento se queda con el mosaico quieto.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (pausado) return;
+    let cual = Math.floor(Math.random() * CUBOS);
+    const id = setInterval(() => {
+      // El siguiente cubo, nunca el mismo dos veces seguidas.
+      cual = (cual + 1 + Math.floor(Math.random() * (CUBOS - 1))) % CUBOS;
+      const objetivo = cual;
+      setGiros((g) => g.map((v, i) => (i === objetivo ? v + 1 : v)));
+    }, CADA_MS);
     return () => clearInterval(id);
   }, [pausado]);
 
-  const diapositiva = DIAPOSITIVAS[actual]!;
+  const lista = fotos.data ?? [];
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden bg-paper-dimmer"
+      className="grid h-full w-full grid-cols-3 grid-rows-3 gap-px overflow-hidden bg-ink"
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
-      {DIAPOSITIVAS.map((d, i) => (
-        <div
-          key={d.cuadro}
-          aria-hidden={i !== actual}
-          className={`absolute inset-0 transition-opacity duration-700 ${
-            i === actual ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {d.src ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={d.src}
-              alt={`${d.titulo} — ${d.pie}`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <CuadroDePelicula cuadro={d.cuadro} indice={i} />
-          )}
-        </div>
+      {Array.from({ length: CUBOS }, (_, i) => (
+        <Cubo key={i} indice={i} giros={giros[i] ?? 0} fotos={lista} />
       ))}
-
-      {/* Pie: qué se está viendo */}
-      <div className="absolute right-0 bottom-0 left-0 flex items-end justify-between gap-6 p-8">
-        <div>
-          <div className="font-display text-[26px] leading-none text-paper drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]">
-            {diapositiva.titulo}
-          </div>
-          <div className="mt-2 font-rotulo text-[11.5px] uppercase tracking-[0.12em] text-paper/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
-            {diapositiva.pie}
-          </div>
-        </div>
-
-        {/* Contador, como el visor de una cámara */}
-        <div className="flex items-center gap-2">
-          {DIAPOSITIVAS.map((d, i) => (
-            <button
-              key={d.cuadro}
-              onClick={() => setActual(i)}
-              aria-label={`Ver ${d.titulo}`}
-              className={`h-1.5 w-6 border border-paper/70 transition-colors ${
-                i === actual ? "bg-paper" : "bg-transparent hover:bg-paper/40"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
+/**
+ * Un cubo con una foto en cada una de sus cuatro caras laterales.
+ *
+ * Las caras se reparten las fotos de la lista salteando de a nueve, así dos
+ * cubos vecinos no muestran la misma. Cuando el cubo gira, la cara que entra
+ * ya tiene su foto puesta desde antes: no hay carga a la vista.
+ *
+ * Sin fotos todavía (o sin ninguna subida) cada cara es un cuadro de película,
+ * el mismo marcador de siempre. Así la pantalla no se ve vacía ni un segundo.
+ */
+function Cubo({
+  indice,
+  giros,
+  fotos,
+}: {
+  indice: number;
+  giros: number;
+  fotos: { id: string; url: string }[];
+}) {
+  return (
+    <div className="cubo relative bg-paper-dimmer">
+      <div
+        className="cubo-caras absolute inset-0"
+        style={{
+          // Retraído la mitad del ancho: así la cara de adelante queda justo en
+          // el plano de la celda. Sin esto está más cerca del ojo que la celda,
+          // se dibuja más grande por la perspectiva y pisa a las vecinas.
+          transform: `translateZ(calc(-1 * var(--mitad))) rotateY(${giros * -90}deg)`,
+        }}
+      >
+        {Array.from({ length: CARAS }, (_, cara) => {
+          // La foto de esta cara: fija, no depende del giro. Lo que cambia con
+          // el giro es qué cara mira al frente.
+          const foto = fotos.length
+            ? fotos[(indice + cara * CUBOS) % fotos.length]
+            : null;
+          return (
+            <div
+              key={cara}
+              className="cara absolute inset-0 overflow-hidden"
+              style={{
+                transform: `rotateY(${cara * 90}deg) translateZ(var(--mitad))`,
+              }}
+            >
+              {foto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={foto.url}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <CuadroDePelicula
+                  cuadro={
+                    String(indice * CARAS + cara + 1).padStart(2, "0") + "A"
+                  }
+                  indice={indice + cara}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 /**
  * Marcador de posición: un cuadro de negativo. No pretende pasar por una foto —
  * se lee como lo que es, un lugar reservado para una.

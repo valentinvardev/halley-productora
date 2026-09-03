@@ -163,6 +163,38 @@
   }
 
   /* -------------------------------------------------------------------------
+     Los cubos del costado de las pantallas de acceso.
+
+     Cada celda es una caja con perspectiva y adentro un cubo de cuatro caras,
+     cada cara girada a su ángulo y empujada hacia afuera la mitad del ancho.
+     Girar el cubo de a cuartos de vuelta trae la cara siguiente al frente.
+
+     La mitad del ancho sale de la celda misma con unidades de contenedor:
+     así el cubo mide lo que mide la celda sin que nadie le pase un número, y
+     sigue bien al cambiar el tamaño de la ventana.
+  ------------------------------------------------------------------------- */
+  .cubo {
+    container-type: size;
+    perspective: 1400px;
+    --mitad: 50cqw;
+  }
+
+  .cubo-caras {
+    transform-style: preserve-3d;
+    transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .cara {
+    backface-visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cubo-caras {
+      transition: none;
+    }
+  }
+
+  /* -------------------------------------------------------------------------
      Estados de cuota, por color de fondo.
 
      Verde saldada, rojo vencida, y la pendiente sin tocar. Es la única vez que
