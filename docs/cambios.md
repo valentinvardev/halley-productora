@@ -291,6 +291,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | I | `c3b61a0` | Vuelve el cuadro de película en el costado del acceso |
 | J | `752dabe` | Las páginas de servicio vuelven al código, y las tarjetas con ellas |
 | K | `cba99df` | Se van los corazones; la columna likes queda en la base sin uso |
+| L | `4aa9b60` | Se van las valoraciones; la tabla queda en la base sin uso |
 
 ## Los dos casos que necesitan un paso más
 
@@ -1028,3 +1029,47 @@ archivo del motor estaba tomado por tres servidores de desarrollo que habían
 quedado zombis de corridas anteriores, que además tenían agotadas las quince
 conexiones del pool. Se mataron sólo esos tres, identificados por su línea de
 comando, sin tocar los procesos de otros proyectos.
+
+### L. Valoraciones después del servicio
+
+**Pedido:** un sistema donde puedan mandar emails pidiendo feedback, con un link
+mágico para subir una reseña con nombre, comentario, estrellas y foto de perfil
+opcional; que venza a la semana y sea de un solo uso. Google en standby, como
+dijeron.
+
+**Cómo funciona.** Desde la ficha del alumno, "Pedir valoración" manda el mail
+con el link. El link abre un formulario con estrellas, nombre, comentario y foto
+opcional. Lo que llega queda esperando en la pantalla Valoraciones del panel
+hasta que lo publiquen; recién ahí sale en la portada, en una sección nueva que
+sólo existe si hay alguna publicada.
+
+**Una sola fila para los tres momentos.** El link nace con el pedido y usar el
+link es completar esa misma fila, con la misma mecánica que el link de acceso.
+Así no hay forma de que una valoración llegue sin que alguien la haya pedido, y
+el pedido y lo recibido nunca se pueden desatar. Completar y consumir van en la
+misma escritura: si se marcara usado antes de guardar el texto, un corte en el
+medio dejaría un link muerto y una valoración vacía.
+
+**A quién se le manda.** A los responsables registrados, o al contacto si no hay
+ninguno, igual que la invitación. Cada dirección recibe su propio link, porque un
+link de un solo uso no se puede compartir entre dos personas.
+
+**La foto.** Sube directo a S3 con una URL firmada atada al link, y la key la
+elige el servidor: sin el token no se firma nada, y nadie decide dónde cae el
+archivo. Al enviar se comprueba que la key sea de esa valoración, para que no se
+pueda colgar una foto ajena ni un objeto cualquiera del bucket. Se sirve por su
+propia ruta, pública sólo si la valoración está publicada.
+
+**El mail es una plantilla editable más**, como las otras seis: asunto, título,
+párrafo y nota se cambian desde el panel.
+
+**Cómo se verificó**, contra el servidor y la base de verdad, con filas de prueba
+que después se borraron: el link vencido y el inventado explican por qué no
+andan; el válido abre el formulario; enviar completa la fila y reabrir dice que
+ya se usó; el panel la lista, publicarla la pone en la portada con su nombre y
+despublicarla la saca; eliminar la borra. El pedido contra un alumno real creó
+el link de siete días y la notificación con el asunto y el link, sin enviar nada
+porque el modo de correo es bandeja.
+
+**Lo que queda para M.** El paso previo con presupuestos prearmados sigue
+bloqueado: los tres paquetes todavía no están definidos por Halley.
