@@ -287,6 +287,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | D y E | `1c285b9` | La fecha vuelve a ser obligatoria y se ofrecen todos los planes |
 | G | `72c899e` | Vuelven las flechas de subir y bajar en todos lados |
 | H | `f3b0022` | Las cuotas vuelven a tener sólo el tinte de fondo |
+| F | `f8cea3c` | El presupuesto deja de guardarse a medias |
+| I | `c3b61a0` | Vuelve el cuadro de película en el costado del acceso |
 
 ## Los dos casos que necesitan un paso más
 
@@ -903,3 +905,62 @@ fila sin etiqueta se leería como "falta información".
 **El verde entra al sistema como token**, con su valor para cada tema. Es la
 segunda excepción al blanco y negro, por la misma razón que el rojo: el color
 informa, no decora. Verificado en los dos temas con la hoja de estilos compilada.
+
+### F. El presupuesto a medias se puede retomar
+
+**Pedido:** un modal de "seguir armando" si la persona sale del armado, para
+retomar por si salió sin querer.
+
+**Qué cambió.** El armado se guarda en el navegador a medida que avanza, sin
+botón: un "guardar borrador" que hay que apretar es justamente lo que nadie
+aprieta antes de cerrar sin querer. Al volver al simulador, un modal pregunta si
+se sigue con eso o se empieza de nuevo. Seguir restaura el evento, lo elegido,
+los datos, la fecha, el plan y el paso.
+
+**Tres límites a propósito.** Recién se guarda desde que hay algo elegido, porque
+un borrador vacío no vale la pregunta. Caduca a la semana: uno de hace dos meses
+es más molestia que ayuda. Y editar un presupuesto ya emitido por su código no
+ofrece nada, porque ése ya tiene su página. Al generar el presupuesto, el
+borrador se borra.
+
+**Por qué en el navegador y no en el servidor.** Hasta el paso tres no hay nadie
+del otro lado: no se pidió nombre ni mail. No hay a quién atarle un borrador.
+
+**Cómo se verificó.** En el navegador: se eligió un momento con su cobertura, se
+pasó al paso siguiente, se fue a la portada y se volvió. El modal apareció,
+"seguir" dejó el wizard en el paso guardado y un paso atrás mostró el momento y
+la cobertura marcados; "empezar de nuevo" limpió el borrador y la visita
+siguiente no preguntó nada.
+
+### I. El costado de las pantallas de acceso, con fotos reales en cubos
+
+**Pedido:** el slider de fotos a la derecha del login está en blanco; que sea un
+mosaico de fotos que cambian, idealmente cubos 3D rotando, solo para computadora.
+Y la portada de la pantalla de ingreso de eventos con un collage transicionando.
+Son el mismo componente: el marco de acceso lo comparten el login, el registro y
+la página de cada grupo.
+
+**Antes.** Diapositivas con un cuadro de película dibujado como marcador,
+esperando que alguien dejara archivos en una carpeta. Nunca pasó.
+
+**Ahora.** Nueve cubos en tres por tres, con una foto en cada una de sus cuatro
+caras, que giran de a uno para cambiar de foto. Se alimentan solos de la vitrina:
+seis de egresados, seis de bodas y seis de quince, entremezcladas. Gira uno cada
+dos segundos y no todos juntos, que sería una máquina tragamonedas. Con el cursor
+encima se detiene, y quien pidió menos movimiento lo ve quieto. En el teléfono
+sigue oculto, como estaba.
+
+**La consulta es pública** porque las pantallas de acceso son públicas. No expone
+nada nuevo: son las mismas fotos y las mismas direcciones que la portada muestra
+a cualquiera, y sólo miniaturas.
+
+**Un detalle de geometría que apareció al mirarlo.** La primera versión no
+mostraba las líneas de la grilla: la cara de adelante de cada cubo estaba
+empujada hacia el ojo y la perspectiva la dibujaba un nueve por ciento más
+grande, pisando a las vecinas. El cubo va ahora retraído esa misma distancia,
+así la cara de adelante queda en el plano de la celda.
+
+**Cómo se verificó.** Nueve cubos, treinta y seis caras con foto, dieciocho fotos
+distintas y ninguna rota; un cubo giró dentro de los cinco segundos; y una
+captura a mitad de giro muestra las dos caras a la vista y las líneas de la
+grilla entre celdas.
