@@ -130,6 +130,19 @@ export const PLANTILLAS = {
       nota: "Si ya la transferiste, ignorá este mensaje.",
     },
   },
+
+  valoracion: {
+    nombre: "Pedido de valoración",
+    cuando: "Cuando el admin le pide a una familia que cuente cómo le fue.",
+    variables: ["alumno", "grupo"],
+    porDefecto: {
+      asunto: "¿Cómo la pasaron? Contanos en un minuto",
+      titulo: "¿Cómo la pasaron?",
+      parrafo:
+        "Ya pasó el evento de {alumno} y nos encantaría saber cómo lo vivieron. Con el link de abajo podés dejarnos unas palabras y, si querés, tu foto. Lo que escribas puede salir en nuestra web para que otras familias sepan qué esperar.",
+      nota: "El link dura una semana y sirve una sola vez.",
+    },
+  },
 } as const satisfies Record<string, Definicion>;
 
 export type IdPlantilla = keyof typeof PLANTILLAS;

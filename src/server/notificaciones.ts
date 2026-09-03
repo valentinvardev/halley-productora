@@ -67,6 +67,54 @@ async function entregar(
 
 const firma = ["", "Halley Audiovisual"];
 
+/**
+ * El pedido de valoración, con su link.
+ *
+ * Sale a la familia después del servicio. El link vive en la fila de la
+ * valoración y lo arma quien la pidió; acá sólo se manda.
+ */
+export async function notificarValoracion({
+  alumno,
+  grupo,
+  email,
+  link,
+}: {
+  alumno: Alumno;
+  grupo: Grupo;
+  email: string;
+  link: string;
+}) {
+  const t = await textosDe("valoracion");
+  const con = (texto: string) =>
+    render(texto, { alumno: alumno.nombre, grupo: grupo.nombre });
+  return entregar(
+    {
+      tipo: "VALORACION",
+      destinatario: email,
+      asunto: con(t.asunto),
+      cuerpo: [
+        "Hola,",
+        "",
+        con(t.parrafo),
+        "",
+        `Dejá tu valoración acá: ${link}`,
+        ...(t.nota ? ["", con(t.nota)] : []),
+        ...firma,
+      ].join("\n"),
+      alumnoId: alumno.id,
+      grupoId: grupo.id,
+    },
+    plantillaEmail({
+      preheader: `Contanos cómo la pasaron en el evento de ${alumno.nombre}.`,
+      titulo: con(t.titulo),
+      saludo: "Hola,",
+      parrafos: [con(t.parrafo)],
+      boton: { texto: "Dejar mi valoración", url: link },
+      nota: t.nota ? con(t.nota) : undefined,
+    }),
+  );
+}
+
 /** Invitación a registrarse en el grupo. */
 export async function notificarInvitacion(
   { alumno, grupo, email }: { alumno: Alumno; grupo: Grupo; email: string },

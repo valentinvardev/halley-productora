@@ -13,6 +13,7 @@ import { notificacionRouter } from "~/server/api/routers/notificacion";
 import { pagoRouter } from "~/server/api/routers/pago";
 import { presupuestoRouter } from "~/server/api/routers/presupuesto";
 import { publicoRouter } from "~/server/api/routers/publico";
+import { valoracionRouter } from "~/server/api/routers/valoracion";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -36,6 +37,7 @@ export const appRouter = createTRPCRouter({
   galeria: galeriaRouter,
   presupuesto: presupuestoRouter,
   catalogo: catalogoRouter,
+  valoracion: valoracionRouter,
 });
 
 // export type definition of API

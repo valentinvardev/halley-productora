@@ -24,6 +24,8 @@ model Grupo {
     nombre  String // "Egresados 2027 – Colegio San Martín" o "Ana y Julián"
     slug    String @unique // link público de registro: /g/[slug]
 
+    valoraciones Valoracion[]
+
     /// Para egresados, el colegio. Para un particular, el tipo de evento
     /// ("Boda", "15 años"): funciona igual como subtítulo, alias y en los
     /// avisos, así que se mantiene siempre cargado y nada aguas abajo cambia.
@@ -142,6 +144,8 @@ model Alumno {
     /// Link personal sin login (/p/[token]). Sigue funcionando para el padre
     /// que no se quiere registrar y es el que ya salió por mail.
     token String @unique
+
+    valoraciones Valoracion[]
 
     /// Customer de Talo: va por alumno, no por cuenta, para que cada
     /// transferencia se pueda imputar sin ambigüedad aunque haya hermanos.
@@ -714,4 +718,46 @@ enum TipoNotificacion {
     /// La copia del presupuesto armado en el simulador. Va a alguien que
     /// todavía no es cliente, así que no cuelga de ningún alumno ni grupo.
     PRESUPUESTO
+    /// El pedido de valoración después del servicio, con el link para
+    /// dejarla.
+    VALORACION
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Valoraciones                                                               */
+/* -------------------------------------------------------------------------- */
+
+/// Una valoración pedida a una familia después del servicio.
+///
+/// Nace vacía cuando el admin la pide: es el link mágico. Dura una semana y se
+/// usa una sola vez, igual que el link de acceso. Cuando la familia la
+/// completa, la fila pasa a tener el texto, y recién cuando el admin la
+/// publica sale en la portada. Las tres cosas en la misma fila porque son
+/// tres momentos de lo mismo, y así el link pedido y la valoración recibida
+/// nunca se pueden desatar.
+model Valoracion {
+    id    String @id @default(cuid())
+    token String @unique
+
+    alumnoId String?
+    alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: SetNull)
+    grupoId  String?
+    grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+    /// A quién se le mandó el pedido.
+    email    String
+
+    expiraEl DateTime
+    usadoEl  DateTime?
+
+    /// Lo que dejó la familia. Vacío hasta que usa el link.
+    nombre     String  @default("")
+    comentario String  @default("")
+    estrellas  Int     @default(0)
+    /// Foto de perfil opcional, en S3.
+    fotoKey    String?
+
+    publicada Boolean  @default(false)
+    creadoEn  DateTime @default(now())
+
+    @@index([publicada, creadoEn])
 }

@@ -6,6 +6,7 @@ import { Ayuda } from "~/app/_components/ayuda";
 import { Copiar } from "~/app/_components/copiar";
 import {
   IconoCampana,
+  IconoEstrella,
   IconoPapelera,
   IconoProbeta,
   IconoSobre,
@@ -151,6 +152,16 @@ export function AccionesAlumno({
     onError: (e) => setMensaje(e.message),
   });
 
+  const pedirValoracion = api.valoracion.pedir.useMutation({
+    onSuccess: async (r) =>
+      avisar(
+        r.enviados > 0
+          ? `Pedido enviado a ${r.enviados} ${r.enviados === 1 ? "dirección" : "direcciones"}`
+          : "No hay a quién escribirle — cargá un email",
+      ),
+    onError: (e) => setMensaje(e.message),
+  });
+
   const recordar = api.alumno.recordar.useMutation({
     onSuccess: (r) =>
       avisar(r.enviado ? "Recordatorio enviado" : "No hay nada que recordar"),
@@ -179,6 +190,7 @@ export function AccionesAlumno({
 
   const ocupado =
     invitar.isPending ||
+    pedirValoracion.isPending ||
     recordar.isPending ||
     simular.isPending ||
     desvincular.isPending ||
@@ -338,6 +350,23 @@ export function AccionesAlumno({
               </Boton>
             </Ayuda>
           </div>
+        </Seccion>
+
+        <Seccion titulo="Después del evento">
+          <p className="nota mb-3">
+            Le manda a la familia un link de una semana y un solo uso para dejar
+            unas palabras, estrellas y una foto. Lo que llegue queda esperando
+            en Valoraciones hasta que lo publiques.
+          </p>
+          <Boton
+            variante="fantasma"
+            className="w-full"
+            onClick={() => pedirValoracion.mutate({ alumnoId: datos.id })}
+            disabled={ocupado}
+          >
+            <IconoEstrella />
+            Pedir valoración
+          </Boton>
         </Seccion>
 
         {modoDemo && datos.plan.deuda > 0 && (

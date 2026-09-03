@@ -7,6 +7,7 @@ import {
   IconoCalculadora,
   IconoCandado,
   IconoEngranaje,
+  IconoEstrella,
   IconoGrupos,
   IconoImagen,
   IconoLista,
@@ -28,6 +29,7 @@ const ENLACES = [
   { href: "/admin/galerias", texto: "Galerías" },
   { href: "/admin/cuentas", texto: "Cuentas" },
   { href: "/admin/textos", texto: "Textos" },
+  { href: "/admin/valoraciones", texto: "Valoraciones" },
   { href: "/admin/ajustes", texto: "Ajustes" },
 ];
 
@@ -49,6 +51,11 @@ const ENLACES_CON_ICONO = [
   { href: "/admin/galerias", texto: "Galerías", icono: <IconoCandado /> },
   { href: "/admin/cuentas", texto: "Cuentas", icono: <IconoBillete /> },
   { href: "/admin/textos", texto: "Textos", icono: <IconoLista /> },
+  {
+    href: "/admin/valoraciones",
+    texto: "Valoraciones",
+    icono: <IconoEstrella />,
+  },
   { href: "/admin/ajustes", texto: "Ajustes", icono: <IconoEngranaje /> },
 ];
 

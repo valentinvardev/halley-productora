@@ -20,6 +20,7 @@ const ROTULO = {
   RECORDATORIO: "Recordatorio",
   PAGO_PARCIAL: "Pago incompleto",
   PRESUPUESTO: "Presupuesto",
+  VALORACION: "Pedido de valoración",
 } as const;
 
 export function Bandeja() {

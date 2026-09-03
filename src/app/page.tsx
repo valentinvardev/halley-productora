@@ -33,6 +33,8 @@ import {
   esSlugServicio,
   textosDeBloque,
 } from "~/server/textos-sitio";
+import { valoracionesPublicadas } from "~/server/valoraciones";
+import { Estrellas } from "./admin/_components/valoraciones";
 
 export const metadata: Metadata = {
   title: "Halley Audiovisual — Productora en Córdoba",
@@ -101,6 +103,7 @@ export default async function Landing({
       <Concepto editando={editando} />
       <Servicios editando={editando} />
       <Como editando={editando} />
+      <Valoraciones />
       <Contacto datos={datos} editando={editando} />
       <Pie />
     </div>
@@ -636,6 +639,64 @@ async function Como({ editando }: { editando: boolean }) {
                 {n.texto}
               </p>
             </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* --------------------------------------------------------- valoraciones */
+
+/**
+ * Lo que dijeron las familias.
+ *
+ * Sólo existe si hay alguna publicada: una sección de reseñas vacía dice
+ * "nadie nos recomienda", que es peor que no decir nada. Y salen sólo las que
+ * el admin publicó, no todo lo que llega.
+ */
+async function Valoraciones() {
+  const lista = await valoracionesPublicadas(6);
+  if (lista.length === 0) return null;
+
+  return (
+    <section id="valoraciones" className="border-b border-gray-20">
+      <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
+        <p className="font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
+          Lo que dicen las familias
+        </p>
+        <h2 className="mt-4 max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.6rem)] leading-[0.92] uppercase">
+          Después del evento
+        </h2>
+
+        <div className="mt-11 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2 lg:grid-cols-3">
+          {lista.map((v) => (
+            <figure key={v.id} className="flex flex-col bg-paper p-7 sm:p-8">
+              <Estrellas cantidad={v.estrellas} />
+              <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-gray-70">
+                {v.comentario}
+              </blockquote>
+              <figcaption className="mt-6 flex items-center gap-3">
+                {v.fotoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={v.fotoUrl}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  />
+                )}
+                <span>
+                  <span className="block font-rotulo text-[12px] tracking-[0.06em] uppercase">
+                    {v.nombre}
+                  </span>
+                  {v.grupo && (
+                    <span className="block text-[12px] text-gray-45">
+                      {v.grupo}
+                    </span>
+                  )}
+                </span>
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>
