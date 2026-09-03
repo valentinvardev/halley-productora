@@ -1,5 +1,6 @@
 import type { TipoNotificacion } from "../../generated/prisma";
 import { env } from "~/env";
+import { contacto } from "./ajustes";
 import { fecha, pesos } from "~/lib/format";
 import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
@@ -19,6 +20,17 @@ import { render, textosDe } from "./plantillas";
 
 type Alumno = { id: string; nombre: string; token: string; alias: string };
 type Grupo = { id: string; nombre: string; colegio: string; slug: string };
+
+/**
+ * La casilla de Halley para los avisos.
+ *
+ * Sale del panel y no de la variable de entorno, para que puedan cambiarla
+ * sin un deploy. La variable queda de respaldo para cuando no la tocaron.
+ */
+async function casillaDeAvisos() {
+  const { mailAvisos } = await contacto();
+  return mailAvisos || env.ADMIN_EMAIL;
+}
 
 async function entregar(
   data: {
@@ -146,7 +158,8 @@ export async function notificarAcceso(
       ].join("\n"),
     },
     plantillaEmail({
-      preheader: "Tu link de acceso a Halley. Vence en un rato y sirve una vez.",
+      preheader:
+        "Tu link de acceso a Halley. Vence en un rato y sirve una vez.",
       titulo: t.titulo,
       saludo: "Hola,",
       parrafos: [t.parrafo],
@@ -160,11 +173,7 @@ export async function notificarAcceso(
 }
 
 export async function notificarPagoRecibido(
-  {
-    alumno,
-    grupo,
-    emails,
-  }: { alumno: Alumno; grupo: Grupo; emails: string[] },
+  { alumno, grupo, emails }: { alumno: Alumno; grupo: Grupo; emails: string[] },
   pago: { monto: number; cuota: number; deuda: number },
 ) {
   const t = await textosDe("pagoRecibido");
@@ -217,14 +226,16 @@ export async function notificarPagoRecibido(
   return entregar(
     {
       tipo: "AVISO_ADMIN",
-      destinatario: env.ADMIN_EMAIL,
+      destinatario: await casillaDeAvisos(),
       asunto: `Pago recibido — ${alumno.nombre} (${grupo.colegio})`,
       cuerpo: [
         `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, cuota ${pago.cuota}.`,
         "",
         `Grupo: ${grupo.nombre}`,
         `Alias: ${alumno.alias}`,
-        pago.deuda > 0 ? `Saldo del plan: ${pesos(pago.deuda)}` : "Plan completo.",
+        pago.deuda > 0
+          ? `Saldo del plan: ${pesos(pago.deuda)}`
+          : "Plan completo.",
       ].join("\n"),
       alumnoId: alumno.id,
       grupoId: grupo.id,
@@ -239,7 +250,10 @@ export async function notificarPagoRecibido(
       destacado: {
         rotulo: "Acreditado",
         valor: pesos(pago.monto),
-        pie: pago.deuda > 0 ? `Saldo del plan: ${pesos(pago.deuda)}` : "Plan completo",
+        pie:
+          pago.deuda > 0
+            ? `Saldo del plan: ${pesos(pago.deuda)}`
+            : "Plan completo",
       },
     }),
   );
@@ -263,11 +277,7 @@ export async function notificarPagoRecibido(
  * favor— a propósito: ese caso no le pide nada a nadie.
  */
 export async function notificarPagoParcial(
-  {
-    alumno,
-    grupo,
-    emails,
-  }: { alumno: Alumno; grupo: Grupo; emails: string[] },
+  { alumno, grupo, emails }: { alumno: Alumno; grupo: Grupo; emails: string[] },
   pago: { monto: number; cuota: number; falta: number },
 ) {
   const t = await textosDe("pagoParcial");
@@ -323,7 +333,7 @@ export async function notificarPagoParcial(
   return entregar(
     {
       tipo: "AVISO_ADMIN",
-      destinatario: env.ADMIN_EMAIL,
+      destinatario: await casillaDeAvisos(),
       asunto: `Pago incompleto — ${alumno.nombre} (${grupo.colegio})`,
       cuerpo: [
         `${alumno.nombre} transfirió ${pesos(pago.monto)} para la cuota ${pago.cuota}, y faltaron ${pesos(pago.falta)}.`,

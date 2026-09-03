@@ -26,6 +26,13 @@ export const CAMPOS_AJUSTE = [
     ayuda: "La casilla que se muestra en la web.",
     tipo: "email",
   },
+  {
+    clave: "mailAvisos",
+    etiqueta: "Email de avisos",
+    ayuda:
+      "A dónde llegan los avisos de pagos recibidos e incompletos. Vacío usa la casilla del sistema.",
+    tipo: "email",
+  },
 ] as const;
 
 /**

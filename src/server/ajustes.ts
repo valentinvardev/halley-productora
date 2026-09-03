@@ -27,6 +27,22 @@ export const AJUSTES = {
     porDefecto: "hola@halleyaudiovisual.com",
   },
   /**
+   * A dónde le llegan a Halley los avisos: pago recibido, pago incompleto.
+   *
+   * Es otra casilla que la de contacto a propósito. La de contacto es la que
+   * se publica en la web y le escribe cualquiera; ésta es a la que quieren
+   * que les lleguen las cosas que pasan, y pueden no ser la misma persona.
+   *
+   * Vacío cae a la variable de entorno, que es donde vivía hasta ahora. Así
+   * una instalación que nunca lo tocó sigue avisando a donde avisaba.
+   */
+  mailAvisos: {
+    etiqueta: "Email de avisos",
+    ayuda:
+      "A dónde llegan los avisos de pagos. Vacío usa la casilla del sistema.",
+    porDefecto: "",
+  },
+  /**
    * Qué suena cuando entra un pago mientras el panel está abierto.
    *
    * Vive acá con el resto porque es lo mismo: un valor suelto que se cambia sin
@@ -54,7 +70,8 @@ export async function contacto(): Promise<Contacto> {
   const salida = {} as Contacto;
   for (const clave of Object.keys(AJUSTES) as ClaveAjuste[]) {
     const valor = guardados.get(clave)?.trim();
-    salida[clave] = valor && valor.length > 0 ? valor : AJUSTES[clave].porDefecto;
+    salida[clave] =
+      valor && valor.length > 0 ? valor : AJUSTES[clave].porDefecto;
   }
   return salida;
 }
