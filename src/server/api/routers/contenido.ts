@@ -274,6 +274,71 @@ export const contenidoRouter = createTRPCRouter({
     }),
 
   /**
+   * Deja la categoría en el orden que llega.
+   *
+   * Es la mutación del arrastre: el panel manda la lista entera ya acomodada y
+   * acá se numera de cero en adelante. Mandar la lista y no "esta pieza va al
+   * lugar N" es lo que hace que dos arrastres seguidos no se pisen: cada uno
+   * describe el resultado completo, no un movimiento relativo a un estado que
+   * quizás ya cambió.
+   *
+   * Si falta o sobra alguna pieza respecto de la categoría, se rechaza entero.
+   * Numerar sólo las que vinieron dejaría a las otras con números viejos que
+   * se mezclan con los nuevos, y el orden resultante no sería el que nadie
+   * pidió.
+   */
+  reordenar: adminProcedure
+    .input(
+      z.object({
+        categoria: z.string(),
+        ids: z.array(z.string()).min(1).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const actuales = await ctx.db.contenido.findMany({
+        where: { categoria: input.categoria },
+        select: { id: true },
+      });
+      const esperados = new Set(actuales.map((c) => c.id));
+      const recibidos = new Set(input.ids);
+      const coinciden =
+        esperados.size === recibidos.size &&
+        [...esperados].every((id) => recibidos.has(id));
+      if (!coinciden) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "La categoría cambió mientras ordenabas. Recargá y probá de nuevo.",
+        });
+      }
+
+      // Una sola sentencia y no una actualización por pieza. Con treinta fotos,
+      // treinta idas y vueltas a una base que está lejos tardaban entre cinco y
+      // ocho segundos, y ese tiempo es una ventana en la que un segundo arrastre
+      // puede llegar antes de que el primero termine. Un UPDATE con la tabla de
+      // valores adentro es un viaje, y además es atómico sin transacción.
+      //
+      // Va con marcadores numerados y no con la plantilla `Prisma.sql`: en el
+      // bundle de desarrollo el cliente y los helpers salían de dos copias del
+      // módulo generado, y el fragmento llegaba a la base como texto literal
+      // con un "$1" adentro. Acá el texto de la consulta lo arma este código
+      // con marcadores solamente, y cada valor viaja como parámetro: no hay
+      // nada del usuario metido en el SQL.
+      const filas = input.ids
+        .map((_, i) => `($${i * 2 + 1}::text, $${i * 2 + 2}::int)`)
+        .join(", ");
+      const parametros = input.ids.flatMap((id, i) => [id, i]);
+      await ctx.db.$executeRawUnsafe(
+        `UPDATE "Contenido" AS c SET "orden" = v.orden ` +
+          `FROM (VALUES ${filas}) AS v(id, orden) ` +
+          `WHERE c.id = v.id AND c.categoria = $${parametros.length + 1}::text`,
+        ...parametros,
+        input.categoria,
+      );
+      return { ok: true };
+    }),
+
+  /**
    * Los clips de portada. Son varios a propósito: la landing elige uno al azar
    * en cada visita, así el sitio no abre siempre igual.
    */

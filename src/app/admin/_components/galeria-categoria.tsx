@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   IconoBajar,
   IconoEstrella,
   IconoPapelera,
+  IconoPuntos,
   IconoVolver,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
@@ -72,6 +73,103 @@ export function GaleriaCategoria({
   const moverPieza = api.contenido.moverContenido.useMutation({
     onSuccess: () => utils.contenido.listar.invalidate({ categoria: slug }),
   });
+
+  /**
+   * Arrastrar en escritorio, flechas en el teléfono.
+   *
+   * No es por tamaño de pantalla sino por si hay con qué apuntar. Con el dedo,
+   * arrastrar tapa justo lo que se está moviendo y compite con el scroll; las
+   * flechas de a un lugar ahí son mejores. Con cursor, arrastrar es lo que uno
+   * espera de una grilla de fotos.
+   */
+  const [tactil, setTactil] = useState(false);
+  useEffect(() => {
+    setTactil(window.matchMedia("(hover: none)").matches);
+  }, []);
+
+  /**
+   * El arrastre para reordenar.
+   *
+   * `id` es la pieza que se está llevando y `sobre` el lugar donde caería si
+   * se soltara ahora, para pintarlo. Va por eventos de puntero y no por el
+   * drag and drop nativo del navegador a propósito: el nativo ya lo usa la zona
+   * de subida para recibir archivos, y los dos se pisarían.
+   *
+   * La lista se acomoda en el cliente apenas se suelta, antes de que el
+   * servidor conteste. Esperar la respuesta para ver la foto en su lugar nuevo
+   * es lo que hace que un arrastre se sienta como si no hubiera entrado.
+   */
+  const [arrastre, setArrastre] = useState<{
+    id: string;
+    sobre: number | null;
+  } | null>(null);
+
+  const reordenar = api.contenido.reordenar.useMutation({
+    onMutate: async ({ ids }) => {
+      await utils.contenido.listar.cancel({ categoria: slug });
+      const previo = utils.contenido.listar.getData({ categoria: slug });
+      if (previo) {
+        const porId = new Map(previo.map((p) => [p.id, p]));
+        utils.contenido.listar.setData(
+          { categoria: slug },
+          ids.map((id) => porId.get(id)!).filter(Boolean),
+        );
+      }
+      return { previo };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previo) {
+        utils.contenido.listar.setData({ categoria: slug }, ctx.previo);
+      }
+    },
+    onSettled: () => utils.contenido.listar.invalidate({ categoria: slug }),
+  });
+
+  /** Dónde caería el puntero: el índice de la pieza que tiene debajo. */
+  function indiceBajo(x: number, y: number) {
+    const el = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-id]");
+    if (!el?.dataset.id || !piezas) return null;
+    const i = piezas.findIndex((p) => p.id === el.dataset.id);
+    return i === -1 ? null : i;
+  }
+
+  function empezarArrastre(e: React.PointerEvent, id: string) {
+    if (e.button !== 0 || !piezas) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const tirador = e.currentTarget as HTMLElement;
+    tirador.setPointerCapture(e.pointerId);
+    // Que el clic que cierra el arrastre no abra el visor.
+    huboDrag.current = true;
+    setArrastre({ id, sobre: null });
+
+    const mover = (ev: PointerEvent) => {
+      setArrastre({ id, sobre: indiceBajo(ev.clientX, ev.clientY) });
+    };
+    const soltar = (ev: PointerEvent) => {
+      tirador.removeEventListener("pointermove", mover);
+      tirador.removeEventListener("pointerup", soltar);
+      tirador.removeEventListener("pointercancel", soltar);
+      setArrastre(null);
+      setTimeout(() => {
+        huboDrag.current = false;
+      }, 0);
+
+      const hasta = indiceBajo(ev.clientX, ev.clientY);
+      const desde = piezas.findIndex((p) => p.id === id);
+      if (hasta === null || desde === -1 || hasta === desde) return;
+
+      const ids = piezas.map((p) => p.id);
+      ids.splice(desde, 1);
+      ids.splice(hasta, 0, id);
+      reordenar.mutate({ categoria: slug, ids });
+    };
+    tirador.addEventListener("pointermove", mover);
+    tirador.addEventListener("pointerup", soltar);
+    tirador.addEventListener("pointercancel", soltar);
+  }
 
   function alternar(id: string) {
     setSel((s) => {
@@ -195,9 +293,10 @@ export function GaleriaCategoria({
           </h1>
           <p className="nota mt-2">
             {piezas?.length ?? 0} {piezas?.length === 1 ? "pieza" : "piezas"} ·
-            arrastrá el mouse o usá el tilde para seleccionar · la landing arma
-            una grilla al azar con todas, y las primeras {MAX_PORTADAS} abren la
-            página de este servicio
+            arrastrá el mouse o usá el tilde para seleccionar · agarrá el
+            tirador de abajo de cada foto para cambiarla de lugar · la landing
+            arma una grilla al azar con todas, y las primeras {MAX_PORTADAS}{" "}
+            abren la página de este servicio
           </p>
         </div>
 
@@ -222,8 +321,14 @@ export function GaleriaCategoria({
                   key={p.id}
                   data-id={p.id}
                   onClick={(e) => alClickPieza(e, p.id, i)}
-                  className={`group relative aspect-square cursor-pointer overflow-hidden border bg-paper-dim ${
+                  className={`group relative aspect-square cursor-pointer overflow-hidden border bg-paper-dim transition-opacity ${
                     elegida ? "border-ink ring-2 ring-ink" : "border-gray-20"
+                  } ${arrastre?.id === p.id ? "opacity-40" : ""} ${
+                    // El lugar donde caería: un marco grueso adentro, para que se
+                    // vea también sobre una foto clara.
+                    arrastre && arrastre.sobre === i && arrastre.id !== p.id
+                      ? "ring-4 ring-inset ring-marca"
+                      : ""
                   }`}
                 >
                   {p.tipo === "video" ? (
@@ -302,22 +407,45 @@ export function GaleriaCategoria({
                       "Poner al frente" sigue estando y hace otra cosa: salta
                       hasta la primera posición. Esto acomoda de a uno, que es lo
                       que hace falta cuando la foto ya está cerca de su lugar. */}
-                  <div className="absolute right-1.5 bottom-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <BotonMover
-                      direccion="sube"
-                      deshabilitado={i === 0 || moverPieza.isPending}
-                      alMover={() =>
-                        moverPieza.mutate({ id: p.id, direccion: "sube" })
-                      }
-                    />
-                    <BotonMover
-                      direccion="baja"
-                      deshabilitado={i === piezas.length - 1 || moverPieza.isPending}
-                      alMover={() =>
-                        moverPieza.mutate({ id: p.id, direccion: "baja" })
-                      }
-                    />
-                  </div>
+                  {tactil ? (
+                    <div className="absolute right-1.5 bottom-1.5 flex gap-1">
+                      <BotonMover
+                        direccion="sube"
+                        deshabilitado={i === 0 || moverPieza.isPending}
+                        alMover={() =>
+                          moverPieza.mutate({ id: p.id, direccion: "sube" })
+                        }
+                      />
+                      <BotonMover
+                        direccion="baja"
+                        deshabilitado={
+                          i === piezas.length - 1 || moverPieza.isPending
+                        }
+                        alMover={() =>
+                          moverPieza.mutate({ id: p.id, direccion: "baja" })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    // El tirador. `data-no-marquee` para que agarrarlo no empiece
+                    // una selección por rectángulo, que es lo que hace bajar el
+                    // mouse en cualquier otra parte de la grilla.
+                    <button
+                      type="button"
+                      data-no-marquee
+                      onPointerDown={(e) => empezarArrastre(e, p.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Arrastrar para cambiar de lugar"
+                      title="Arrastrá para cambiar de lugar"
+                      className={`absolute right-1.5 bottom-1.5 grid h-6 w-6 cursor-grab touch-none place-items-center border border-paper bg-paper/70 text-ink transition-opacity hover:bg-ink hover:text-paper active:cursor-grabbing ${
+                        arrastre
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
+                    >
+                      <IconoPuntos className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -424,9 +552,7 @@ function BotonMover({
       aria-label={sube ? "Mover antes" : "Mover después"}
       className="grid h-6 w-6 place-items-center border border-paper bg-paper/70 text-ink transition-colors hover:bg-ink hover:text-paper disabled:cursor-default disabled:opacity-30 disabled:hover:bg-paper/70 disabled:hover:text-ink"
     >
-      <IconoBajar
-        className={`h-3 w-3 ${sube ? "rotate-180" : ""}`}
-      />
+      <IconoBajar className={`h-3 w-3 ${sube ? "rotate-180" : ""}`} />
     </button>
   );
 }
