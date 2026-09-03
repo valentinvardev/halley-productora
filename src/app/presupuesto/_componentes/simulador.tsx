@@ -23,6 +23,8 @@ import {
   EVENTOS,
   EVENTOS_ORDEN,
   PLANES,
+  mesesHasta,
+  planesDisponibles,
   SELECCION_VACIA,
   cierreDe,
   depurar,
@@ -77,12 +79,7 @@ import {
  * de paso se contesta dónde se contesta bien: eligiendo la fiesta uno ya está
  * pensando con qué la quiere.
  */
-type IdPaso =
-  | "momentos"
-  | "complementos"
-  | "contacto"
-  | "fecha"
-  | "pago";
+type IdPaso = "momentos" | "complementos" | "contacto" | "fecha" | "pago";
 
 const ETIQUETA: Record<IdPaso, string> = {
   momentos: "Momentos",
@@ -165,6 +162,20 @@ export function Simulador({
     quiereCopia: true,
   });
   const [fechaEvento, setFechaEvento] = useState(retomar?.fechaEvento ?? "");
+  /**
+   * Todavía no hay fecha, y es una respuesta y no una omisión.
+   *
+   * Antes el paso exigía una fecha sí o sí, aunque fuera aproximada. Quien
+   * está averiguando antes de tener salón no tiene ni aproximada, y lo que
+   * hacía era inventar una para poder seguir, que es peor que ninguna: la
+   * hoja después dice una fecha que nadie dijo.
+   *
+   * Un presupuesto retomado sin fecha arranca con esto marcado, para que no
+   * vuelva a pedirla.
+   */
+  const [sinFecha, setSinFecha] = useState(
+    Boolean(retomar && !retomar.fechaEvento),
+  );
   const [plan, setPlan] = useState(retomar?.plan ?? "3");
 
   const [detalleAbierto, setDetalleAbierto] = useState(false);
@@ -326,8 +337,8 @@ export function Simulador({
       return null;
     }
 
-    if (desde === "fecha" && !fechaEvento) {
-      return "Elegí una fecha, aunque sea aproximada.";
+    if (desde === "fecha" && !fechaEvento && !sinFecha) {
+      return "Elegí una fecha, aunque sea aproximada, o marcá que todavía no la tenés.";
     }
 
     return null;
@@ -410,9 +421,7 @@ export function Simulador({
             // El punto se puede tocar si ya se pasó por ese paso. Con la lista
             // cambiando de largo, "hasta dónde llegué" es el más lejano de los
             // visitados que todavía existe.
-            maximo={
-              PASOS.reduce((m, id, i) => (vistos.has(id) ? i + 1 : m), 1)
-            }
+            maximo={PASOS.reduce((m, id, i) => (vistos.has(id) ? i + 1 : m), 1)}
             alIr={(n) => {
               const destino = PASOS[n - 1];
               if (destino) irA(destino);
@@ -458,6 +467,13 @@ export function Simulador({
           <PasoFecha
             valor={fechaEvento}
             alCambiar={setFechaEvento}
+            sinFecha={sinFecha}
+            alCambiarSinFecha={(v) => {
+              setSinFecha(v);
+              // Marcar que no hay fecha la borra: que quede una cargada de
+              // antes y a la vez el aviso de que no existe es contradecirse.
+              if (v) setFechaEvento("");
+            }}
             evento={nombreEvento.posesivo}
           />
         )}
@@ -469,6 +485,7 @@ export function Simulador({
             cierre={cierre}
             lineas={lineas}
             parametros={parametros}
+            fechaEvento={sinFecha ? null : fechaEvento || null}
           />
         )}
       </div>
@@ -870,10 +887,14 @@ function PasoContacto({
 function PasoFecha({
   valor,
   alCambiar,
+  sinFecha,
+  alCambiarSinFecha,
   evento,
 }: {
   valor: string;
   alCambiar: (v: string) => void;
+  sinFecha: boolean;
+  alCambiarSinFecha: (v: boolean) => void;
   evento: string;
 }) {
   return (
@@ -884,13 +905,37 @@ function PasoFecha({
         bajada={`La fecha de ${evento}. Si todavía no tenés confirmado el salón o el día, elegí una aproximada: sirve igual para saber si tenemos equipo disponible.`}
       />
 
-      <div className="max-w-[320px]">
-        <CampoFecha
-          label="Fecha del evento"
-          valor={valor}
-          alCambiar={alCambiar}
-          hint="Se puede cambiar después."
-        />
+      <div className="grid max-w-[420px] gap-5">
+        {/* El campo se va cuando no hay fecha, no se apaga. Un campo apagado
+            con una fecha adentro sigue diciendo esa fecha; sin el campo queda
+            claro que la respuesta es la casilla. */}
+        {!sinFecha && (
+          <div className="max-w-[320px]">
+            <CampoFecha
+              label="Fecha del evento"
+              valor={valor}
+              alCambiar={alCambiar}
+              hint="Se puede cambiar después."
+            />
+          </div>
+        )}
+
+        <label className="flex cursor-pointer items-start gap-3 border border-gray-20 p-4">
+          <input
+            type="checkbox"
+            checked={sinFecha}
+            onChange={(e) => alCambiarSinFecha(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]"
+          />
+          <span className="text-[14px] leading-relaxed">
+            Todavía no tengo fecha.
+            <span className="mt-1 block text-[12.5px] text-gray-45">
+              El presupuesto sale igual, con la fecha a confirmar. Sin fecha se
+              reserva con el pago único; cuando la tengas se arma el plan de
+              cuotas.
+            </span>
+          </span>
+        </label>
       </div>
     </section>
   );
@@ -904,13 +949,30 @@ function PasoPago({
   cierre,
   lineas,
   parametros,
+  fechaEvento,
 }: {
   plan: string;
   alElegir: (id: string) => void;
   cierre: ReturnType<typeof cierreDe>;
   lineas: ReturnType<typeof lineasDe>;
   parametros: Parametros;
+  /** Sin fecha es null, y con eso sólo se ofrece el pago único. */
+  fechaEvento: string | null;
 }) {
+  /**
+   * Sólo los planes que llegan antes del evento.
+   *
+   * Si el que estaba elegido quedó afuera (se cambió la fecha después de
+   * elegir), se pasa al más largo de los que quedan. Es un efecto y no un
+   * cálculo en el render porque cambia el estado del padre.
+   */
+  const planes = planesDisponibles(fechaEvento);
+  const meses = mesesHasta(fechaEvento);
+  useEffect(() => {
+    if (!planes.some((p) => p.id === plan)) {
+      alElegir(planes[planes.length - 1]!.id);
+    }
+  }, [planes, plan, alElegir]);
   return (
     <section>
       <Cabecera
@@ -961,12 +1023,22 @@ function PasoPago({
           Un plan de pago no tiene nada que mostrar —son cuatro variantes del
           mismo número— y lo que se hace con ellas es comparar montos, que se
           compara mejor en una columna alineada que en cuatro cajas. */}
+      {planes.length < PLANES.length && (
+        <p className="nota mb-3 max-w-[60ch] text-[13px]">
+          {meses === null
+            ? "Sin fecha no hay contra qué armar cuotas: se reserva con el pago único y, cuando esté la fecha, se arma el plan."
+            : meses === 0
+              ? "Con el evento a menos de un mes, la única forma es el pago único."
+              : `Con el evento a ${meses} ${meses === 1 ? "mes" : "meses"}, las cuotas tienen que terminar antes: por eso hay menos opciones.`}
+        </p>
+      )}
+
       <div
         className="grid gap-px border border-gray-20 bg-gray-20"
         role="radiogroup"
         aria-label="Forma de pago"
       >
-        {PLANES.map((p) => (
+        {planes.map((p) => (
           <FilaPlan
             key={p.id}
             plan={p}
@@ -1081,7 +1153,9 @@ function FilaPlan({
           {plan.destacado && (
             <span
               className={`border px-1.5 py-px font-rotulo text-[9.5px] tracking-[0.1em] uppercase ${
-                elegido ? "border-paper/50 text-paper/80" : "border-gray-45 text-gray-45"
+                elegido
+                  ? "border-paper/50 text-paper/80"
+                  : "border-gray-45 text-gray-45"
               }`}
             >
               Más elegido

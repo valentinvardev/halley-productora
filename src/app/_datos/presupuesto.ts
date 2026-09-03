@@ -187,7 +187,8 @@ const LOCACIONES: Opcion[] = [
   {
     id: "estudio",
     nombre: "Estudio",
-    texto: "Luz controlada y fondo limpio. La opción de siempre, y la más ágil.",
+    texto:
+      "Luz controlada y fondo limpio. La opción de siempre, y la más ágil.",
     extra: 0,
   },
   {
@@ -266,7 +267,8 @@ const COMPLEMENTOS: Item[] = [
   {
     id: "video-ingreso",
     nombre: "Video para ingreso al salón",
-    texto: "La pieza que se proyecta en la entrada, armada con material previo.",
+    texto:
+      "La pieza que se proyecta en la entrada, armada con material previo.",
     precio: 260_000,
   },
   {
@@ -343,7 +345,8 @@ const MOMENTOS_BODA: Item[] = [
   {
     id: "civil",
     nombre: "Civil",
-    texto: "El registro del acto y de la salida, con los testigos y la familia.",
+    texto:
+      "El registro del acto y de la salida, con los testigos y la familia.",
     precio: 0,
     coberturas: coberturas(140_000, 180_000),
   },
@@ -469,7 +472,7 @@ export function seleccionDe(lineas: Linea[]): Seleccion {
 /** Los ids de la selección que este catálogo todavía conoce. */
 export function depurar(partes: Parte[], sel: Seleccion): Seleccion {
   const validos = new Set(partes.flatMap((p) => p.items.map((i) => i.id)));
-  const soloConocidos = <T,>(mapa: Record<string, T>) =>
+  const soloConocidos = <T>(mapa: Record<string, T>) =>
     Object.fromEntries(Object.entries(mapa).filter(([id]) => validos.has(id)));
 
   return {
@@ -707,6 +710,45 @@ export const PLANES: Plan[] = [
 
 export function planDe(id: string) {
   return PLANES.find((p) => p.id === id) ?? null;
+}
+
+/**
+ * Meses enteros que faltan para una fecha, o null si no hay fecha.
+ *
+ * Enteros y para abajo: si el evento es dentro de dos meses y veinte días, son
+ * dos meses. Una cuota por mes necesita el mes completo, y la tercera no
+ * llegaría a cobrarse antes de la fiesta.
+ */
+export function mesesHasta(
+  fecha: string | null | undefined,
+  hoy = new Date(),
+): number | null {
+  if (!fecha) return null;
+  const [a, m, d] = fecha.split("-").map(Number);
+  if (!a || !m || !d) return null;
+  let meses = (a - hoy.getFullYear()) * 12 + (m - 1 - hoy.getMonth());
+  if (d < hoy.getDate()) meses -= 1;
+  return Math.max(0, meses);
+}
+
+/**
+ * Los planes que se pueden ofrecer para un evento en esa fecha.
+ *
+ * La última cuota tiene que caer antes del evento: nadie va a estar pagando
+ * la fiesta después de la fiesta. Así que con el evento a N meses entran los
+ * planes de hasta N cuotas, y el pago único entra siempre.
+ *
+ * Sin fecha, sólo el pago único. Es la decisión de Halley: sin fecha no hay
+ * contra qué armar cuotas, y se prefiere reservar con el pago único y armar
+ * el plan cuando la fecha aparezca, antes que financiar a ciegas.
+ */
+export function planesDisponibles(
+  fecha: string | null | undefined,
+  hoy = new Date(),
+): Plan[] {
+  const meses = mesesHasta(fecha, hoy);
+  if (meses === null) return PLANES.filter((p) => p.cuotas === 1);
+  return PLANES.filter((p) => p.cuotas === 1 || p.cuotas <= meses);
 }
 
 /** Cómo queda la plata con un total y un plan elegido. */
