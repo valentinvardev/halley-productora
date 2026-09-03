@@ -32,6 +32,25 @@ export const FONDO_ESTADO = {
 } as const;
 
 /**
+ * Un rótulo con nombre y color por estado.
+ *
+ * Los tintes de fondo ya decían lo mismo, pero decían poco: son a propósito
+ * tenues para que la fila se siga leyendo en blanco y negro, y en el tema
+ * oscuro un tinte al trece por ciento es casi nada. Halley pidió que el estado
+ * se vea, y un rótulo con la palabra y el color lo dice sin depender de que el
+ * ojo distinga un fondo apenas verdoso de uno apenas rojizo.
+ *
+ * La pendiente va en gris y no sin rótulo: si sólo dos estados llevaran
+ * etiqueta, la fila sin etiqueta se leería como "falta información" y no
+ * como "todavía no vence".
+ */
+const ROTULO_ESTADO = {
+  PAGADA: { texto: "Pagada", clase: "border-ok text-ok" },
+  VENCIDA: { texto: "Vencida", clase: "border-marca text-marca" },
+  PENDIENTE: { texto: "Pendiente", clase: "border-gray-45 text-gray-45" },
+} as const;
+
+/**
  * El plan completo, de la primera cuota a la última. Es el "de principio a
  * fin": la familia ve lo que pagó, lo que debe y lo que le falta, sin tener que
  * preguntar.
@@ -84,10 +103,20 @@ export function PlanCuotas({
               )}
             </span>
 
-            <span className="shrink-0 text-right font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
-              {cuota.estado === "PAGADA"
-                ? "Pagada"
-                : `${cuota.estado === "VENCIDA" ? "Venció" : "Vence"} ${fecha(cuota.venceEl)}`}
+            <span className="flex shrink-0 items-center gap-2.5">
+              <span
+                className={`border px-1.5 py-0.5 font-rotulo text-[10px] uppercase tracking-[0.08em] ${ROTULO_ESTADO[cuota.estado].clase}`}
+              >
+                {ROTULO_ESTADO[cuota.estado].texto}
+              </span>
+              <span className="text-right font-rotulo text-[11.5px] uppercase tracking-[0.06em] text-gray-70">
+                {/* El rótulo ya dice el estado; acá queda sólo la fecha, con el
+                    verbo que corresponde. Una pagada no necesita fecha de
+                    vencimiento: ya no vence. */}
+                {cuota.estado === "PAGADA"
+                  ? fecha(cuota.venceEl)
+                  : `${cuota.estado === "VENCIDA" ? "Venció" : "Vence"} ${fecha(cuota.venceEl)}`}
+              </span>
             </span>
           </div>
         );

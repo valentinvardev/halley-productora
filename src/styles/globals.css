@@ -39,6 +39,12 @@
   --color-gray-45: #8f8d83;
   --color-gray-20: #35352f;
   --color-marca: #e2564c;
+  /**
+   * El verde de "pagada". Segunda excepción al blanco y negro, y por la misma
+   * razón que el rojo: acá el color informa, no decora. Sólo para el estado
+   * de una cuota, que es donde una familia mira si debe o no.
+   */
+  --color-ok: #6fbf8a;
   /** Superficie de los campos y las tarjetas tipo placa. */
   --color-lienzo: #191916;
 
@@ -96,6 +102,7 @@
     --color-gray-45: #6b6960;
     --color-gray-20: #d5d3c7;
     --color-marca: #d0342c;
+    --color-ok: #1f7a3c;
     --color-lienzo: #ffffff;
   }
 
