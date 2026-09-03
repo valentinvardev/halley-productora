@@ -281,6 +281,10 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | 7 | `fbe6909` | El hero, el cometa y el encabezado de servicios vuelven al código |
 | alineación de los botones | `fc6a011` | Las filas de montos vuelven a alinearse abajo |
 | visor optimista | `bf19a41` | El visor vuelve a esperar la foto grande antes de mostrar algo |
+| A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
+| B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
+| C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
+| D y E | `1c285b9` | La fecha vuelve a ser obligatoria y se ofrecen todos los planes |
 
 ## Los dos casos que necesitan un paso más
 
@@ -292,6 +296,9 @@ dos deja todo como estaba.
 editó y guardó desde el panel, esas filas quedan en la tabla de ajustes sin que
 nadie las lea. No molestan, pero para dejarlo limpio se borran las claves que
 empiezan con `texto:`.
+
+**C.** Revertirlo deja la clave `mailAvisos` guardada en la tabla de ajustes si
+alguien la cargó. No molesta: el código vuelto atrás no la lee.
 
 **Punto 7.** Mismo caso que los puntos 4 y 5: el commit devuelve esos textos al
 código, pero si alguien ya editó y guardó, quedan filas en la tabla de ajustes que
@@ -756,3 +763,81 @@ que siempre había algo pintado. Ese es justamente el defecto. La medición buen
 pregunta si lo que se ve corresponde a la foto que se pidió. Y el primer par de
 corridas compartió caché entre las dos versiones, lo que le regalaba a la vieja
 todo lo que la nueva había bajado; se repitió con el navegador limpio cada vez.
+
+---
+
+## Segunda tanda: el plan hablado con Halley
+
+Trece puntos, ordenados de chico a grande, un commit por punto salvo donde dos
+se definen entre sí. Los primeros cinco:
+
+### A. Las páginas de servicio pierden la portada grande
+
+**Pedido:** las portadas grandes arriba de la galería tipo VSCO ocupan mucho
+espacio, sacarlas.
+
+**Qué cambió.** Se va el bloque de 21:9 entre el titular y la galería. La primera
+pieza subida era esa portada y la galería arrancaba en la segunda; ahora todo lo
+subido es galería. Sacar la portada sin ese cambio habría hecho desaparecer una
+foto: bodas pasa de 27 en la galería a 28.
+
+### B. Las tarjetas de servicio se clickean enteras y el botón acompaña
+
+**Pedido:** que el hover de la portada prenda el botón a la vez, y cursor de
+pointer para saber que se puede clickear.
+
+**Qué cambió.** Un link estirado cubre la tarjeta entera, debajo del texto y los
+botones, que siguen siendo suyos: el cursor avisa en cualquier parte de la foto y
+tocarla entra. Y el botón "Ver" se prende con el hover de la tarjeta, no sólo con
+el suyo: la tarjeta es el link y el botón es su etiqueta. El link estirado no
+tiene nombre accesible ni parada de tabulador, porque el botón "Ver" ya es el
+mismo destino con nombre y sería leerlo dos veces.
+
+**Verificado** con el cursor de verdad sobre la tarjeta: el cursor es pointer y
+el fondo del botón pasa a blanco.
+
+### C. El email de avisos se configura desde el panel
+
+**Pedido:** email para notificaciones de administración configurable en
+settings, para gestionar dónde llegan los avisos de pago.
+
+**Qué cambió.** Un campo "Email de avisos" en Ajustes. Reemplaza a la variable de
+entorno como destinatario de "Pago recibido" y "Pago incompleto", que son los
+únicos avisos que hoy le llegan a Halley. Es otra casilla que la de contacto a
+propósito: la de contacto se publica en la web y le escribe cualquiera; ésta es a
+la que quieren que les lleguen las cosas que pasan, y pueden no ser la misma
+persona. Vacío cae a la variable de entorno, así que nada cambia hasta que lo
+toquen.
+
+### D y E. "Todavía no tengo fecha", y las cuotas según la fecha
+
+**Pedido:** opción de no tengo fecha en el presupuesto. Y que la cantidad de
+cuotas ofrecidas sea proporcional a la fecha del evento: si es en menos de nueve
+meses, que no haya opción de nueve cuotas.
+
+**Van juntos** porque uno define al otro: sin fecha hay que decidir qué cuotas se
+ofrecen, y Halley decidió que sólo el pago único.
+
+**La fecha.** El paso la exigía sí o sí, aunque fuera aproximada. Quien está
+averiguando antes de tener salón no tiene ni aproximada, y lo que hacía era
+inventar una para poder seguir, que es peor que ninguna: la hoja después dice una
+fecha que nadie dijo. Ahora hay una casilla; al marcarla el campo se va (un campo
+apagado con una fecha adentro sigue diciendo esa fecha), y el presupuesto sale con
+la fecha a confirmar, que la hoja y el panel ya sabían mostrar.
+
+**Las cuotas.** La última tiene que caer antes del evento: nadie va a estar
+pagando la fiesta después de la fiesta. Con el evento a N meses enteros entran los
+planes de hasta N cuotas, y el pago único entra siempre. Los meses van para
+abajo: a dos meses y veinte días son dos, porque la tercera cuota no llegaría a
+cobrarse. Una línea arriba de la lista explica por qué hay menos opciones, y si el
+plan que estaba elegido queda afuera al cambiar la fecha, se pasa al más largo de
+los que quedan.
+
+**Cómo se verificó.** La regla vive junto a los planes, en datos, y se probó con
+once casos borde (sin fecha, nueve meses justos, ocho meses y veintinueve días,
+hoy, una fecha pasada, una fecha rota). En el navegador se recorrió el simulador
+entero dos veces: marcando "no tengo fecha" llega al pago con la explicación y
+sólo el pago único; eligiendo una fecha a cinco meses llega con la explicación
+"con el evento a 5 meses" y el pago único a la vista. La segunda fila de esa
+lista quedó debajo del pie fijo en la captura; que sea "3 cuotas" y nada más lo
+sostienen la regla probada y que el plan elegido no era el pago único.
