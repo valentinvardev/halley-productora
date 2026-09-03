@@ -458,7 +458,7 @@ async function Servicios({ editando }: { editando: boolean }) {
           return (
             <TarjetaServicio
               key={s.slug}
-              className="aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]"
+              className="group aisla relative flex h-[50svh] items-end overflow-hidden lg:h-[52svh]"
             >
               {/* Las tres categorías de evento tienen el movimiento ya rendido
                   en video: la cámara avanzando de verdad, no una foto partida en
@@ -489,6 +489,23 @@ async function Servicios({ editando }: { editando: boolean }) {
                 aria-hidden="true"
               />
 
+              {/* La tarjeta entera lleva a la categoría, no sólo el botón.
+
+                  Es un link estirado sobre toda la tarjeta, debajo del texto y
+                  de los botones, que siguen siendo suyos. Lo que aporta es que
+                  el cursor avise en cualquier parte de la foto que se puede
+                  entrar, y que tocar la foto entre.
+
+                  Sin nombre accesible propio ni parada de tabulador: el botón
+                  "Ver" de abajo ya es el link con nombre, y este sería el mismo
+                  destino leído dos veces. */}
+              <Link
+                href={`/servicios/${s.slug}`}
+                tabIndex={-1}
+                aria-hidden="true"
+                className="absolute inset-0"
+              />
+
               <div className="relative w-full px-6 pb-8 sm:px-8 sm:pb-10">
                 <p className="font-rotulo text-[11.5px] tracking-[0.22em] text-white/70 uppercase">
                   {String(i + 1).padStart(2, "0")} de {SERVICIOS.length}
@@ -515,9 +532,13 @@ async function Servicios({ editando }: { editando: boolean }) {
                     segundo botón estuviera deshabilitado. Acá son dos caminos
                     distintos, no uno principal y su nota al pie. */}
                 <div className="mt-5 flex flex-wrap gap-2.5">
+                  {/* Se prende con el hover de la tarjeta entera y no sólo
+                      con el suyo: la tarjeta es el link, y el botón es su
+                      etiqueta. Si al pasar por la foto el botón no reacciona,
+                      la foto no parece clickeable aunque lo sea. */}
                   <Link
                     href={`/servicios/${s.slug}`}
-                    className={botonSobreFoto}
+                    className={`${botonSobreFoto} group-hover:bg-white group-hover:text-black`}
                   >
                     Ver {s.nombre.toLowerCase()}
                     <IconoFlecha />
