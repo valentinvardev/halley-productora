@@ -1,5 +1,7 @@
 import "server-only";
 
+import { SERVICIOS, type Servicio } from "~/app/_datos/servicios";
+
 import { db } from "./db";
 
 /**
@@ -34,6 +36,68 @@ type Bloque = {
   /** Dónde se ve. Sin esto hay que adivinar qué se está editando. */
   donde: string;
   campos: Record<string, Campo>;
+};
+
+/**
+ * El bloque de textos de un servicio, armado desde su ficha.
+ *
+ * Cada servicio tiene la misma forma: nombre, línea, titular, entrada, cuatro
+ * cosas que incluye con título y texto, y una aclaración. Se arma con una
+ * función y no a mano para que los cuatro tengan exactamente los mismos
+ * campos, que es lo que hace que la página los pueda leer sin preguntar de
+ * cuál se trata.
+ *
+ * El nombre y la línea entran acá aunque también los use la tarjeta de la
+ * portada: la portada los lee del mismo bloque, así que dicen lo mismo en los
+ * dos lados sin que nadie tenga que acordarse de cambiarlos dos veces.
+ */
+function bloqueServicio(s: Servicio) {
+  const inc = (i: number) => s.incluye[i] ?? { titulo: "", texto: "" };
+  return {
+    nombre: `Página de ${s.nombre.toLowerCase()}`,
+    donde: `La página /servicios/${s.slug} entera, y el nombre y la línea de su tarjeta en la portada.`,
+    campos: {
+      nombre: { etiqueta: "Nombre del servicio", porDefecto: s.nombre },
+      linea: { etiqueta: "Línea de la tarjeta (portada)", porDefecto: s.linea },
+      titular: { etiqueta: "Titular", porDefecto: s.titular },
+      entrada: { etiqueta: "Entrada", largo: true, porDefecto: s.entrada },
+      titulo1: { etiqueta: "Incluye 1. Título", porDefecto: inc(0).titulo },
+      texto1: {
+        etiqueta: "Incluye 1. Texto",
+        largo: true,
+        porDefecto: inc(0).texto,
+      },
+      titulo2: { etiqueta: "Incluye 2. Título", porDefecto: inc(1).titulo },
+      texto2: {
+        etiqueta: "Incluye 2. Texto",
+        largo: true,
+        porDefecto: inc(1).texto,
+      },
+      titulo3: { etiqueta: "Incluye 3. Título", porDefecto: inc(2).titulo },
+      texto3: {
+        etiqueta: "Incluye 3. Texto",
+        largo: true,
+        porDefecto: inc(2).texto,
+      },
+      titulo4: { etiqueta: "Incluye 4. Título", porDefecto: inc(3).titulo },
+      texto4: {
+        etiqueta: "Incluye 4. Texto",
+        largo: true,
+        porDefecto: inc(3).texto,
+      },
+      aclaracion: {
+        etiqueta: "Aclaración",
+        largo: true,
+        porDefecto: s.aclaracion,
+      },
+    },
+  };
+}
+
+const servicioPor = (slug: string) => {
+  const s = SERVICIOS.find((x) => x.slug === slug);
+  if (!s) throw new Error(`No existe el servicio ${slug}`);
+  return s;
 };
 
 export const TEXTOS_SITIO = {
@@ -179,9 +243,28 @@ export const TEXTOS_SITIO = {
       },
     },
   },
+
+  servicioEgresados: bloqueServicio(servicioPor("egresados")),
+  servicioBodas: bloqueServicio(servicioPor("bodas")),
+  servicioQuince: bloqueServicio(servicioPor("quince")),
+  servicioMarcas: bloqueServicio(servicioPor("marcas")),
 } as const satisfies Record<string, Bloque>;
 
 export type IdBloque = keyof typeof TEXTOS_SITIO;
+
+/** El bloque que le toca a cada servicio, por su slug. */
+export const BLOQUE_DE_SERVICIO = {
+  egresados: "servicioEgresados",
+  bodas: "servicioBodas",
+  quince: "servicioQuince",
+  marcas: "servicioMarcas",
+} as const satisfies Record<string, IdBloque>;
+
+export type SlugServicio = keyof typeof BLOQUE_DE_SERVICIO;
+
+export function esSlugServicio(slug: string): slug is SlugServicio {
+  return slug in BLOQUE_DE_SERVICIO;
+}
 export const BLOQUES_ORDEN = Object.keys(TEXTOS_SITIO) as IdBloque[];
 
 /** Los textos ya resueltos de un bloque: nombre de campo a valor. */

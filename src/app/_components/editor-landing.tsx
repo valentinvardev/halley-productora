@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -39,6 +39,9 @@ function leerDestino(el: Element | null): Elegido | null {
 
 export function EditorLanding() {
   const router = useRouter();
+  // El editor ya no vive sólo en la portada: salir vuelve a la página en la
+  // que se estaba, sin el `?editar=1`.
+  const ruta = usePathname();
   const [elegido, setElegido] = useState<Elegido | null>(null);
 
   const lista = api.ajuste.textos.useQuery();
@@ -88,7 +91,7 @@ export function EditorLanding() {
           Modo edición · tocá un texto para cambiarlo
         </span>
         <a
-          href="/"
+          href={ruta}
           className="font-rotulo text-[11px] tracking-[0.06em] text-paper/70 uppercase underline underline-offset-4 hover:text-paper"
         >
           Salir

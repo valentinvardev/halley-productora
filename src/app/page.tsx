@@ -28,7 +28,11 @@ import { eventoDeServicio } from "./_datos/presupuesto";
 import { SERVICIOS } from "./_datos/servicios";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
 import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
-import { textosDeBloque } from "~/server/textos-sitio";
+import {
+  BLOQUE_DE_SERVICIO,
+  esSlugServicio,
+  textosDeBloque,
+} from "~/server/textos-sitio";
 
 export const metadata: Metadata = {
   title: "Halley Audiovisual — Productora en Córdoba",
@@ -428,6 +432,15 @@ async function Servicios({ editando }: { editando: boolean }) {
   const fondos = await Promise.all(
     SERVICIOS.map((s) => muestraDe(s.slug, CELDAS_GRILLA)),
   );
+  // El nombre y la línea de cada tarjeta salen del bloque de su página, así
+  // que lo que se edita ahí se ve acá también, sin dos lugares que mantener.
+  const textos = await Promise.all(
+    SERVICIOS.map((s) =>
+      esSlugServicio(s.slug)
+        ? textosDeBloque(BLOQUE_DE_SERVICIO[s.slug])
+        : Promise.resolve(null),
+    ),
+  );
 
   return (
     <section id="servicios" className="border-b border-gray-20">
@@ -517,12 +530,22 @@ async function Servicios({ editando }: { editando: boolean }) {
                     hay una sombra al pie que ya garantiza el contraste, así que
                     lo único que aportaba `difference` era invertir el título en
                     los tramos claros y hacerlo leer como un error de render. */}
-                <h3 className="mt-2 font-titulo text-[clamp(2.1rem,5.2vw,3.4rem)] leading-[0.88] text-white uppercase">
-                  {s.nombre}
+                <h3
+                  {...(esSlugServicio(s.slug)
+                    ? editable(`${BLOQUE_DE_SERVICIO[s.slug]}.nombre`, editando)
+                    : {})}
+                  className="mt-2 font-titulo text-[clamp(2.1rem,5.2vw,3.4rem)] leading-[0.88] text-white uppercase"
+                >
+                  {textos[i]?.nombre ?? s.nombre}
                 </h3>
 
-                <p className="mt-3 max-w-[42ch] text-[14.5px] leading-snug text-white">
-                  {s.linea}
+                <p
+                  {...(esSlugServicio(s.slug)
+                    ? editable(`${BLOQUE_DE_SERVICIO[s.slug]}.linea`, editando)
+                    : {})}
+                  className="mt-3 max-w-[42ch] text-[14.5px] leading-snug text-white"
+                >
+                  {textos[i]?.linea ?? s.linea}
                 </p>
 
                 {/* Dos puertas donde las hay: mirar trabajo y armar el precio.
@@ -540,7 +563,7 @@ async function Servicios({ editando }: { editando: boolean }) {
                     href={`/servicios/${s.slug}`}
                     className={`${botonSobreFoto} group-hover:bg-white group-hover:text-black`}
                   >
-                    Ver {s.nombre.toLowerCase()}
+                    Ver {(textos[i]?.nombre ?? s.nombre).toLowerCase()}
                     <IconoFlecha />
                   </Link>
 

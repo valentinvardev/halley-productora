@@ -27,8 +27,25 @@ import {
 } from "~/app/_components/ui";
 import { eventoDeServicio } from "~/app/_datos/presupuesto";
 import { SERVICIOS, consultaDe, servicioPorSlug } from "~/app/_datos/servicios";
+import { cookies } from "next/headers";
+
+import { EditorLanding } from "~/app/_components/editor-landing";
 import { contacto, linkWhatsApp } from "~/server/ajustes";
+import { COOKIE_ADMIN, cookieValida } from "~/server/auth";
 import { contenidoDe } from "~/server/contenido";
+import {
+  BLOQUE_DE_SERVICIO,
+  esSlugServicio,
+  textosDeBloque,
+} from "~/server/textos-sitio";
+
+/**
+ * Marca un texto como editable, igual que en la portada: fuera del modo
+ * edición no agrega nada al HTML.
+ */
+function editable(campo: string, editando: boolean) {
+  return editando ? { "data-texto": campo } : {};
+}
 
 /** Se lee el contenido en cada visita: lo que sube el admin aparece al toque. */
 export const dynamic = "force-dynamic";
@@ -55,15 +72,28 @@ export async function generateMetadata({
 
 export default async function ServicioPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ editar?: string }>;
 }) {
   const { slug } = await params;
   const servicio = servicioPorSlug(slug);
-  if (!servicio) notFound();
+  if (!servicio || !esSlugServicio(slug)) notFound();
 
   const otros = SERVICIOS.filter((s) => s.slug !== servicio.slug);
-  const consulta = consultaDe(servicio);
+
+  // Los textos editados desde el panel, o los de fábrica si no se tocaron.
+  const bloque = BLOQUE_DE_SERVICIO[slug];
+  const t = await textosDeBloque(bloque);
+  const consulta = consultaDe({ ...servicio, nombre: t.nombre });
+
+  // Mismo trato que la portada: `?editar=1` y además ser administrador.
+  const { editar } = await searchParams;
+  const galleta = await cookies();
+  const editando =
+    editar === "1" && cookieValida(galleta.get(COOKIE_ADMIN)?.value);
+  const e = (campo: string) => editable(`${bloque}.${campo}`, editando);
   // Bodas y quince tienen catálogo de precios y por lo tanto simulador; marcas
   // y egresados se cotizan hablando, y ahí el botón sería una promesa vacía.
   const evento = eventoDeServicio(servicio.slug);
@@ -81,6 +111,7 @@ export default async function ServicioPage({
   return (
     <ProveedorSeleccion>
       <div className={`landing ${FUENTES_MARCA}`}>
+        {editando && <EditorLanding />}
         <NavPublica
           secciones={[
             { href: "/#servicios", texto: "Servicios" },
@@ -100,14 +131,23 @@ export default async function ServicioPage({
               Todos los servicios
             </Link>
 
-            <p className="mt-10 font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70">
-              {servicio.nombre}
+            <p
+              {...e("nombre")}
+              className="mt-10 font-rotulo text-[12.5px] uppercase tracking-[0.22em] text-gray-70"
+            >
+              {t.nombre}
             </p>
-            <h1 className="mt-4 max-w-[16ch] font-titulo text-[clamp(2.4rem,7vw,5rem)] leading-[0.9] uppercase">
-              {servicio.titular}
+            <h1
+              {...e("titular")}
+              className="mt-4 max-w-[16ch] font-titulo text-[clamp(2.4rem,7vw,5rem)] leading-[0.9] uppercase"
+            >
+              {t.titular}
             </h1>
-            <p className="mt-7 max-w-[56ch] text-[16px] leading-relaxed text-gray-70">
-              {servicio.entrada}
+            <p
+              {...e("entrada")}
+              className="mt-7 max-w-[56ch] text-[16px] leading-relaxed text-gray-70"
+            >
+              {t.entrada}
             </p>
 
             <div className="mt-9 flex flex-wrap gap-3.5">
@@ -124,7 +164,6 @@ export default async function ServicioPage({
               </a>
             </div>
           </div>
-
         </section>
 
         {/* ---------------------------------------------------------- galería */}
@@ -134,7 +173,7 @@ export default async function ServicioPage({
         <section className="border-b border-gray-20">
           <div className="mx-auto max-w-[1140px] px-6 py-20 sm:px-10 sm:py-24">
             <h2 className="max-w-[20ch] font-titulo text-[clamp(1.9rem,5vw,3.4rem)] leading-[0.92] uppercase">
-              De {servicio.nombre.toLowerCase()} que ya cubrimos
+              De {t.nombre.toLowerCase()} que ya cubrimos
             </h2>
 
             <div className="mt-11">
@@ -142,7 +181,7 @@ export default async function ServicioPage({
                 <GaleriaPublica
                   fotos={fotos}
                   videos={videos}
-                  nombre={servicio.nombre}
+                  nombre={t.nombre}
                 />
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,19 +207,27 @@ export default async function ServicioPage({
             </h2>
 
             <div className="mt-11 grid gap-px border border-gray-20 bg-gray-20 sm:grid-cols-2">
-              {servicio.incluye.map((i) => (
-                <div key={i.titulo} className="bg-paper p-7 sm:p-9">
-                  <h3 className="font-titulo text-[clamp(1.3rem,2.4vw,1.8rem)] leading-tight uppercase">
-                    {i.titulo}
+              {([1, 2, 3, 4] as const).map((n) => (
+                <div key={n} className="bg-paper p-7 sm:p-9">
+                  <h3
+                    {...e(`titulo${n}`)}
+                    className="font-titulo text-[clamp(1.3rem,2.4vw,1.8rem)] leading-tight uppercase"
+                  >
+                    {t[`titulo${n}`]}
                   </h3>
-                  <p className="mt-3 max-w-[44ch] text-[14.5px] leading-relaxed text-gray-70">
-                    {i.texto}
+                  <p
+                    {...e(`texto${n}`)}
+                    className="mt-3 max-w-[44ch] text-[14.5px] leading-relaxed text-gray-70"
+                  >
+                    {t[`texto${n}`]}
                   </p>
                 </div>
               ))}
             </div>
 
-            <p className="nota mt-7 max-w-[62ch]">{servicio.aclaracion}</p>
+            <p {...e("aclaracion")} className="nota mt-7 max-w-[62ch]">
+              {t.aclaracion}
+            </p>
           </div>
         </section>
 
@@ -192,8 +239,7 @@ export default async function ServicioPage({
             </h2>
             <p className="mx-auto mt-6 max-w-[46ch] text-[15.5px] leading-relaxed text-gray-70">
               Contanos el día y dónde es. Te mandamos la propuesta de{" "}
-              {servicio.nombre.toLowerCase()} con todo lo que incluye y el
-              precio.
+              {t.nombre.toLowerCase()} con todo lo que incluye y el precio.
             </p>
 
             <div className="mt-9 flex flex-wrap justify-center gap-3.5">
