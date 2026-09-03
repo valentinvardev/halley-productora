@@ -540,6 +540,10 @@ model Contenido {
     ancho     Int?
     alto      Int?
     orden     Int      @default(0)
+    /// Cuántas veces tocaron el corazón. Un contador y no una tabla de likes:
+    /// no hay sesión, así que no hay a quién atarle cada like, y lo que la web
+    /// muestra es el número.
+    likes     Int      @default(0)
     creadoEn  DateTime @default(now())
 
     @@index([categoria, orden])

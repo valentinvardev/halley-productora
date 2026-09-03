@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+import { api } from "~/trpc/react";
 
 import { IconoFlecha, IconoWhatsApp } from "./iconos";
 import { Lightbox, type PiezaLightbox } from "./lightbox";
@@ -18,7 +26,39 @@ import { botonFantasma, botonWhatsApp } from "./ui";
 export type PiezaPublica = PiezaLightbox & {
   ancho?: number | null;
   alto?: number | null;
+  /** Cuántos corazones lleva. Las piezas viejas arrancan en cero. */
+  likes?: number;
 };
+
+/**
+ * Qué fotos ya likeó esta persona, guardado en su navegador.
+ *
+ * Sin sesión no hay forma de saberlo del lado del servidor, y sin esto el
+ * corazón se podría tocar diez veces y cada una contaría. El servidor tiene
+ * su propio freno por origen, pero éste es el que evita el doble toque
+ * accidental y el que deja el corazón pintado al volver.
+ */
+const CLAVE_LIKES = "halley-likes";
+
+function leerLikes(): Set<string> {
+  try {
+    const crudo = localStorage.getItem(CLAVE_LIKES);
+    const lista: unknown = crudo ? JSON.parse(crudo) : [];
+    return new Set(
+      Array.isArray(lista) ? lista.filter((x) => typeof x === "string") : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function guardarLikes(s: Set<string>) {
+  try {
+    localStorage.setItem(CLAVE_LIKES, JSON.stringify([...s]));
+  } catch {
+    // Sin storage el corazón vale para esta visita igual.
+  }
+}
 
 /**
  * Elegir favoritas.
@@ -133,6 +173,49 @@ export function GaleriaPublica({
 
   const piezasVisor = visor?.lista === "videos" ? videos : fotos;
 
+  /**
+   * Los contadores, en pantalla desde el primer toque.
+   *
+   * El número sube apenas se toca y después el servidor confirma. Esperar la
+   * respuesta para mover el número es lo que hace sentir que el toque no
+   * entró; y si el servidor frenó el like, el número vuelve a lo que era.
+   */
+  const [likes, setLikes] = useState<Map<string, number>>(
+    () => new Map(fotos.map((f) => [f.id, f.likes ?? 0])),
+  );
+  const [dados, setDados] = useState<Set<string>>(new Set());
+  const [latiendo, setLatiendo] = useState<string | null>(null);
+  useEffect(() => setDados(leerLikes()), []);
+
+  const darLike = api.contenido.darLike.useMutation({
+    onSuccess: ({ likes: total, contado }, { id }) => {
+      setLikes((m) => new Map(m).set(id, total));
+      if (!contado) {
+        setDados((s) => {
+          const n = new Set(s);
+          n.delete(id);
+          guardarLikes(n);
+          return n;
+        });
+      }
+    },
+    onError: (_e, { id }) => {
+      setLikes((m) => new Map(m).set(id, (m.get(id) ?? 1) - 1));
+    },
+  });
+
+  function tocarCorazon(id: string) {
+    if (dados.has(id) || darLike.isPending) return;
+    setDados((s) => {
+      const n = new Set(s).add(id);
+      guardarLikes(n);
+      return n;
+    });
+    setLikes((m) => new Map(m).set(id, (m.get(id) ?? 0) + 1));
+    setLatiendo(id);
+    darLike.mutate({ id });
+  }
+
   return (
     <>
       {fotos.length > 0 && (
@@ -197,7 +280,7 @@ export function GaleriaPublica({
                     className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
 
-                  {/* En modo elegir, el velo baja para que el corazón se lea. */}
+                  {/* En modo elegir, el velo baja para que la marca se lea. */}
                   {eligiendo && (
                     <span
                       aria-hidden="true"
@@ -209,22 +292,65 @@ export function GaleriaPublica({
                     />
                   )}
 
+                  {/* Elegida para el presupuesto: un tilde, no un corazón. El
+                      corazón pasó a ser el like público y no puede significar
+                      dos cosas en la misma foto. */}
                   {eligiendo && marcada && (
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-0 grid place-items-center"
                     >
                       {reciente === p.id && (
-                        <span className="onda-like absolute h-20 w-20 rounded-full bg-marca/40" />
+                        <span className="onda-like absolute h-20 w-20 rounded-full bg-paper/40" />
                       )}
                       <Marca
-                        tipo="corazon"
+                        tipo="confirmado"
+                        color="#ffffff"
                         className={`h-16 w-16 drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] ${
                           reciente === p.id ? "corazon-late" : ""
                         }`}
                       />
                     </span>
                   )}
+
+                  {/* El corazón con su cuenta, siempre a la vista.
+
+                      Es un `span` con rol de botón y no un `button` porque
+                      ya está adentro de uno: un botón dentro de otro no es
+                      HTML válido y los navegadores lo desarman. Se detiene la
+                      propagación para que tocarlo no abra el visor ni marque
+                      la foto. */}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={
+                      dados.has(p.id) ? "Ya te gustó" : "Me gusta esta foto"
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      tocarCorazon(p.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        tocarCorazon(p.id);
+                      }
+                    }}
+                    className={`absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/45 px-2 py-1 font-rotulo text-[11px] tracking-[0.06em] text-white backdrop-blur-sm transition-colors ${
+                      dados.has(p.id)
+                        ? "cursor-default"
+                        : "cursor-pointer hover:bg-black/65"
+                    }`}
+                  >
+                    <Marca
+                      tipo="corazon"
+                      color={dados.has(p.id) ? "var(--color-marca)" : "#ffffff"}
+                      grosor={dados.has(p.id) ? 6 : 4}
+                      className={`h-4 w-4 ${latiendo === p.id ? "corazon-late" : ""}`}
+                    />
+                    <span>{likes.get(p.id) ?? p.likes ?? 0}</span>
+                  </span>
                 </button>
               );
             })}

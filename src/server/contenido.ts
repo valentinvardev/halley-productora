@@ -52,6 +52,7 @@ export async function contenidoDe(categoria: string) {
     // vienen en null hasta que la medición de fondo las alcanza.
     ancho: c.ancho,
     alto: c.alto,
+    likes: c.likes,
   }));
 }
 

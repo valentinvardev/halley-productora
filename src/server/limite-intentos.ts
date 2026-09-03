@@ -55,7 +55,10 @@ export function registrarFallo(llave: string) {
 
   if (reg.fallos > TOLERANCIA) {
     const exceso = reg.fallos - TOLERANCIA;
-    const castigo = Math.min(BLOQUEO_BASE_MS * 2 ** (exceso - 1), BLOQUEO_MAX_MS);
+    const castigo = Math.min(
+      BLOQUEO_BASE_MS * 2 ** (exceso - 1),
+      BLOQUEO_MAX_MS,
+    );
     reg.hasta = ahora + castigo;
   }
 
@@ -66,6 +69,43 @@ export function registrarFallo(llave: string) {
 /** Acertó: se limpia el historial de esa llave. */
 export function registrarExito(llave: string) {
   registros.delete(llave);
+}
+
+/* --------------------------------------------------------------- ráfagas */
+
+type Ventana = { cuenta: number; desde: number };
+const ventanas = new Map<string, Ventana>();
+
+/**
+ * Cuántas veces puede pasar algo por llave en una ventana de tiempo.
+ *
+ * Es otro freno que el de arriba: aquél castiga fallos y acá no hay fallo,
+ * hay abuso por volumen. Un corazón que cualquiera puede tocar sin sesión es
+ * un contador que un bucle infla en segundos; con esto, cada origen tiene un
+ * cupo por minuto y después espera. Devuelve `true` si pasa.
+ *
+ * Vive en memoria por lo mismo que el otro: para un sitio así alcanza, y el
+ * costo de equivocarse es que alguien espere un minuto.
+ */
+export function permitirRafaga(
+  llave: string,
+  maximo: number,
+  ventanaMs: number,
+) {
+  const ahora = Date.now();
+  if (ventanas.size > 10_000) {
+    for (const [k, v] of ventanas) {
+      if (v.desde + ventanaMs < ahora) ventanas.delete(k);
+    }
+  }
+  const v = ventanas.get(llave);
+  if (!v || v.desde + ventanaMs < ahora) {
+    ventanas.set(llave, { cuenta: 1, desde: ahora });
+    return true;
+  }
+  if (v.cuenta >= maximo) return false;
+  v.cuenta += 1;
+  return true;
 }
 
 /**

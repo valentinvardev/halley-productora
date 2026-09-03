@@ -10,6 +10,7 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { muestraDe } from "~/server/contenido";
+import { origenDe, permitirRafaga } from "~/server/limite-intentos";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
 
 /**
@@ -57,6 +58,49 @@ export const contenidoRouter = createTRPCRouter({
    * Se toman de a seis de cada tipo de evento y se entremezclan, así el mosaico
    * no sale con las nueve primeras del mismo casamiento.
    */
+  /**
+   * Un like a una foto del portfolio, sin sesión.
+   *
+   * Es un contador público y anónimo, así que la única defensa contra un bucle
+   * que lo infle es el freno por origen: un cupo de likes por minuto por IP, y
+   * un solo like por foto por IP por hora. Ninguno de los dos es infranqueable
+   * (una red de teléfonos comparte IP; un atacante puede rotarla), pero suben
+   * el costo de hacer trampa muy por encima de lo que vale un número en una
+   * vitrina, que es la medida justa para esto.
+   *
+   * Devuelve el total nuevo. Si el freno lo para, devuelve el total sin tocar y
+   * `contado: false`, para que la pantalla no mienta.
+   */
+  darLike: publicProcedure
+    .input(z.object({ id: z.string().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const origen = origenDe(ctx.headers);
+      const pasaCupo = permitirRafaga(`like:${origen}`, 30, 60_000);
+      const pasaFoto = permitirRafaga(
+        `like:${origen}:${input.id}`,
+        1,
+        60 * 60_000,
+      );
+      if (!pasaCupo || !pasaFoto) {
+        const actual = await ctx.db.contenido.findUnique({
+          where: { id: input.id },
+          select: { likes: true },
+        });
+        return { likes: actual?.likes ?? 0, contado: false };
+      }
+      try {
+        const fila = await ctx.db.contenido.update({
+          where: { id: input.id },
+          data: { likes: { increment: 1 } },
+          select: { likes: true },
+        });
+        return { likes: fila.likes, contado: true };
+      } catch {
+        // Una foto que ya no existe: no hay nada que contar.
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+    }),
+
   muestraAcceso: publicProcedure.query(async () => {
     const porCategoria = await Promise.all(
       ["egresados", "bodas", "quince"].map((c) => muestraDe(c, 6)),
