@@ -71,8 +71,10 @@ export default async function ServicioPage({
   // El material real que subió el admin. Si no hay, se cae a las muestras.
   const datos = await contacto();
   const contenido = await contenidoDe(servicio.slug);
-  const portada = contenido[0] ?? null;
-  const galeria = contenido.slice(1);
+  // Antes la primera pieza era la portada grande de arriba y la galería
+  // arrancaba en la segunda. La portada se fue, así que todo lo subido es
+  // galería: sacarla sin este cambio habría hecho desaparecer una foto.
+  const galeria = contenido;
   const fotos = galeria.filter((p) => p.tipo === "imagen");
   const videos = galeria.filter((p) => p.tipo === "video");
 
@@ -87,7 +89,7 @@ export default async function ServicioPage({
           ]}
         />
 
-        {/* ---------------------------------------------------------- portada */}
+        {/* ---------------------------------------------------------- titular */}
         <section className="border-b border-gray-20">
           <div className="mx-auto max-w-[1140px] px-6 pt-12 pb-16 sm:px-10 sm:pt-16 sm:pb-20">
             <Link
@@ -123,17 +125,10 @@ export default async function ServicioPage({
             </div>
           </div>
 
-          <Medio
-            src={`/servicios/${servicio.slug}-portada.jpg`}
-            alt={`Portada de ${servicio.nombre}`}
-            proporcion="aspect-[21/9]"
-            prioridad
-            directo={portada}
-          />
         </section>
 
         {/* ---------------------------------------------------------- galería */}
-        {/* Va apenas debajo de la portada, antes que el detalle: quien entra a
+        {/* Va apenas debajo del titular, antes que el detalle: quien entra a
           una categoría quiere ver trabajo, no leer una lista. El detalle
           convence después, con la muestra ya vista. */}
         <section className="border-b border-gray-20">
