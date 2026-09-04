@@ -4,7 +4,11 @@
  * vencido) y para curar el portfolio.
  *
  * El corazón es la excepción: marca las fotos que el prospecto likea y es el
- * único elemento con color de todo el sistema.
+ * único elemento con color de todo el sistema. Pero el color lo pone quien lo
+ * usa, igual que en las otras marcas: antes de tocarlo va en blanco y hueco,
+ * después en rojo y lleno, y ese antes y después es lo que le dice a la persona
+ * que su toque entró. Pintarlo siempre rojo, como hacía, borraba justamente esa
+ * diferencia.
  */
 
 const CIRCULO =
@@ -31,12 +35,15 @@ export function Marca({
   color = "currentColor",
   grosor = 4,
   animar = false,
+  relleno = true,
 }: {
   tipo: TipoMarca;
   className?: string;
   color?: string;
   grosor?: number;
   animar?: boolean;
+  /** Sólo el corazón: lleno o hueco. Hueco es "todavía no". */
+  relleno?: boolean;
 }) {
   const trazo = animar ? "marca-anim" : undefined;
 
@@ -108,11 +115,12 @@ export function Marca({
       {tipo === "corazon" && (
         <path
           d={CORAZON}
-          fill="var(--color-marca)"
-          fillOpacity={0.55}
-          stroke="var(--color-marca)"
-          strokeWidth={2.5}
+          fill={relleno ? color : "none"}
+          fillOpacity={relleno ? 0.55 : undefined}
+          stroke={color}
+          strokeWidth={grosor}
           strokeLinejoin="round"
+          className="transition-[fill,stroke,fill-opacity] duration-200"
         />
       )}
     </svg>

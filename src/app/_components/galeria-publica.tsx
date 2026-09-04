@@ -345,7 +345,9 @@ export function GaleriaPublica({
                   >
                     <Marca
                       tipo="corazon"
+                      // Blanco y hueco hasta que se toca; rojo y lleno después.
                       color={dados.has(p.id) ? "var(--color-marca)" : "#ffffff"}
+                      relleno={dados.has(p.id)}
                       grosor={dados.has(p.id) ? 6 : 4}
                       className={`h-4 w-4 ${latiendo === p.id ? "corazon-late" : ""}`}
                     />
@@ -452,7 +454,11 @@ export function BarraSeleccion({
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink bg-paper/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-[1140px] flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-10">
         <div className="flex items-center gap-3">
-          <Marca tipo="corazon" className="h-7 w-7 shrink-0" />
+          <Marca
+            tipo="corazon"
+            color="var(--color-marca)"
+            className="h-7 w-7 shrink-0"
+          />
           <div>
             <div className="font-rotulo text-[12.5px] uppercase tracking-[0.06em]">
               {numeros.length === 0
