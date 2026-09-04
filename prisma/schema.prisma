@@ -548,6 +548,11 @@ model Contenido {
     /// no hay sesión, así que no hay a quién atarle cada like, y lo que la web
     /// muestra es el número.
     likes     Int      @default(0)
+    /// Hoy los usan sólo los videos: el título y la descripción que muestra la
+    /// página de videos de cada servicio. Se cargan desde el panel, pieza por
+    /// pieza, y vacíos no se muestran.
+    titulo      String?
+    descripcion String?
     creadoEn  DateTime @default(now())
 
     @@index([categoria, orden])

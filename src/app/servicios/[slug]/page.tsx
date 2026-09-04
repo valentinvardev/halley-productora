@@ -7,6 +7,7 @@ import {
   IconoCalculadora,
   IconoFlecha,
   IconoInstagram,
+  IconoReproducir,
   IconoSobre,
   IconoVolver,
   IconoWhatsApp,
@@ -158,10 +159,27 @@ export default async function ServicioPage({
                   Simular presupuesto
                 </Link>
               )}
-              <a href="#pedir" className={botonFantasma}>
-                <IconoFlecha />
-                Ver qué incluye
-              </a>
+              {/* Los videos tienen página propia. El botón existe sólo si la
+                  categoría tiene videos: uno que lleve a una página vacía es
+                  una promesa rota. Donde ya hay tres botones, que son las
+                  categorías con simulador, reemplaza a "Ver qué incluye": la
+                  sección sigue estando más abajo y cuatro botones en el titular
+                  ya no se leen como opciones sino como un menú. */}
+              {videos.length > 0 && (
+                <Link
+                  href={`/servicios/${servicio.slug}/videos`}
+                  className={botonFantasma}
+                >
+                  <IconoReproducir />
+                  Ver videos
+                </Link>
+              )}
+              {!(videos.length > 0 && evento) && (
+                <a href="#pedir" className={botonFantasma}>
+                  <IconoFlecha />
+                  Ver qué incluye
+                </a>
+              )}
             </div>
           </div>
         </section>

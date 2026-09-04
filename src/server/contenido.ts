@@ -53,6 +53,10 @@ export async function contenidoDe(categoria: string) {
     ancho: c.ancho,
     alto: c.alto,
     likes: c.likes,
+    // Para la página de videos. Las fotos también los tienen en la base,
+    // pero hoy nadie se los pinta.
+    titulo: c.titulo,
+    descripcion: c.descripcion,
   }));
 }
 

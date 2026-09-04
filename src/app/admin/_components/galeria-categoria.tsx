@@ -12,7 +12,7 @@ import {
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { MAX_PORTADAS } from "~/app/_components/portadas-rotativas";
-import { Boton, Vacio } from "~/app/_components/ui";
+import { Boton, Campo, CampoTexto, Vacio } from "~/app/_components/ui";
 import { api } from "~/trpc/react";
 import { EsqueletoGaleria } from "./esqueletos";
 import { Lightbox } from "~/app/_components/lightbox";
@@ -54,6 +54,8 @@ export function GaleriaCategoria({
   const [marq, setMarq] = useState<Rect | null>(null);
   const [visor, setVisor] = useState<number | null>(null);
   const [confirmar, setConfirmar] = useState(false);
+  /** El video cuyo título y descripción se están escribiendo. */
+  const [editandoTexto, setEditandoTexto] = useState<string | null>(null);
 
   const huboDrag = useRef(false);
   const ancla = useRef<string | null>(null);
@@ -63,6 +65,13 @@ export function GaleriaCategoria({
       setSel(new Set());
       setConfirmar(false);
       await utils.contenido.listar.invalidate({ categoria: slug });
+    },
+  });
+
+  const editarTexto = api.contenido.editarTexto.useMutation({
+    onSuccess: () => {
+      setEditandoTexto(null);
+      void utils.contenido.listar.invalidate({ categoria: slug });
     },
   });
 
@@ -349,10 +358,24 @@ export function GaleriaCategoria({
                     />
                   )}
 
+                  {/* La etiqueta de video es también la puerta a su título y
+                      descripción, que muestra la página de videos. Va en la
+                      etiqueta y no en un cuarto botón porque la celda ya tiene
+                      tres esquinas ocupadas. Muestra el título si hay, así se ve
+                      de un vistazo cuáles faltan. */}
                   {p.tipo === "video" && (
-                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 bg-ink/80 px-1.5 py-0.5 font-rotulo text-[9px] uppercase tracking-[0.08em] text-paper">
-                      Video
-                    </span>
+                    <button
+                      type="button"
+                      data-no-marquee
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditandoTexto(p.id);
+                      }}
+                      title="Editar título y descripción"
+                      className="absolute bottom-1.5 left-1.5 max-w-[calc(100%-3rem)] cursor-pointer truncate bg-ink/80 px-1.5 py-0.5 text-left font-rotulo text-[9px] tracking-[0.08em] text-paper uppercase hover:bg-paper hover:text-ink"
+                    >
+                      Video · {p.titulo ?? "sin título"}
+                    </button>
                   )}
 
                   {/* El tilde de selección: no dispara el arrastre ni el visor. */}
@@ -509,6 +532,19 @@ export function GaleriaCategoria({
         </div>
       </Modal>
 
+      {editandoTexto && (
+        <EditorTextoVideo
+          key={editandoTexto}
+          pieza={piezas?.find((x) => x.id === editandoTexto) ?? null}
+          guardando={editarTexto.isPending}
+          error={editarTexto.error?.message ?? null}
+          alCerrar={() => setEditandoTexto(null)}
+          alGuardar={(titulo, descripcion) =>
+            editarTexto.mutate({ id: editandoTexto, titulo, descripcion })
+          }
+        />
+      )}
+
       <Lightbox
         piezas={piezas ?? []}
         indice={visor}
@@ -554,5 +590,75 @@ function BotonMover({
     >
       <IconoBajar className={`h-3 w-3 ${sube ? "rotate-180" : ""}`} />
     </button>
+  );
+}
+
+/**
+ * Título y descripción de un video, para la página de videos del servicio.
+ *
+ * Vacío no es un error: un video sin título se muestra como "Video N" y sin
+ * descripción se muestra sin ella. Por eso el botón de guardar no exige nada.
+ */
+function EditorTextoVideo({
+  pieza,
+  guardando,
+  error,
+  alCerrar,
+  alGuardar,
+}: {
+  pieza: {
+    id: string;
+    titulo?: string | null;
+    descripcion?: string | null;
+  } | null;
+  guardando: boolean;
+  error: string | null;
+  alCerrar: () => void;
+  alGuardar: (titulo: string, descripcion: string) => void;
+}) {
+  const [titulo, setTitulo] = useState(pieza?.titulo ?? "");
+  const [descripcion, setDescripcion] = useState(pieza?.descripcion ?? "");
+
+  return (
+    <Modal
+      abierto
+      alCerrar={alCerrar}
+      eyebrow="Video"
+      titulo="Título y descripción"
+    >
+      <div className="space-y-4">
+        <Campo
+          label="Título"
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          placeholder="Entrada al salón"
+          maxLength={80}
+          autoFocus
+        />
+        <CampoTexto
+          label="Descripción"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          rows={3}
+          maxLength={400}
+          placeholder="De qué se trata, en una o dos frases. Opcional."
+          hint="Se ven en la página de videos del servicio, debajo del cuadro."
+        />
+      </div>
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+        {error && (
+          <span className="nota mr-auto text-[12px] text-marca">{error}</span>
+        )}
+        <Boton variante="fantasma" onClick={alCerrar}>
+          Cancelar
+        </Boton>
+        <Boton
+          onClick={() => alGuardar(titulo.trim(), descripcion.trim())}
+          disabled={guardando}
+        >
+          {guardando ? "Guardando…" : "Guardar"}
+        </Boton>
+      </div>
+    </Modal>
   );
 }

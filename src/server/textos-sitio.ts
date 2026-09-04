@@ -97,6 +97,16 @@ function bloqueServicio(s: Servicio) {
         largo: true,
         porDefecto: s.aclaracion,
       },
+      videosTitulo: {
+        etiqueta: "Página de videos. Título",
+        porDefecto: `Videos de ${s.nombre.toLowerCase()}`,
+      },
+      videosBajada: {
+        etiqueta: "Página de videos. Bajada",
+        largo: true,
+        porDefecto:
+          "Cada video se mira entero y a pantalla completa. Elegí uno y, si querés, pasá al siguiente desde ahí.",
+      },
     },
   };
 }

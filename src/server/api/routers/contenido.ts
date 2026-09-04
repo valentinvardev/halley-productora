@@ -127,7 +127,35 @@ export const contenidoRouter = createTRPCRouter({
         id: c.id,
         tipo: c.tipo === "video" ? ("video" as const) : ("imagen" as const),
         url: `/api/contenido/${c.id}`,
+        titulo: c.titulo,
+        descripcion: c.descripcion,
       }));
+    }),
+
+  /**
+   * El título y la descripción de una pieza.
+   *
+   * Los usa la página de videos de cada servicio. Vacío se guarda como nulo y
+   * no como cadena vacía, para que la página pueda preguntar "¿tiene título?"
+   * sin tener que distinguir entre no tener y tener uno en blanco.
+   */
+  editarTexto: adminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        titulo: z.string().trim().max(80),
+        descripcion: z.string().trim().max(400),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.contenido.update({
+        where: { id: input.id },
+        data: {
+          titulo: input.titulo || null,
+          descripcion: input.descripcion || null,
+        },
+      });
+      return { ok: true };
     }),
 
   /**

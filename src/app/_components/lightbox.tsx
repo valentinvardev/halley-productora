@@ -15,6 +15,9 @@ export type PiezaLightbox = {
    */
   urlMini?: string;
   tipo: "imagen" | "video";
+  /** Los videos pueden traer de qué se tratan; las fotos no los usan. */
+  titulo?: string | null;
+  descripcion?: string | null;
 };
 
 /**

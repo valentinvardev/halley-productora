@@ -1228,3 +1228,61 @@ sigue marcada y el pie dice el mismo total. "Continuar" esconde la línea y pasa
 al paso dos. Y "Empezar de nuevo" saca la línea, deja el total en cero, nada
 marcado y el borrador borrado del navegador.
 
+---
+
+### N. La página de videos de cada servicio, con su visor
+
+**Pedido:** una subpágina de videos por servicio, a la que se entra por un
+tercer botón (en quince, reemplazando a "Ver qué incluye"); dos columnas con
+título, descripción y un botón de reproducir que se note; y un visor de video
+propio de Halley, que respete la identidad. Y todo gestionable desde el panel.
+
+**Qué se muestra.** Los mismos videos que Halley sube a la categoría desde
+Contenidos, en `/servicios/{categoría}/videos`. Cada uno con su cuadro, su
+título y su descripción en dos columnas, y un botón de reproducir cuadrado con
+borde, como todo en el sitio, que al pasar el cursor se invierte a blanco. El
+primer cuadro del archivo hace de portada, sin bajar el video entero.
+
+**Desde el panel.** Título y descripción son dos columnas nuevas de cada pieza
+subida. En Contenidos, la etiqueta "Video" de cada celda pasó a ser un botón
+que abre un formulario con los dos campos, y muestra el título si hay: así se
+ve de un vistazo a cuáles les falta. Vacíos no se muestran: un video sin título
+sale como "Video N" y sin descripción sale sin ella. Los textos de arriba de la
+página (título y bajada) son dos campos más del bloque de textos de cada
+servicio, editables tocándolos con `?editar=1` como el resto.
+
+**El botón.** "Ver videos" existe sólo si la categoría tiene videos: uno que
+lleve a una página vacía es una promesa rota. En bodas y quince, que ya tienen
+tres botones por el simulador, reemplaza a "Ver qué incluye", como se pidió
+para quince; la sección sigue estando más abajo. En egresados y marcas se suma
+como tercero. Sin videos, todo queda como estaba.
+
+**El visor.** No es el visor de fotos con un video adentro. Es a pantalla
+completa, sobre negro, con la cabecera "Video N de M" y la cruz para cerrar,
+las flechas a los costados, el reproductor propio del sitio (barra recta,
+controles en blanco, sin nada redondeado) y debajo el título y la descripción
+que Halley cargó. Escape cierra, las flechas del teclado pasan, la página de
+atrás no scrollea mientras está abierto. Cambiar de video desmonta y monta el
+reproductor: cambiarle la dirección al mismo elemento deja al navegador decidir
+si vuelve a arrancar, y no todos lo hacen.
+
+**Cómo se verificó**, contra la app y la base real. Como ninguna categoría
+tenía videos, se movió temporalmente un clip del hero a bodas y se devolvió al
+final, con el hero de nuevo en nueve clips y bodas en cero. Por HTTP: bodas
+muestra "Ver videos" y no "Ver qué incluye"; egresados, al revés; la subpágina
+responde con el título, "Reproducir" y "Video 1". En el navegador: el panel
+abre el formulario desde la etiqueta, guarda el título y la descripción, y la
+página pública los muestra a dos columnas con el botón; tocar el cuadro abre el
+visor con "Video 1 de 1", el título, la descripción y el reproductor propio,
+con el scroll de la página bloqueado; Escape lo cierra. Se vaciaron los textos
+desde el panel y la base confirmó que quedaron en nulo antes de devolver el
+clip.
+
+**Dos matices honestos.** En el navegador sin interfaz el video del visor
+quedó en pausa: Chrome no deja arrancar con sonido sin un gesto real de la
+persona, y el clic simulado no cuenta como gesto. En un navegador de verdad el
+toque sobre la tarjeta sí cuenta y el video arranca solo. Y el arnés marcó una
+vez "el modal no se cerró" tres segundos y medio después de guardar, cuando la
+escritura había entrado: la base está lejos y esa escritura tardó más que la
+espera. Se confirmó leyendo la base, no el modal.
+
