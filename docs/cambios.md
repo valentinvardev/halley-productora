@@ -1182,3 +1182,48 @@ el arnés tomaba el último. Se corrigió el arnés, no el código.
 **La tabla nueva** se creó en la base con el mismo comando aditivo de las otras
 veces, sin tocar ningún dato existente.
 
+---
+
+### F, corregido. La pregunta del borrador pasa del regreso a la salida
+
+**Pedido:** "el aviso de tenías uno a medias debería ir si salimos a otra
+página que no sea la de presupuesto, que diga ¿realmente querés abandonar tu
+presupuesto? o algo similar."
+
+**Qué pasaba.** La pregunta llegaba tarde. Al volver al simulador aparecía un
+modal, "Tenías uno a medias, ¿seguimos con ése o empezás de nuevo?", y quien
+vuelve a la página quiere seguir, no decidir. La pregunta que sí vale la pena
+es la de antes de irse: es ahí donde alguien toca el logo o un link del menú
+creyendo que es otra cosa.
+
+**Qué cambió.** Con algo ya elegido, tocar un link que se va del simulador
+frena y pregunta "¿Salís del presupuesto?", con "Seguir armando" y "Salir
+igual". No dice que se pierde porque no se pierde: el modal aclara que queda
+guardado en el navegador una semana y que al volver se sigue desde ahí. Es la
+chance de no irse sin querer, no una amenaza.
+
+Al volver ya no hay modal. El borrador se retoma solo y arriba del paso queda
+una línea, "Seguís con el presupuesto que dejaste a medias", con "Empezar de
+nuevo" al lado para quien no quería eso. La línea se va apenas se avanza de
+paso: cumplió su función. "Empezar de nuevo" borra el borrador y deja el wizard
+como recién entrado, con el mismo evento; antes sólo cerraba el modal, porque el
+borrador todavía no se había aplicado.
+
+**Qué frena y qué no.** Sólo los links de la propia app que salen del
+simulador: el menú, el logo, "Mi panel", el pie. Un ancla de la misma página,
+una pestaña nueva (WhatsApp) o un clic con Ctrl no son irse. Sin nada elegido
+no pregunta nada. Cerrar la pestaña, recargar o tocar "atrás" del navegador no
+pasan por acá: ahí el navegador no deja poner un mensaje propio, y el genérico
+que ofrece dice que se pierden los cambios, que sería mentira porque el borrador
+queda guardado.
+
+**Cómo se verificó**, en el navegador contra la app real, en un recorrido: sin
+nada elegido, "Servicios" navega derecho y no aparece nada. Con un momento y su
+cobertura elegidos, "Servicios" frena en el simulador y muestra el modal con el
+texto de que queda guardado. "Seguir armando" cierra y la cobertura sigue
+marcada. El logo vuelve a frenar y "Salir igual" lleva a la portada. Al volver
+al simulador no aparece el modal viejo, aparece la línea de aviso, la cobertura
+sigue marcada y el pie dice el mismo total. "Continuar" esconde la línea y pasa
+al paso dos. Y "Empezar de nuevo" saca la línea, deja el total en cero, nada
+marcado y el borrador borrado del navegador.
+

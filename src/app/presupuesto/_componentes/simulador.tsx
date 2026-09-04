@@ -20,7 +20,7 @@ import {
   IconoMas,
   IconoVolver,
 } from "~/app/_components/iconos";
-import { Boton, Campo } from "~/app/_components/ui";
+import { Boton, BotonTexto, Campo } from "~/app/_components/ui";
 import {
   EVENTOS,
   EVENTOS_ORDEN,
@@ -275,13 +275,28 @@ export function Simulador({
   );
   const [plan, setPlan] = useState(retomar?.plan ?? "3");
 
-  /** El borrador encontrado al entrar, mientras se decide qué hacer con él. */
-  const [borrador, setBorrador] = useState<Borrador | null>(null);
+  /**
+   * Si al entrar había un borrador, se retomó solo. Esto es el aviso de que
+   * pasó, con "empezar de nuevo" a mano, y se va apenas se cambia de paso.
+   *
+   * Antes el borrador se ofrecía en un modal al volver, y la pregunta llegaba
+   * tarde: quien vuelve a la página quiere seguir, no decidir. La pregunta que
+   * sí vale la pena es la de antes de irse, que está más abajo.
+   */
+  const [retomado, setRetomado] = useState(false);
+  /** Adónde quería irse la persona cuando se la frenó para preguntar. */
+  const [saliendo, setSaliendo] = useState<string | null>(null);
   useEffect(() => {
-    // Editando un presupuesto ya emitido no se ofrece nada: eso ya tiene su
+    // Editando un presupuesto ya emitido no se retoma nada: eso ya tiene su
     // código y su página, y un borrador viejo encima sería ruido.
     if (retomar) return;
-    setBorrador(leerBorrador());
+    const b = leerBorrador();
+    if (!b) return;
+    aplicarBorrador(b);
+    setRetomado(true);
+    // Una vez, al montar. Lo que usa adentro son setters, que son estables, y
+    // los paquetes, que no cambian en la vida del wizard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retomar]);
 
   /**
@@ -322,8 +337,8 @@ export function Simulador({
     paqueteId,
   ]);
 
-  function seguirBorrador() {
-    if (!borrador) return;
+  /** Pone el wizard como estaba cuando se guardó el borrador. */
+  function aplicarBorrador(borrador: Borrador) {
     setEvento(borrador.evento);
     setSel(borrador.seleccion);
     setDatos(borrador.datos);
@@ -351,17 +366,64 @@ export function Simulador({
     // Todo lo anterior al paso guardado cuenta como visitado.
     const hasta = pasos.indexOf(destino);
     setVistos(new Set(pasos.slice(0, hasta + 1)));
-    setBorrador(null);
   }
 
-  function descartarBorrador() {
+  /**
+   * Empezar de nuevo: borra el borrador y deja el wizard como recién entrado,
+   * con el mismo evento. Antes esto sólo cerraba un modal, porque el borrador
+   * todavía no se había aplicado; ahora se aplica al entrar, así que deshacerlo
+   * es volver todo a cero.
+   */
+  function empezarDeNuevo() {
     try {
       localStorage.removeItem(CLAVE_BORRADOR);
     } catch {
       // Nada que limpiar.
     }
-    setBorrador(null);
+    setSel(SELECCION_VACIA);
+    setDatos({ nombre: "", celular: "", email: "", quiereCopia: true });
+    setFechaEvento("");
+    setSinFecha(false);
+    setPlan("3");
+    setModo("personalizado");
+    setPaqueteId(null);
+    const primero = primerPaso(evento);
+    setPaso(primero);
+    setVistos(new Set<IdPaso>([primero]));
+    setRetomado(false);
   }
+
+  /**
+   * Frena la salida por un link mientras hay algo armado.
+   *
+   * Sólo los links de la propia app que se van del simulador: un ancla de la
+   * misma página, una pestaña nueva o un clic con modificador no son irse.
+   * Cerrar la pestaña o tocar atrás no pasan por acá: el navegador no deja
+   * poner un mensaje propio ahí, y el genérico que ofrece dice que se pierden
+   * cambios, que sería mentira porque el borrador queda guardado.
+   *
+   * Se escucha en fase de captura para llegar antes que el router de Next,
+   * que también escucha el clic para navegar sin recargar.
+   */
+  useEffect(() => {
+    if (sel.items.length === 0) return;
+    const alTocar = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest("a[href]");
+      if (!a || a.getAttribute("target") === "_blank") return;
+      const href = a.getAttribute("href") ?? "";
+      if (/^(#|mailto:|tel:)/.test(href)) return;
+      const destino = new URL(href, location.href);
+      if (destino.origin !== location.origin) return;
+      if (destino.pathname === location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setSaliendo(destino.pathname + destino.search + destino.hash);
+    };
+    document.addEventListener("click", alTocar, true);
+    return () => document.removeEventListener("click", alTocar, true);
+  }, [sel.items.length]);
 
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   /** Se muestra recién al intentar avanzar: nadie quiere un error antes de escribir. */
@@ -432,6 +494,8 @@ export function Simulador({
   function irA(siguiente: IdPaso) {
     setPaso(siguiente);
     setVistos((v) => new Set(v).add(siguiente));
+    // El aviso de que se retomó un borrador ya cumplió: la persona siguió.
+    setRetomado(false);
   }
 
   function elegirEvento(e: Evento) {
@@ -634,6 +698,43 @@ export function Simulador({
 
   /* ------------------------------------------------------------- pintar */
 
+  /**
+   * La pregunta antes de irse. Va en los dos pintados, el del paso cero y el
+   * del wizard, porque se puede volver al paso cero con cosas ya elegidas.
+   *
+   * No dice "se pierde" porque no se pierde: el borrador queda guardado. Lo
+   * que hace es dar la chance de no irse sin querer, que es lo que pasa cuando
+   * se toca el logo o un link del menú creyendo que es otra cosa.
+   */
+  const modalSalida = (
+    <Modal
+      abierto={saliendo !== null}
+      alCerrar={() => setSaliendo(null)}
+      eyebrow="Presupuesto"
+      titulo="¿Salís del presupuesto?"
+    >
+      <div className="px-6 py-5">
+        <p className="text-[14.5px] leading-relaxed text-gray-70">
+          Lo que armaste queda guardado en este navegador por una semana. Cuando
+          vuelvas, seguís desde donde lo dejaste.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Boton onClick={() => setSaliendo(null)}>Seguir armando</Boton>
+          <Boton
+            variante="fantasma"
+            onClick={() => {
+              const destino = saliendo;
+              setSaliendo(null);
+              if (destino) router.push(destino);
+            }}
+          >
+            Salir igual
+          </Boton>
+        </div>
+      </div>
+    </Modal>
+  );
+
   if (!evento || paso === null) {
     return (
       <div ref={arriba}>
@@ -642,25 +743,7 @@ export function Simulador({
           alElegir={elegirEvento}
           preciosConfirmados={parametros.preciosConfirmados}
         />
-        <Modal
-          abierto={borrador !== null}
-          alCerrar={descartarBorrador}
-          eyebrow="Presupuesto"
-          titulo="Tenías uno a medias"
-        >
-          <div className="px-6 py-5">
-            <p className="text-[14.5px] leading-relaxed text-gray-70">
-              Quedó guardado en este navegador un presupuesto que empezaste y no
-              terminaste. ¿Seguimos con ése o empezás de nuevo?
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Boton onClick={seguirBorrador}>Seguir con ése</Boton>
-              <Boton variante="fantasma" onClick={descartarBorrador}>
-                Empezar de nuevo
-              </Boton>
-            </div>
-          </div>
-        </Modal>
+        {modalSalida}
       </div>
     );
   }
@@ -669,25 +752,7 @@ export function Simulador({
 
   return (
     <div ref={arriba} className="scroll-mt-20">
-      <Modal
-        abierto={borrador !== null}
-        alCerrar={descartarBorrador}
-        eyebrow="Presupuesto"
-        titulo="Tenías uno a medias"
-      >
-        <div className="px-6 py-5">
-          <p className="text-[14.5px] leading-relaxed text-gray-70">
-            Quedó guardado en este navegador un presupuesto que empezaste y no
-            terminaste. ¿Seguimos con ése o empezás de nuevo?
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Boton onClick={seguirBorrador}>Seguir con ése</Boton>
-            <Boton variante="fantasma" onClick={descartarBorrador}>
-              Empezar de nuevo
-            </Boton>
-          </div>
-        </div>
-      </Modal>
+      {modalSalida}
       {/* La barra de progreso queda pegada arriba: en un wizard de seis pasos,
           saber cuántos faltan es lo que decide si alguien lo termina. */}
       <div className="sticky top-20 z-20 border-b border-gray-20 bg-paper/95 backdrop-blur">
@@ -715,6 +780,18 @@ export function Simulador({
           />
         </div>
       </div>
+
+      {/* El aviso de que se retomó lo que había quedado a medias. Es una línea
+          y no un modal: quien vuelve quiere seguir, no contestar una pregunta,
+          y "empezar de nuevo" queda a la vista para quien no quería eso. */}
+      {retomado && (
+        <div className="mx-auto flex max-w-[1140px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 pt-4 sm:px-10">
+          <p className="nota text-[12.5px]">
+            Seguís con el presupuesto que dejaste a medias.
+          </p>
+          <BotonTexto onClick={empezarDeNuevo}>Empezar de nuevo</BotonTexto>
+        </div>
+      )}
 
       {/* El pie mide unos 120px y es fijo: sin este colchón, la última tarjeta
           de cada paso queda debajo del total y no se puede tocar. */}
