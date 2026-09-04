@@ -1,7 +1,13 @@
 import "server-only";
 
-import { EVENTOS_ORDEN, type Evento, type Parte } from "~/app/_datos/presupuesto";
+import type { Paquete } from "~/app/_datos/paquetes";
+import {
+  EVENTOS_ORDEN,
+  type Evento,
+  type Parte,
+} from "~/app/_datos/presupuesto";
 import { catalogoDe, parametrosPresupuesto } from "./catalogo";
+import { paquetesDe } from "./paquetes";
 
 /**
  * Todo lo que el simulador necesita para arrancar, de una.
@@ -17,6 +23,8 @@ import { catalogoDe, parametrosPresupuesto } from "./catalogo";
 export async function datosDelSimulador(): Promise<{
   catalogos: Record<Evento, Parte[]>;
   parametros: Awaited<ReturnType<typeof parametrosPresupuesto>>;
+  /** Los prearmados activos de cada evento, para el paso previo. */
+  paquetes: Record<Evento, Paquete[]>;
 }> {
   const [porEvento, parametros] = await Promise.all([
     Promise.all(EVENTOS_ORDEN.map((e) => catalogoDe(e))),
@@ -27,5 +35,18 @@ export async function datosDelSimulador(): Promise<{
     EVENTOS_ORDEN.map((e, i) => [e, porEvento[i]!]),
   ) as Record<Evento, Parte[]>;
 
-  return { catalogos, parametros };
+  // Se resuelven contra el catálogo que ya está en la mano: leerlo otra vez
+  // para esto sería pagar dos veces la misma consulta.
+  const porEventoPaquetes = await Promise.all(
+    EVENTOS_ORDEN.map((e) => paquetesDe(e, catalogos[e])),
+  );
+  const paquetes = Object.fromEntries(
+    EVENTOS_ORDEN.map((e, i) => [
+      e,
+      // Al wizard no le interesa `activo`: todo lo que llega está activo.
+      porEventoPaquetes[i]!.map(({ activo: _a, ...p }) => p),
+    ]),
+  ) as Record<Evento, Paquete[]>;
+
+  return { catalogos, parametros, paquetes };
 }

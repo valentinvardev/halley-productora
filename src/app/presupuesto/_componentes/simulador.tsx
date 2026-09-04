@@ -17,6 +17,7 @@ import {
   IconoBajar,
   IconoTilde,
   IconoFlecha,
+  IconoMas,
   IconoVolver,
 } from "~/app/_components/iconos";
 import { Boton, Campo } from "~/app/_components/ui";
@@ -40,6 +41,7 @@ import {
   type Parte,
   type Seleccion,
 } from "~/app/_datos/presupuesto";
+import { IconoDePaquete, type Paquete } from "~/app/_datos/paquetes";
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
@@ -81,9 +83,11 @@ import {
  * de paso se contesta dónde se contesta bien: eligiendo la fiesta uno ya está
  * pensando con qué la quiere.
  */
-type IdPaso = "momentos" | "complementos" | "contacto" | "fecha" | "pago";
+type IdPaso =
+  "paquete" | "momentos" | "complementos" | "contacto" | "fecha" | "pago";
 
 const ETIQUETA: Record<IdPaso, string> = {
+  paquete: "Paquete",
   momentos: "Momentos",
   complementos: "Complementos",
   contacto: "Contacto",
@@ -91,13 +95,36 @@ const ETIQUETA: Record<IdPaso, string> = {
   pago: "Pago",
 };
 
-const PASOS: IdPaso[] = [
-  "momentos",
-  "complementos",
-  "contacto",
-  "fecha",
-  "pago",
-];
+/**
+ * Cómo se arma: eligiendo un paquete prearmado o ítem por ítem.
+ *
+ * Son dos recorridos y no uno con un desvío. Quien elige un paquete ya
+ * decidió qué contrata: pasarlo igual por momentos y complementos sería
+ * hacerle confirmar una por una las cosas que acaba de aceptar en bloque. Va
+ * directo a contacto, fecha y pago. Quien arma a medida hace el recorrido
+ * completo.
+ */
+type Modo = "paquete" | "personalizado";
+
+/**
+ * Los pasos que existen, según haya paquetes y según el modo.
+ *
+ * El paso previo aparece sólo si el evento tiene paquetes cargados: sin
+ * ninguno, ofrecer "elegí un paquete" sería una pantalla vacía, y el wizard
+ * arranca en el armado como siempre. Con paquetes, el previo es el paso uno y
+ * el armado a medida queda en seis; el paquete, en cuatro.
+ */
+function pasosDe(hayPaquetes: boolean, modo: Modo): IdPaso[] {
+  return [
+    ...(hayPaquetes ? (["paquete"] as const) : []),
+    ...(modo === "paquete" ? [] : (["momentos", "complementos"] as const)),
+    "contacto",
+    "fecha",
+    "pago",
+  ];
+}
+
+const SIN_PAQUETES: Record<Evento, Paquete[]> = { boda: [], quince: [] };
 
 type Datos = {
   nombre: string;
@@ -138,6 +165,9 @@ type Borrador = {
   fechaEvento: string;
   sinFecha: boolean;
   plan: string;
+  /** Opcionales: los borradores de antes de los paquetes no los tienen. */
+  modo?: Modo;
+  paqueteId?: string | null;
 };
 
 const CLAVE_BORRADOR = "halley-presupuesto-borrador";
@@ -167,6 +197,7 @@ export function Simulador({
   parametros,
   inicial = null,
   retomar = null,
+  paquetes = SIN_PAQUETES,
 }: {
   /**
    * Los dos catálogos, ya leídos de la base por el servidor.
@@ -182,14 +213,31 @@ export function Simulador({
   inicial?: Evento | null;
   /** Un presupuesto ya emitido que se vuelve a abrir para modificarlo. */
   retomar?: Retomar | null;
+  /** Los prearmados activos de cada evento. Sin ninguno, el paso previo no existe. */
+  paquetes?: Record<Evento, Paquete[]>;
 }) {
   const router = useRouter();
 
   const [evento, setEvento] = useState<Evento | null>(
     retomar?.evento ?? inicial,
   );
-  /** `null` es el paso cero: elegir el evento. */
-  const [paso, setPaso] = useState<IdPaso | null>(evento ? "momentos" : null);
+  const [modo, setModo] = useState<Modo>("personalizado");
+  const [paqueteId, setPaqueteId] = useState<string | null>(null);
+
+  /** Dónde arranca un evento: en el previo si tiene paquetes, si no en el armado. */
+  const primerPaso = (e: Evento | null): IdPaso =>
+    e && paquetes[e].length > 0 ? "paquete" : "momentos";
+
+  /**
+   * `null` es el paso cero: elegir el evento.
+   *
+   * Reabrir un presupuesto emitido cae en el armado y no en el previo: lo que
+   * se reabre ya tiene su selección, y el previo es para quien todavía no
+   * eligió nada.
+   */
+  const [paso, setPaso] = useState<IdPaso | null>(
+    evento ? (retomar ? "momentos" : primerPaso(evento)) : null,
+  );
   /**
    * Por dónde ya pasó, para habilitar los puntos del progreso.
    *
@@ -197,7 +245,9 @@ export function Simulador({
    * largo: con un índice, elegir el book correría todo un lugar y lo ya visitado
    * pasaría a señalar otra cosa.
    */
-  const [vistos, setVistos] = useState<Set<IdPaso>>(new Set(["momentos"]));
+  const [vistos, setVistos] = useState<Set<IdPaso>>(
+    () => new Set<IdPaso>([paso ?? "momentos"]),
+  );
 
   const [sel, setSel] = useState<Seleccion>(
     retomar?.seleccion ?? SELECCION_VACIA,
@@ -251,13 +301,26 @@ export function Simulador({
       fechaEvento,
       sinFecha,
       plan,
+      modo,
+      paqueteId,
     };
     try {
       localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(b));
     } catch {
       // Sin storage no hay borrador, y el armado sigue igual.
     }
-  }, [retomar, evento, paso, sel, datos, fechaEvento, sinFecha, plan]);
+  }, [
+    retomar,
+    evento,
+    paso,
+    sel,
+    datos,
+    fechaEvento,
+    sinFecha,
+    plan,
+    modo,
+    paqueteId,
+  ]);
 
   function seguirBorrador() {
     if (!borrador) return;
@@ -267,10 +330,27 @@ export function Simulador({
     setFechaEvento(borrador.fechaEvento);
     setSinFecha(borrador.sinFecha);
     setPlan(borrador.plan);
-    setPaso(borrador.paso);
+
+    // Los pasos se calculan con lo guardado y no con el estado de ahora, que
+    // todavía es el de antes de restaurar. Si el paso guardado ya no existe
+    // (sacaron los paquetes en el medio), se cae al armado a medida.
+    const hay = paquetes[borrador.evento].length > 0;
+    let modoGuardado: Modo = borrador.modo ?? "personalizado";
+    let pasos = pasosDe(hay, modoGuardado);
+    let destino: IdPaso = borrador.paso;
+    if (!pasos.includes(destino)) {
+      modoGuardado = "personalizado";
+      pasos = pasosDe(hay, modoGuardado);
+      destino = "momentos";
+    }
+    setModo(modoGuardado);
+    setPaqueteId(
+      modoGuardado === "paquete" ? (borrador.paqueteId ?? null) : null,
+    );
+    setPaso(destino);
     // Todo lo anterior al paso guardado cuenta como visitado.
-    const hasta = PASOS.indexOf(borrador.paso);
-    setVistos(new Set(PASOS.slice(0, hasta + 1)));
+    const hasta = pasos.indexOf(destino);
+    setVistos(new Set(pasos.slice(0, hasta + 1)));
     setBorrador(null);
   }
 
@@ -303,6 +383,13 @@ export function Simulador({
         .filter((i) => sel.items.includes(i.id) && i.locaciones?.length),
     [partes, sel.items],
   );
+
+  const hayPaquetes = evento ? paquetes[evento].length > 0 : false;
+  const PASOS = useMemo(() => pasosDe(hayPaquetes, modo), [hayPaquetes, modo]);
+  const paqueteElegido =
+    evento && paqueteId
+      ? (paquetes[evento].find((p) => p.id === paqueteId) ?? null)
+      : null;
 
   const indice = paso ? PASOS.indexOf(paso) : -1;
   const total = totalDe(lineas);
@@ -353,6 +440,48 @@ export function Simulador({
     // otro no tiene. Vaciar todo castigaría a quien se equivocó de tarjeta.
     setEvento(e);
     setSel((s) => depurar(catalogos[e], s));
+    // Sin paquetes para este evento no hay modo paquete posible.
+    if (paquetes[e].length === 0) {
+      setModo("personalizado");
+      setPaqueteId(null);
+    }
+    irA(primerPaso(e));
+  }
+
+  /* ------------------------------------------------------------ paquetes */
+
+  /**
+   * Elegir un paquete pone su selección y salta el armado.
+   *
+   * Se depura contra el catálogo por si el paquete trae algo que ya no está;
+   * el servidor ya lo hizo, pero el catálogo de esta pestaña puede ser más
+   * viejo que el de la base, y la depuración es barata.
+   */
+  function elegirPaquete(p: Paquete) {
+    if (!evento) return;
+    setModo("paquete");
+    setPaqueteId(p.id);
+    setSel(depurar(catalogos[evento], p.seleccion));
+    irA("contacto");
+  }
+
+  /** Armar a medida: el recorrido completo, con lo que hubiera elegido antes. */
+  function armarAMedida() {
+    setModo("personalizado");
+    setPaqueteId(null);
+    irA("momentos");
+  }
+
+  /**
+   * Desde el paquete, pasar a retocarlo a mano.
+   *
+   * Conserva la selección del paquete y abre el armado: es un paquete como
+   * punto de partida y no como camisa. El paquete deja de ser "el elegido"
+   * porque lo que se emita ya no va a ser exactamente él.
+   */
+  function ajustarAMano() {
+    setModo("personalizado");
+    setPaqueteId(null);
     irA("momentos");
   }
 
@@ -412,6 +541,13 @@ export function Simulador({
 
   /** Qué falta para poder pasar al siguiente paso, o `null` si no falta nada. */
   function queFalta(desde: IdPaso): string | null {
+    if (desde === "paquete") {
+      // Se avanza tocando una tarjeta; el botón sólo sigue si ya se eligió.
+      if (modo === "paquete" && paqueteId) return null;
+      if (vistos.has("momentos")) return null;
+      return "Elegí un paquete, o tocá «Armarlo a mi medida».";
+    }
+
     if (desde === "momentos" || desde === "complementos") {
       const parte = partes.find((p) => p.id === desde);
       if (!parte) return null;
@@ -607,6 +743,43 @@ export function Simulador({
               }
             />
           )}
+
+        {paso === "paquete" && evento && (
+          <PasoPaquete
+            paquetes={paquetes[evento]}
+            partes={partes}
+            elegido={modo === "paquete" ? paqueteId : null}
+            alElegir={elegirPaquete}
+            alPersonalizar={armarAMedida}
+            preciosConfirmados={parametros.preciosConfirmados}
+          />
+        )}
+
+        {/* En modo paquete, los pasos que siguen recuerdan cuál se eligió y
+            dejan pasar al armado a mano. Sin esto, alguien que quiere cambiar
+            una sola cosa tendría que volver al principio y empezar de cero. */}
+        {modo === "paquete" && paqueteElegido && paso !== "paquete" && (
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border border-gray-20 px-4 py-3">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center border border-ink">
+                <IconoDePaquete
+                  icono={paqueteElegido.icono}
+                  className="h-4 w-4"
+                />
+              </span>
+              <span className="truncate font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
+                Paquete {paqueteElegido.nombre}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={ajustarAMano}
+              className="cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
+            >
+              Ajustar a mano
+            </button>
+          </div>
+        )}
 
         {paso === "contacto" && (
           <PasoContacto datos={datos} alCambiar={setDatos} />
@@ -1381,5 +1554,133 @@ export function AvisoReferencia({ className = "" }: { className?: string }) {
         armes acá queda guardado igual, con su código.
       </span>
     </p>
+  );
+}
+
+/* ------------------------------------------------------------ paso paquete */
+
+/**
+ * El paso previo: un paquete de Halley, o armarlo a medida.
+ *
+ * Cada tarjeta muestra lo que el paquete incluye con el mismo detalle que
+ * después aparece en el pie y en la hoja, símbolo por línea, y el total ya
+ * calculado. Es a propósito que sea la misma pieza: lo que se ve acá es lo que
+ * se va a pagar, sin resumen que después haya que desmentir.
+ *
+ * Las tarjetas son cajas y no botones porque adentro llevan una lista, que un
+ * botón no puede contener. Se tocan igual, con el teclado también.
+ */
+function PasoPaquete({
+  paquetes,
+  partes,
+  elegido,
+  alElegir,
+  alPersonalizar,
+  preciosConfirmados,
+}: {
+  paquetes: Paquete[];
+  partes: Parte[];
+  elegido: string | null;
+  alElegir: (p: Paquete) => void;
+  alPersonalizar: () => void;
+  preciosConfirmados: boolean;
+}) {
+  const teclado = (accion: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      accion();
+    }
+  };
+
+  return (
+    <section>
+      <Cabecera
+        rotulo="Para empezar"
+        titulo="¿Cómo lo armamos?"
+        bajada="Elegí un paquete que ya pensamos, o armalo vos ítem por ítem. En los dos casos el precio se ve en vivo y al final te queda guardado con su código."
+      />
+
+      <div
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        role="radiogroup"
+        aria-label="Paquete"
+      >
+        {paquetes.map((p) => {
+          const lineas = lineasDe(partes, p.seleccion);
+          const esElegido = elegido === p.id;
+          return (
+            <div
+              key={p.id}
+              role="radio"
+              tabIndex={0}
+              aria-checked={esElegido}
+              onClick={() => alElegir(p)}
+              onKeyDown={teclado(() => alElegir(p))}
+              className={`flex cursor-pointer flex-col border bg-paper text-left transition-colors ${
+                esElegido ? "border-ink" : "border-gray-20 hover:border-gray-45"
+              }`}
+            >
+              <div className="flex items-start gap-3 p-5">
+                <span className="grid h-11 w-11 shrink-0 place-items-center border border-ink">
+                  <IconoDePaquete icono={p.icono} className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
+                    {p.nombre}
+                  </h3>
+                  {p.texto && (
+                    <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
+                      {p.texto}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-auto border-t border-gray-20 px-5 pt-3 pb-4">
+                <Detalle lineas={lineas} total={totalDe(lineas)} />
+              </div>
+              <div className="border-t border-gray-20 px-5 py-3">
+                <span className="inline-flex items-center gap-2 font-rotulo text-[12px] tracking-[0.06em] uppercase">
+                  {esElegido ? "Elegido" : "Elegir este paquete"}
+                  <IconoFlecha />
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Armar a medida va como una tarjeta más y no como un link chico
+            abajo: es una opción tan válida como cualquier paquete, y escondida
+            se leería como "la difícil". */}
+        <div
+          role="radio"
+          tabIndex={0}
+          aria-checked={false}
+          onClick={alPersonalizar}
+          onKeyDown={teclado(alPersonalizar)}
+          className="flex cursor-pointer flex-col justify-between border border-dashed border-gray-45 bg-paper p-5 text-left transition-colors hover:border-ink"
+        >
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center border border-dashed border-gray-45">
+              <IconoMas className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
+                Armarlo a mi medida
+              </h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
+                Elegís vos qué cubrimos y con qué, momento por momento, y qué le
+                sumás. Es el recorrido completo.
+              </p>
+            </div>
+          </div>
+          <span className="mt-6 inline-flex items-center gap-2 font-rotulo text-[12px] tracking-[0.06em] text-gray-45 uppercase">
+            Empezar de cero
+            <IconoFlecha />
+          </span>
+        </div>
+      </div>
+
+      {!preciosConfirmados && <AvisoReferencia className="mt-8" />}
+    </section>
   );
 }

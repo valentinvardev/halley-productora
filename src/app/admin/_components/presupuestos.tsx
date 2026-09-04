@@ -9,6 +9,7 @@ import {
   IconoCalculadora,
   IconoLista,
   IconoPapelera,
+  IconoRegalo,
   IconoTilde,
   IconoWhatsApp,
 } from "~/app/_components/iconos";
@@ -109,10 +110,16 @@ export function Presupuestos() {
         titulo="Presupuestos"
         bajada="Lo que armó la gente en el simulador de la web. Todavía no son clientes: son consultas con precio puesto."
         acciones={
-          <Link href="/admin/presupuestos/flujo" className={botonFantasma}>
-            <IconoCalculadora />
-            Flujo del presupuesto
-          </Link>
+          <>
+            <Link href="/admin/presupuestos/paquetes" className={botonFantasma}>
+              <IconoRegalo />
+              Paquetes
+            </Link>
+            <Link href="/admin/presupuestos/flujo" className={botonFantasma}>
+              <IconoCalculadora />
+              Flujo del presupuesto
+            </Link>
+          </>
         }
       />
 
@@ -155,9 +162,7 @@ export function Presupuestos() {
               key={p.id}
               p={p}
               alVer={() => setViendo(p.codigo)}
-              alMarcar={(contactado) =>
-                marcar.mutate({ id: p.id, contactado })
-              }
+              alMarcar={(contactado) => marcar.mutate({ id: p.id, contactado })}
               alBorrar={() => setABorrar({ id: p.id, codigo: p.codigo })}
             />
           ))}
@@ -175,8 +180,8 @@ export function Presupuestos() {
         <p className="flex items-start gap-2.5 text-[14px] leading-relaxed text-gray-70">
           <IconoAlerta className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Se borra el presupuesto y el link con su código deja de funcionar. Si
-            esa persona lo tenía guardado, va a ver una página que no existe.
+            Se borra el presupuesto y el link con su código deja de funcionar.
+            Si esa persona lo tenía guardado, va a ver una página que no existe.
           </span>
         </p>
 
@@ -269,72 +274,69 @@ function Fila({
       >
         <div className="bg-paper-dim">
           <div className="px-4 py-4">
-          <dl className="grid gap-x-6 gap-y-2 text-[13.5px] sm:grid-cols-2">
-            <Dupla rotulo="Celular" valor={p.celular} />
-            <Dupla rotulo="Email" valor={p.email} />
-            <Dupla
-              rotulo="Fecha del evento"
-              valor={p.fechaEvento ? fecha(p.fechaEvento) : "Sin definir"}
-            />
-            <Dupla
-              rotulo="Forma de pago"
-              valor={plan?.nombre ?? p.plan}
-            />
-            <Dupla rotulo="Reserva" valor={pesos(p.reserva)} />
-            <Dupla
-              rotulo="Copia por mail"
-              valor={p.quiereCopia ? "Sí, la pidió" : "No"}
-            />
-          </dl>
+            <dl className="grid gap-x-6 gap-y-2 text-[13.5px] sm:grid-cols-2">
+              <Dupla rotulo="Celular" valor={p.celular} />
+              <Dupla rotulo="Email" valor={p.email} />
+              <Dupla
+                rotulo="Fecha del evento"
+                valor={p.fechaEvento ? fecha(p.fechaEvento) : "Sin definir"}
+              />
+              <Dupla rotulo="Forma de pago" valor={plan?.nombre ?? p.plan} />
+              <Dupla rotulo="Reserva" valor={pesos(p.reserva)} />
+              <Dupla
+                rotulo="Copia por mail"
+                valor={p.quiereCopia ? "Sí, la pidió" : "No"}
+              />
+            </dl>
 
-          <ul className="mt-4 divide-y divide-gray-20 border-y border-gray-20">
-            {p.lineas.map((l) => (
-              <li
-                key={l.id}
-                className="flex items-baseline justify-between gap-4 py-2 text-[13.5px]"
-              >
-                <span>
-                  {l.nombre}
-                  {l.detalle && (
-                    <span className="text-gray-45"> — {l.detalle}</span>
-                  )}
-                </span>
-                {muestraMonto(l) && (
-                  <span className="font-display tabular-nums">
-                    {pesos(l.precio)}
+            <ul className="mt-4 divide-y divide-gray-20 border-y border-gray-20">
+              {p.lineas.map((l) => (
+                <li
+                  key={l.id}
+                  className="flex items-baseline justify-between gap-4 py-2 text-[13.5px]"
+                >
+                  <span>
+                    {l.nombre}
+                    {l.detalle && (
+                      <span className="text-gray-45"> — {l.detalle}</span>
+                    )}
                   </span>
-                )}
-              </li>
-            ))}
-          </ul>
+                  {muestraMonto(l) && (
+                    <span className="font-display tabular-nums">
+                      {pesos(l.precio)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <a
-              href={wa}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-rotulo text-[11.5px] tracking-[0.05em] uppercase underline underline-offset-2 hover:text-gray-70"
-            >
-              <IconoWhatsApp className="h-3.5 w-3.5" />
-              Escribirle
-            </a>
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <a
+                href={wa}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-rotulo text-[11.5px] tracking-[0.05em] uppercase underline underline-offset-2 hover:text-gray-70"
+              >
+                <IconoWhatsApp className="h-3.5 w-3.5" />
+                Escribirle
+              </a>
 
-            <BotonTexto onClick={alVer}>
-              <IconoLista />
-              Ver el presupuesto
-            </BotonTexto>
+              <BotonTexto onClick={alVer}>
+                <IconoLista />
+                Ver el presupuesto
+              </BotonTexto>
 
-            <BotonTexto onClick={() => alMarcar(!contactado)}>
-              <IconoTilde />
-              {contactado
-                ? `Contactado el ${fecha(p.contactadoEn!)} — deshacer`
-                : "Marcar contactado"}
-            </BotonTexto>
+              <BotonTexto onClick={() => alMarcar(!contactado)}>
+                <IconoTilde />
+                {contactado
+                  ? `Contactado el ${fecha(p.contactadoEn!)} — deshacer`
+                  : "Marcar contactado"}
+              </BotonTexto>
 
-            <BotonTexto onClick={alBorrar} className="ml-auto text-gray-45">
-              <IconoPapelera />
-              Borrar
-            </BotonTexto>
+              <BotonTexto onClick={alBorrar} className="ml-auto text-gray-45">
+                <IconoPapelera />
+                Borrar
+              </BotonTexto>
             </div>
           </div>
         </div>

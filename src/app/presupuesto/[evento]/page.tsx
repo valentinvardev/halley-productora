@@ -44,11 +44,12 @@ export default async function PaginaPresupuestoEvento({
   const { evento } = await params;
   if (!esEvento(evento)) notFound();
 
-  const { catalogos, parametros } = await datosDelSimulador();
+  const { catalogos, parametros, paquetes } = await datosDelSimulador();
   return (
     <Simulador
       catalogos={catalogos}
       parametros={parametros}
+      paquetes={paquetes}
       inicial={evento}
     />
   );

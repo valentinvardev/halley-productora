@@ -21,6 +21,12 @@ export const dynamic = "force-dynamic";
  * `/presupuesto/boda` o `/presupuesto/quince` y se saltea este paso.
  */
 export default async function PaginaPresupuesto() {
-  const { catalogos, parametros } = await datosDelSimulador();
-  return <Simulador catalogos={catalogos} parametros={parametros} />;
+  const { catalogos, parametros, paquetes } = await datosDelSimulador();
+  return (
+    <Simulador
+      catalogos={catalogos}
+      parametros={parametros}
+      paquetes={paquetes}
+    />
+  );
 }

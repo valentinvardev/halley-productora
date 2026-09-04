@@ -1073,3 +1073,103 @@ porque el modo de correo es bandeja.
 
 **Lo que queda para M.** El paso previo con presupuestos prearmados sigue
 bloqueado: los tres paquetes todavía no están definidos por Halley.
+
+---
+
+### M. Presupuestos prearmados, y dos arreglos que vinieron con el pedido
+
+**Pedido:** "que los chicos puedan armar presupuestos prearmados con las
+opciones ya existentes. Ellos quieren usar íconos para listar los servicios."
+Más dos observaciones: que todavía no se veía cómo editar el texto de las
+páginas de servicio, y que los corazones fueran blancos antes de tocarlos y
+rojos después.
+
+#### El corazón
+
+**Qué pasaba.** La galería ya pedía blanco antes y rojo después, pero el dibujo
+del corazón ignoraba el color que le pasaban y pintaba siempre rojo. El antes y
+el después son lo que le dice a la persona que su toque entró; iguales, no había
+forma de saberlo.
+
+**Qué cambió.** El corazón respeta el color y el grosor como las demás marcas, y
+suma un estado hueco para el "todavía no". Blanco y hueco antes; rojo, lleno y
+más grueso después. Verificado en la página real: el trazo del primer corazón
+de egresados sale blanco, sin relleno, y hay cuarenta.
+
+#### El botón "Editar sobre la página"
+
+**Qué pasaba.** Las páginas de servicio eran editables desde el punto J, pero el
+único camino para llegar era escribir la dirección a mano con `?editar=1`: el
+botón del panel apuntaba siempre a la portada. Nadie la escribió, y con razón
+se veía como que no se podía.
+
+**Qué cambió.** Cada bloque del catálogo de textos declara en qué página vive, y
+el botón del panel abre la página del bloque elegido en el desplegable.
+Verificado en el panel: con "Portada" el botón lleva a `/?editar=1`; al elegir
+"Página de bodas" pasa a `/servicios/bodas?editar=1`.
+
+#### Los paquetes
+
+**Qué es un paquete.** Una selección del catálogo con nombre, texto corto e
+ícono. Los mismos momentos, coberturas, complementos y locaciones que ya
+existen, elegidos de antemano por Halley. No tiene precio propio a propósito: la
+selección se guarda por clave de ítem y el total se calcula en vivo contra el
+catálogo, con las mismas funciones que usa el wizard. Así un cambio de precio en
+el catálogo se ve en el paquete al instante, y un ítem que se apaga se cae solo.
+
+**Dónde se arman.** En el panel, en Presupuestos, botón "Paquetes", al lado de
+"Flujo del presupuesto". Una pestaña por evento. Se marca del catálogo lo que va,
+se elige un ícono de un set cerrado, y a la derecha se ve la tarjeta tal cual la
+va a ver la persona, con el total. No se puede guardar un paquete que no sea
+contratable tal cual: al menos un momento, cada momento con foto o video, y una
+locación donde haga falta. Es la misma regla que el wizard le impone a la
+persona y que el servidor vuelve a comprobar al emitir; guardar algo que no la
+cumple sería ofrecer al público una tarjeta que al tocar "generar" falla. Se
+pueden apagar sin borrar, ordenar y borrar, igual que los ítems del catálogo.
+
+**Qué ve el visitante.** Un paso nuevo antes del armado: "¿Cómo lo armamos?",
+con una tarjeta por paquete y una más, punteada, "Armarlo a mi medida". Cada
+tarjeta lista lo que incluye con el mismo detalle que después aparece en el pie
+y en la hoja, símbolo por línea (calendario para el momento, foto o video para
+la cobertura, más para el complemento), y el total. Es a propósito que sea la
+misma pieza: lo que se ve acá es lo que se va a pagar.
+
+**Dos recorridos y no uno con desvío.** Quien elige un paquete ya decidió qué
+contrata: pasarlo igual por momentos y complementos sería hacerle confirmar una
+por una las cosas que acaba de aceptar en bloque. Va directo a contacto, fecha y
+pago: cuatro pasos. Quien arma a medida hace el recorrido completo: seis pasos,
+como se pidió ("paso 1 de 6 en lugar de 5"). Y desde cualquier paso del recorrido
+corto hay un "Ajustar a mano" que abre el armado con la selección del paquete ya
+puesta, para quien quiere cambiar una sola cosa sin empezar de cero.
+
+**Si no hay paquetes, nada cambia.** El paso previo existe sólo cuando el evento
+tiene paquetes cargados. Sin ninguno, el wizard arranca en el armado con sus
+cinco pasos, exactamente como hoy. Es lo que permite publicar esto antes de que
+Halley cargue el primero.
+
+**El borrador que se retoma** guarda ahora también el modo y el paquete elegido.
+Si al volver el paquete ya no existe, cae al armado a medida en vez de quedar
+en un paso que no está.
+
+**Cómo se verificó**, con el navegador contra la app y la base real, en un solo
+recorrido: el panel abre vacío y avisa que no hay paquetes; al agregar uno, el
+editor pide primero un ítem, después la cobertura, y recién con la locación
+marcada dice que se puede contratar, con el total en la vista previa; al crearlo
+aparece en la lista con su ícono, su total y "1 ítem del catálogo". Como
+visitante, la entrada pasa a "Paso 1 de 6" con la tarjeta del paquete (dos
+líneas, dos símbolos, total) y la de armar a medida; elegir el paquete lleva a
+contacto en "Paso 2 de 4", con la tira del paquete arriba y el total en el pie;
+"Ajustar a mano" abre momentos en "Paso 2 de 6" con el momento ya marcado;
+"Armarlo a mi medida" abre momentos en "Paso 2 de 6"; y "Volver" desde ahí
+vuelve al paso previo, no al evento. Después se borró el paquete de prueba desde
+el panel, la entrada volvió a "Paso 1 de 5", y la base quedó en cero paquetes.
+
+**Lo que costó medir.** Dos veces el arnés dio todo en rojo por su culpa y no
+del código: `innerText` devuelve los títulos en mayúsculas porque el CSS los
+transforma, así que "Paso 1 de 5" no coincidía con "PASO 1 DE 5"; y la página
+del panel tiene dos diálogos montados (el de borrar está cerrado pero existe), y
+el arnés tomaba el último. Se corrigió el arnés, no el código.
+
+**La tabla nueva** se creó en la base con el mismo comando aditivo de las otras
+veces, sin tocar ningún dato existente.
+

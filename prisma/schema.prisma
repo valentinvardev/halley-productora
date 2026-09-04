@@ -689,6 +689,38 @@ model OpcionItem {
     @@map("LocacionPresupuesto")
 }
 
+/// Un presupuesto prearmado: una selección del catálogo con nombre propio.
+///
+/// Es lo que Halley ofrece como "paquete" en el paso previo del simulador, para
+/// quien no quiere elegir ítem por ítem. No tiene precio propio a propósito: la
+/// selección se guarda por clave de ítem y el total se calcula en vivo contra el
+/// catálogo, igual que en el wizard. Así un cambio de precio en el catálogo se ve
+/// en el paquete al instante, y un ítem que se apaga se cae solo de la lista.
+///
+/// `seleccion` tiene la misma forma que la del wizard: `{ items, locaciones,
+/// coberturas }`, con claves y no ids de base, que es lo que sobrevive a que
+/// alguien renombre un ítem.
+model Paquete {
+    id     String @id @default(cuid())
+    /// "quince" o "boda".
+    evento String
+
+    nombre String
+    texto  String @default("")
+    /// El nombre de un ícono del set, para la tarjeta. Ver `_datos/paquetes.tsx`.
+    icono  String @default("estrella")
+
+    seleccion Json
+
+    orden  Int     @default(0)
+    /// Apagado no se ofrece, pero no se borra.
+    activo Boolean @default(true)
+
+    creadoEn DateTime @default(now())
+
+    @@index([evento, orden])
+}
+
 enum ProveedorPago {
     TALO
     MERCADOPAGO
