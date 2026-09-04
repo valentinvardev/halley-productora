@@ -284,6 +284,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | corazón blanco y rojo | `241a953` | El corazón vuelve a ser siempre rojo |
 | link editar por página | `1da4000` | El botón del panel vuelve a apuntar sólo a la portada |
 | M | `448d11a` | Se van los paquetes: el panel, el paso previo y la lectura; el wizard vuelve a cinco pasos |
+| F, corregido | `c0942b0` | La pregunta vuelve al regreso, con el modal de "tenías uno a medias" |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
