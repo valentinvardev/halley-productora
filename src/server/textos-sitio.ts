@@ -35,6 +35,12 @@ type Bloque = {
   nombre: string;
   /** Dónde se ve. Sin esto hay que adivinar qué se está editando. */
   donde: string;
+  /**
+   * La página en la que vive, para poder abrirla en modo edición desde el
+   * panel. Sin esto el único camino a editar una página de servicio sobre la
+   * página era escribir la dirección a mano, y nadie la escribió.
+   */
+  ruta: string;
   campos: Record<string, Campo>;
 };
 
@@ -55,6 +61,7 @@ function bloqueServicio(s: Servicio) {
   const inc = (i: number) => s.incluye[i] ?? { titulo: "", texto: "" };
   return {
     nombre: `Página de ${s.nombre.toLowerCase()}`,
+    ruta: `/servicios/${s.slug}`,
     donde: `La página /servicios/${s.slug} entera, y el nombre y la línea de su tarjeta en la portada.`,
     campos: {
       nombre: { etiqueta: "Nombre del servicio", porDefecto: s.nombre },
@@ -103,6 +110,7 @@ const servicioPor = (slug: string) => {
 export const TEXTOS_SITIO = {
   hero: {
     nombre: "Portada, lo primero que se ve",
+    ruta: "/",
     donde:
       "Arriba de todo, sobre el video o la foto de portada. El titular va en tres renglones: los dos primeros preparan y el tercero remata, y por eso el tercero se pinta distinto. Se editan por separado justamente para que el corte de línea no dependa de dónde termine la palabra.",
     campos: {
@@ -143,6 +151,7 @@ export const TEXTOS_SITIO = {
 
   concepto: {
     nombre: "El cometa",
+    ruta: "/",
     donde:
       "Portada, la sección que sigue al hero, la del dibujo del cometa. El segundo renglón del título va en gris: es el remate de la frase, no una frase aparte.",
     campos: {
@@ -177,6 +186,7 @@ export const TEXTOS_SITIO = {
 
   servicios: {
     nombre: "Encabezado de los servicios",
+    ruta: "/",
     donde:
       "Portada, justo arriba de las cuatro tarjetas. Los nombres y las líneas de cada tarjeta no se editan desde acá: van con la página de cada categoría, para que digan lo mismo en los dos lados.",
     campos: {
@@ -186,6 +196,7 @@ export const TEXTOS_SITIO = {
   },
   noNegociamos: {
     nombre: "Lo que no negociamos",
+    ruta: "/",
     donde:
       "Portada, sección 'Cómo trabajamos'. Son cuatro cosas que se sostienen a la vez, no cuatro pasos, por eso no van numeradas.",
     campos: {
@@ -231,6 +242,7 @@ export const TEXTOS_SITIO = {
 
   contacto: {
     nombre: "Contanos qué día es",
+    ruta: "/",
     donde:
       "Portada, sección de contacto, arriba de los botones de WhatsApp y correo.",
     campos: {
@@ -331,6 +343,7 @@ export async function todosLosBloques() {
       id,
       nombre: TEXTOS_SITIO[id].nombre,
       donde: TEXTOS_SITIO[id].donde,
+      ruta: TEXTOS_SITIO[id].ruta,
       campos: Object.entries(campos).map(([nombre, c]) => ({
         nombre,
         etiqueta: c.etiqueta,

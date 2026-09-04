@@ -42,20 +42,6 @@ export function TextosSitio() {
         bajada="Lo que dicen las secciones de la portada. Se guarda al instante y sale sin esperar un deploy. Lo que se edita son las palabras: el diseño, el orden y los botones siguen siendo del sitio."
       />
 
-      {/* La otra puerta a lo mismo.
-
-          Esta pantalla sirve para repasar todo junto y para encontrar un texto
-          cuando no se sabe bien en qué parte de la página estaba. Pero cuando lo
-          que hay es una frase puntual que no gusta, lo natural es ir a la página,
-          tocarla y escribirla ahí. El link lleva a la portada con el modo
-          prendido; sin `?editar=1` la portada se ve como la ve cualquiera. */}
-      <a
-        href="/?editar=1"
-        className="mt-6 inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase hover:bg-ink hover:text-paper"
-      >
-        Editar sobre la página
-      </a>
-
       {lista.isPending ? (
         <p className="nota mt-8">Cargando…</p>
       ) : (
@@ -72,6 +58,30 @@ export function TextosSitio() {
               }))}
             />
           </div>
+
+          {/* La otra puerta a lo mismo.
+
+              Esta pantalla sirve para repasar todo junto y para encontrar un
+              texto cuando no se sabe bien en qué parte de la página estaba. Pero
+              cuando lo que hay es una frase puntual que no gusta, lo natural es
+              ir a la página, tocarla y escribirla ahí.
+
+              El link apunta a la página del bloque elegido, no siempre a la
+              portada. Antes apuntaba a la portada y las páginas de servicio
+              quedaban sin puerta: eran editables, pero había que escribir la
+              dirección a mano para llegar. Sin `?editar=1` cualquiera de esas
+              páginas se ve como la ve un cliente. */}
+          {actual && (
+            <a
+              href={`${actual.ruta}?editar=1`}
+              className="mt-4 inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase hover:bg-ink hover:text-paper"
+            >
+              Editar sobre la página
+              <span className="text-gray-45 normal-case tracking-normal">
+                {actual.ruta}
+              </span>
+            </a>
+          )}
 
           {/* Se pintan todos y se esconden los que no están elegidos. Así
               cambiar de sección para mirar otra no borra lo que estabas
