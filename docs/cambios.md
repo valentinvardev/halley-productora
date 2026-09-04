@@ -281,6 +281,9 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | 7 | `fbe6909` | El hero, el cometa y el encabezado de servicios vuelven al código |
 | alineación de los botones | `fc6a011` | Las filas de montos vuelven a alinearse abajo |
 | visor optimista | `bf19a41` | El visor vuelve a esperar la foto grande antes de mostrar algo |
+| corazón blanco y rojo | `241a953` | El corazón vuelve a ser siempre rojo |
+| link editar por página | `1da4000` | El botón del panel vuelve a apuntar sólo a la portada |
+| M | `448d11a` | Se van los paquetes: el panel, el paso previo y la lectura; el wizard vuelve a cinco pasos |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -306,6 +309,12 @@ empiezan con `texto:`.
 
 **C.** Revertirlo deja la clave `mailAvisos` guardada en la tabla de ajustes si
 alguien la cargó. No molesta: el código vuelto atrás no la lee.
+
+**M.** Revertir el commit saca el panel, el paso previo y la lectura de paquetes,
+pero la tabla `Paquete` queda en la base con lo que Halley haya cargado. No molesta:
+nadie la lee. Para sacarla del todo hay que correr `npx prisma db push` después de
+revertir, y eso sí borra los paquetes cargados. Los presupuestos ya emitidos no
+dependen de ella en ningún caso.
 
 **Punto 7.** Mismo caso que los puntos 4 y 5: el commit devuelve esos textos al
 código, pero si alguien ya editó y guardó, quedan filas en la tabla de ajustes que
