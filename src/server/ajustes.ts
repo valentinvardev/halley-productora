@@ -54,6 +54,19 @@ export const AJUSTES = {
     ayuda: "Suena en el panel cuando entra un pago.",
     porDefecto: "campana",
   },
+  /**
+   * La key en S3 del sonido que Halley subió, si subió uno.
+   *
+   * Va aparte de `sonidoPago` porque son dos preguntas: cuál suena, y qué
+   * archivo es el propio. Así se puede tener un sonido propio cargado y elegir
+   * igual la campana, sin perder el archivo. No se edita como texto: lo
+   * escriben las mutaciones de subir y quitar.
+   */
+  sonidoPagoKey: {
+    etiqueta: "Archivo del sonido propio",
+    ayuda: "",
+    porDefecto: "",
+  },
 } as const;
 
 export type ClaveAjuste = keyof typeof AJUSTES;

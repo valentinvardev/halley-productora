@@ -23,8 +23,16 @@ import { api } from "~/trpc/react";
 /** Cada cuánto se pregunta. */
 const CADA = 8000;
 
-/** Cuánto queda cada cartel antes de irse solo. */
-const DURA = 9000;
+/**
+ * Cuánto queda cada cartel antes de irse solo.
+ *
+ * Cada uno lleva su propio reloj. Antes había uno solo que sacaba al primero
+ * de la fila y recién ahí arrancaba a contar para el siguiente, así que
+ * cinco pagos seguidos tardaban cinco veces esto en irse, y uno nuevo
+ * reiniciaba la cuenta del que ya estaba. Con el reloj por cartel, cada uno
+ * se va a los siete segundos de haber llegado, pase lo que pase alrededor.
+ */
+const DURA = 7000;
 
 /**
  * El evento del navegador con el que Ajustes pide una muestra.
@@ -41,8 +49,21 @@ const DURA = 9000;
  */
 const PRUEBA = "halley:cobro-de-prueba";
 
-export function probarAvisoCobro() {
-  window.dispatchEvent(new Event(PRUEBA));
+type DetallePrueba = { sonido?: string; sonidoKey?: string };
+
+/**
+ * Pide una muestra con el sonido que se está eligiendo, no con el guardado.
+ *
+ * Antes el evento iba pelado y el cartel sonaba con lo que tenía puesto el
+ * layout, que es lo que estaba guardado al abrir el panel. Cambiar el
+ * desplegable y tocar "probar" sonaba siempre igual, y parecía que los
+ * sonidos eran el mismo. Eran distintos; lo que no cambiaba era cuál se
+ * probaba.
+ */
+export function probarAvisoCobro(detalle: DetallePrueba = {}) {
+  window.dispatchEvent(
+    new CustomEvent<DetallePrueba>(PRUEBA, { detail: detalle }),
+  );
 }
 
 /** El pago inventado de la muestra. Se ve igual, pero dice que es de mentira. */
@@ -52,12 +73,20 @@ const MUESTRA = {
   grupo: "Egresados 2027 — Colegio San Martín",
 };
 
-function sonar(sonido: string) {
+function sonar(sonido: string, sonidoKey?: string) {
   if (sonido === "silencio") return;
+  // El propio se sirve por su ruta, que redirige al archivo en S3. El `v`
+  // cambia con el archivo, para que el navegador no reutilice el anterior.
+  const src =
+    sonido === "personalizado"
+      ? sonidoKey
+        ? `/api/sonido?v=${encodeURIComponent(sonidoKey)}`
+        : `/sonidos/campana.mp3`
+      : `/sonidos/${sonido}.mp3`;
   // El navegador rechaza reproducir sin que el usuario haya interactuado con la
   // página. No es un error que valga la pena mostrar: el cartel se ve igual,
   // que es lo que importa.
-  void new Audio(`/sonidos/${sonido}.mp3`).play().catch(() => undefined);
+  void new Audio(src).play().catch(() => undefined);
 }
 
 type Cobro = {
@@ -67,9 +96,17 @@ type Cobro = {
   grupo: string;
   /** La muestra de Ajustes. Nunca puede parecer un cobro de verdad. */
   prueba?: boolean;
+  /** Cuándo se va solo, en milisegundos de reloj. */
+  hasta: number;
 };
 
-export function AvisoCobros({ sonido }: { sonido: string }) {
+export function AvisoCobros({
+  sonido,
+  sonidoKey,
+}: {
+  sonido: string;
+  sonidoKey?: string;
+}) {
   const [cola, setCola] = useState<Cobro[]>([]);
 
   /**
@@ -92,31 +129,45 @@ export function AvisoCobros({ sonido }: { sonido: string }) {
     // siguiente.
     desde.current = data[data.length - 1]!.recibidoEn;
 
-    setCola((previos) => [...previos, ...data]);
-    sonar(sonido);
-  }, [data, sonido]);
+    const hasta = Date.now() + DURA;
+    setCola((previos) => [...previos, ...data.map((d) => ({ ...d, hasta }))]);
+    sonar(sonido, sonidoKey);
+  }, [data, sonido, sonidoKey]);
 
   // La muestra que dispara Ajustes: el mismo cartel, en el mismo rincón, con el
   // sonido que está elegido en ese momento.
   useEffect(() => {
-    function alProbar() {
+    function alProbar(e: Event) {
+      const detalle = (e as CustomEvent<DetallePrueba>).detail ?? {};
       setCola((c) => [
         ...c,
-        { id: `prueba-${Date.now()}`, ...MUESTRA, prueba: true },
+        {
+          id: `prueba-${Date.now()}`,
+          ...MUESTRA,
+          prueba: true,
+          hasta: Date.now() + DURA,
+        },
       ]);
-      sonar(sonido);
+      sonar(detalle.sonido ?? sonido, detalle.sonidoKey ?? sonidoKey);
     }
 
     window.addEventListener(PRUEBA, alProbar);
     return () => window.removeEventListener(PRUEBA, alProbar);
-  }, [sonido]);
+  }, [sonido, sonidoKey]);
 
-  // Cada cartel se va solo. El temporizador vive acá y no en el cartel para que
-  // desmontarlo no deje uno colgado.
+  // Cada cartel se va solo, con su propio reloj. Los temporizadores viven acá
+  // y no en el cartel para que desmontar el componente no deje ninguno
+  // colgado; se rearman con el tiempo que le queda a cada uno.
   useEffect(() => {
     if (cola.length === 0) return;
-    const t = setTimeout(() => setCola((c) => c.slice(1)), DURA);
-    return () => clearTimeout(t);
+    const ahora = Date.now();
+    const relojes = cola.map((c) =>
+      setTimeout(
+        () => setCola((cs) => cs.filter((x) => x.id !== c.id)),
+        Math.max(0, c.hasta - ahora),
+      ),
+    );
+    return () => relojes.forEach(clearTimeout);
   }, [cola]);
 
   if (cola.length === 0) return null;
@@ -131,7 +182,10 @@ export function AvisoCobros({ sonido }: { sonido: string }) {
       {cola.map((c) => (
         <article
           key={c.id}
-          className="aviso-cobro pointer-events-auto border border-ink bg-lienzo px-4 py-3 shadow-[0_2px_12px_rgb(0_0_0/0.12)]"
+          // Tocarlo lo saca: quien ya lo leyó no tiene por qué esperarlo.
+          onClick={() => setCola((cs) => cs.filter((x) => x.id !== c.id))}
+          title="Cerrar"
+          className="aviso-cobro pointer-events-auto cursor-pointer border border-ink bg-lienzo px-4 py-3 shadow-[0_2px_12px_rgb(0_0_0/0.12)]"
         >
           <div className="flex items-center gap-1.5 font-rotulo text-[11px] uppercase tracking-[0.08em] text-gray-45">
             <IconoBillete className="h-3.5 w-3.5" />

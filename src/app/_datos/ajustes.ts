@@ -48,4 +48,14 @@ export const SONIDOS_PAGO = [
   { valor: "silencio", etiqueta: "Sin sonido" },
 ] as const;
 
+/**
+ * El sonido que Halley sube. Aparece en el desplegable sólo cuando hay un
+ * archivo cargado: ofrecer "sonido propio" sin sonido propio es un botón que
+ * no hace nada.
+ */
+export const SONIDO_PROPIO = {
+  valor: "personalizado",
+  etiqueta: "Sonido propio",
+} as const;
+
 export type ClaveAjusteUI = (typeof CAMPOS_AJUSTE)[number]["clave"];

@@ -132,7 +132,10 @@ export default async function AdminLayout({
 
         {/* Va en el layout y no en una pantalla: el aviso tiene que sonar se
             esté donde se esté dentro del panel. */}
-        <AvisoCobros sonido={ajustes.sonidoPago} />
+        <AvisoCobros
+          sonido={ajustes.sonidoPago}
+          sonidoKey={ajustes.sonidoPagoKey}
+        />
       </div>
     </div>
   );
