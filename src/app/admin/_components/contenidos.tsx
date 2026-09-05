@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { IconoFlecha, IconoMas, IconoPapelera } from "~/app/_components/iconos";
+import {
+  IconoFlecha,
+  IconoMas,
+  IconoPapelera,
+  IconoReproducir,
+} from "~/app/_components/iconos";
 import { Encabezado } from "~/app/_components/ui";
 import { CATEGORIAS, HERO } from "~/app/_datos/categorias";
 import { api } from "~/trpc/react";
@@ -12,6 +17,7 @@ import { EsqueletoContenidos } from "./esqueletos";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
 import { useCargaHero } from "./usar-carga-hero";
+import { VideosCategoria } from "./videos-categoria";
 import { ZonaArrastre } from "./zona-arrastre";
 
 const ACEPTA =
@@ -166,12 +172,14 @@ function TarjetaCategoria({
 }) {
   const utils = api.useUtils();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [videosAbiertos, setVideosAbiertos] = useState(false);
   const { data: piezas } = api.contenido.listar.useQuery({ categoria: slug });
   const { cola, activo, subir, limpiar } = useCargaContenido(slug, () =>
     utils.contenido.listar.invalidate({ categoria: slug }),
   );
 
   const total = piezas?.length ?? 0;
+  const cuantosVideos = piezas?.filter((p) => p.tipo === "video").length ?? 0;
   const preview = piezas?.slice(0, PREVIEW) ?? [];
   const resto = total - preview.length;
 
@@ -198,6 +206,22 @@ function TarjetaCategoria({
           >
             <IconoMas />
             Subir
+          </button>
+          {/* Los videos se gestionan aparte, con título y descripción y con
+              la opción de pegar un link de YouTube en vez de subir el archivo.
+              El modal es de esta categoría. */}
+          <button
+            type="button"
+            onClick={() => setVideosAbiertos(true)}
+            className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3.5 py-2 font-rotulo text-[11.5px] tracking-[0.05em] uppercase hover:bg-ink hover:text-paper"
+          >
+            <IconoReproducir />
+            Videos
+            {cuantosVideos > 0 && (
+              <span className="font-mono text-[10.5px] text-gray-45">
+                {cuantosVideos}
+              </span>
+            )}
           </button>
           <Link
             href={`/admin/contenidos/${slug}`}
@@ -238,7 +262,7 @@ function TarjetaCategoria({
                 key={p.id}
                 className="relative aspect-square overflow-hidden border border-gray-20 bg-paper-dim"
               >
-                {p.tipo === "video" ? (
+                {p.tipo === "video" && !p.youtubeId ? (
                   <video
                     src={p.url}
                     muted
@@ -268,6 +292,13 @@ function TarjetaCategoria({
       </div>
 
       <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
+
+      <VideosCategoria
+        slug={slug}
+        nombre={nombre}
+        abierto={videosAbiertos}
+        alCerrar={() => setVideosAbiertos(false)}
+      />
     </ZonaArrastre>
   );
 }

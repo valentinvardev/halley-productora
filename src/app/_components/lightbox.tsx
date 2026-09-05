@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { IconoCruz, IconoFlecha } from "./iconos";
+import { embedYoutube } from "~/app/_datos/youtube";
 import { Reproductor } from "./reproductor";
 
 export type PiezaLightbox = {
@@ -18,6 +19,8 @@ export type PiezaLightbox = {
   /** Los videos pueden traer de qué se tratan; las fotos no los usan. */
   titulo?: string | null;
   descripcion?: string | null;
+  /** Si el video vive en YouTube, su id: se embebe en vez de reproducirse acá. */
+  youtubeId?: string | null;
 };
 
 /**
@@ -175,7 +178,17 @@ export function Lightbox({
         className="max-h-full max-w-full"
       >
         {pieza.tipo === "video" ? (
-          <Reproductor src={pieza.url} />
+          pieza.youtubeId ? (
+            <iframe
+              src={embedYoutube(pieza.youtubeId)}
+              title={pieza.titulo ?? "Video"}
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              className="aspect-video w-[min(1100px,92vw)] border border-white/15 bg-black"
+            />
+          ) : (
+            <Reproductor src={pieza.url} />
+          )
         ) : (
           <Foto
             key={pieza.id}

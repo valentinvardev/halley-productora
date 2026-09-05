@@ -340,7 +340,7 @@ export function GaleriaCategoria({
                       : ""
                   }`}
                 >
-                  {p.tipo === "video" ? (
+                  {p.tipo === "video" && !p.youtubeId ? (
                     <video
                       src={p.url}
                       muted

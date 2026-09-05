@@ -553,6 +553,10 @@ model Contenido {
     /// pieza, y vacíos no se muestran.
     titulo      String?
     descripcion String?
+    /// Si el video vive en YouTube (no listado), su id. La `s3Key` lleva
+    /// entonces un centinela `youtube:{categoria}:{id}` para no romper el
+    /// único y para que el mismo video pueda estar en dos categorías.
+    youtubeId   String?
     creadoEn  DateTime @default(now())
 
     @@index([categoria, orden])

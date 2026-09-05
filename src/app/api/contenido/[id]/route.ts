@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "~/server/db";
 import { urlDeLectura } from "~/server/s3";
+import { miniaturaYoutube } from "~/app/_datos/youtube";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,16 @@ export async function GET(
   const contenido = await db.contenido.findUnique({ where: { id } });
   if (!contenido) {
     return new NextResponse("No encontrado", { status: 404 });
+  }
+
+  // Un video de YouTube no tiene archivo acá: su "imagen" es la miniatura
+  // que YouTube genera, y con eso alcanza para cualquier grilla que pida
+  // la pieza como foto. El video en sí se embebe desde el visor.
+  if (contenido.youtubeId) {
+    return NextResponse.redirect(miniaturaYoutube(contenido.youtubeId), {
+      status: 307,
+      headers: { "Cache-Control": "public, max-age=86400" },
+    });
   }
 
   // `?m=1` pide la versión chica. Va como parámetro y no como ruta aparte

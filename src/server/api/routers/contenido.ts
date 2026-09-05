@@ -12,6 +12,11 @@ import {
 import { muestraDe } from "~/server/contenido";
 import { origenDe, permitirRafaga } from "~/server/limite-intentos";
 import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
+import {
+  claveYoutube,
+  esClaveYoutube,
+  idDeYoutube,
+} from "~/app/_datos/youtube";
 
 /**
  * Todo lo que hay en S3 de una pieza.
@@ -21,6 +26,8 @@ import { borrarObjetos, s3Configurado, urlDeSubida } from "~/server/s3";
  * siempre, sin nada que la nombre.
  */
 function clavesDe(fila: { s3Key: string; s3KeyMini: string | null }) {
+  // Un video de YouTube no tiene nada en S3: su key es un centinela.
+  if (esClaveYoutube(fila.s3Key)) return [];
   return fila.s3KeyMini ? [fila.s3Key, fila.s3KeyMini] : [fila.s3Key];
 }
 
@@ -129,6 +136,7 @@ export const contenidoRouter = createTRPCRouter({
         url: `/api/contenido/${c.id}`,
         titulo: c.titulo,
         descripcion: c.descripcion,
+        youtubeId: c.youtubeId,
       }));
     }),
 
@@ -156,6 +164,59 @@ export const contenidoRouter = createTRPCRouter({
         },
       });
       return { ok: true };
+    }),
+
+  /**
+   * Suma un video de YouTube a la categoría.
+   *
+   * Acepta lo que sea que pegaron: el link largo, el corto, un short, o el id
+   * pelado. Entra como una pieza más, al final, con la `s3Key` en un centinela
+   * que lleva la categoría: así el mismo video puede estar en bodas y en
+   * quince, y dos veces en la misma categoría no.
+   */
+  agregarYoutube: adminProcedure
+    .input(
+      z.object({
+        categoria: z.string(),
+        url: z.string().trim().min(1).max(300),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!esSubible(input.categoria)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Categoría inválida.",
+        });
+      }
+      const id = idDeYoutube(input.url);
+      if (!id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No parece un link de YouTube.",
+        });
+      }
+      const s3Key = claveYoutube(input.categoria, id);
+      const repetido = await ctx.db.contenido.findUnique({ where: { s3Key } });
+      if (repetido) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Ese video ya está en esta categoría.",
+        });
+      }
+      const ultimo = await ctx.db.contenido.findFirst({
+        where: { categoria: input.categoria },
+        orderBy: { orden: "desc" },
+      });
+      const pieza = await ctx.db.contenido.create({
+        data: {
+          categoria: input.categoria,
+          s3Key,
+          tipo: "video",
+          youtubeId: id,
+          orden: (ultimo?.orden ?? -1) + 1,
+        },
+      });
+      return { id: pieza.id };
     }),
 
   /**

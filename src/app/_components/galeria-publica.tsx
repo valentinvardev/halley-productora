@@ -11,6 +11,7 @@ import {
 import { api } from "~/trpc/react";
 
 import { IconoFlecha, IconoWhatsApp } from "./iconos";
+import { GaleriaVideos } from "./galeria-videos";
 import { Lightbox, type PiezaLightbox } from "./lightbox";
 import { Marca } from "./marca";
 import { botonFantasma, botonWhatsApp } from "./ui";
@@ -161,17 +162,12 @@ export function GaleriaPublica({
   nombre: string;
 }) {
   const { eligiendo, gustaron, alternar } = useSeleccion();
-  // Qué lista está abierta en el visor y en qué posición.
-  const [visor, setVisor] = useState<{
-    lista: "fotos" | "videos";
-    i: number;
-  } | null>(null);
+  // Qué foto está abierta en el visor. Los videos tienen su propio visor,
+  // dentro de GaleriaVideos.
+  const [visor, setVisor] = useState<{ i: number } | null>(null);
   const [reciente, setReciente] = useState<string | null>(null);
 
-  const abrir = (lista: "fotos" | "videos", i: number) =>
-    setVisor({ lista, i });
-
-  const piezasVisor = visor?.lista === "videos" ? videos : fotos;
+  const abrir = (i: number) => setVisor({ i });
 
   /**
    * Los contadores, en pantalla desde el primer toque.
@@ -257,7 +253,7 @@ export function GaleriaPublica({
                       alternar(p.id);
                       setReciente(p.id);
                     } else {
-                      abrir("fotos", i);
+                      abrir(i);
                     }
                   }}
                   aria-label={eligiendo ? "Me gusta esta foto" : "Ver la foto"}
@@ -366,52 +362,18 @@ export function GaleriaPublica({
             Videos
           </h3>
 
-          {/* Los videos van en menos columnas: se miran, no se hojean. */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {videos.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => abrir("videos", i)}
-                aria-label="Ver el video"
-                className="group relative aspect-video w-full cursor-pointer overflow-hidden border border-gray-20 bg-black"
-              >
-                <video
-                  src={p.url}
-                  muted
-                  playsInline
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  preload="metadata"
-                  className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
-                />
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 grid place-items-center"
-                >
-                  <span className="grid h-14 w-14 place-items-center border border-white/70 bg-black/40 transition-colors group-hover:bg-black/70">
-                    <svg
-                      viewBox="0 0 16 16"
-                      className="h-5 w-5 text-white"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M4.5 2.5 L13 8 L4.5 13.5 Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* Las mismas tarjetas y el mismo visor que la página de videos:
+              título, descripción y botón de reproducir. Antes era una grilla
+              propia sin textos, que abría el visor de fotos con un video
+              adentro. */}
+          <GaleriaVideos videos={videos} />
         </div>
       )}
 
       <Lightbox
-        piezas={piezasVisor}
+        piezas={fotos}
         indice={visor?.i ?? null}
-        alCambiar={(i) => setVisor((v) => (v ? { ...v, i } : v))}
+        alCambiar={(i) => setVisor({ i })}
         alCerrar={() => setVisor(null)}
       />
     </>

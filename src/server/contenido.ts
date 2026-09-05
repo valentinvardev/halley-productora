@@ -57,6 +57,7 @@ export async function contenidoDe(categoria: string) {
     // pero hoy nadie se los pinta.
     titulo: c.titulo,
     descripcion: c.descripcion,
+    youtubeId: c.youtubeId,
   }));
 }
 

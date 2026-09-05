@@ -53,6 +53,9 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
+  // Los videos de YouTube no listados se embeben en el visor, por el dominio
+  // sin cookies. Sin esto el navegador deja el marco en blanco sin avisar.
+  "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
   // Cloudflare inyecta su beacon de analítica en el sitio que tiene delante.
   // Sin esto la consola se llena de errores de CSP en cada visita. Es
   // infraestructura propia del dominio, no un tercero cualquiera.

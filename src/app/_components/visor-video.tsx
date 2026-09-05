@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { IconoCruz, IconoFlecha } from "./iconos";
+import { embedYoutube } from "~/app/_datos/youtube";
 import { Reproductor } from "./reproductor";
 
 /**
@@ -25,6 +26,8 @@ export type VideoVisor = {
   url: string;
   titulo?: string | null;
   descripcion?: string | null;
+  /** Si vive en YouTube, su id. Se embebe con los controles de YouTube. */
+  youtubeId?: string | null;
 };
 
 export function VisorVideo({
@@ -130,7 +133,23 @@ export function VisorVideo({
               así el nuevo arranca solo igual que el primero. Cambiarle el `src`
               al mismo elemento deja al navegador decidir si vuelve a arrancar,
               y no todos lo hacen. */}
-          <Reproductor key={video.id} src={video.url} />
+          {video.youtubeId ? (
+            // YouTube no deja reemplazar sus controles sin cargar su SDK, que
+            // la política de seguridad del sitio no admite. Lo que sí es
+            // nuestro es todo lo de alrededor: el marco, el contador, el
+            // título y las flechas. El embebido va sin cookies, sin sugeridos
+            // ajenos y con la barra en blanco, que es lo más cerca del tono.
+            <iframe
+              key={video.id}
+              src={embedYoutube(video.youtubeId)}
+              title={video.titulo ?? "Video"}
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              className="aspect-video w-full border border-white/15 bg-black"
+            />
+          ) : (
+            <Reproductor key={video.id} src={video.url} />
+          )}
 
           {(video.titulo ?? video.descripcion) && (
             <div className="mt-5 border-t border-white/15 pt-4">

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { miniaturaYoutube } from "~/app/_datos/youtube";
+
 import { VisorVideo, type VideoVisor } from "./visor-video";
 
 /**
@@ -31,15 +33,25 @@ export function GaleriaVideos({ videos }: { videos: VideoVisor[] }) {
               aria-label={`Ver ${v.titulo ?? "el video"}`}
               className="relative block aspect-video w-full cursor-pointer overflow-hidden border border-gray-20 bg-black"
             >
-              <video
-                src={v.url}
-                muted
-                playsInline
-                disablePictureInPicture
-                disableRemotePlayback
-                preload="metadata"
-                className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
-              />
+              {v.youtubeId ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={miniaturaYoutube(v.youtubeId)}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
+                />
+              ) : (
+                <video
+                  src={v.url}
+                  muted
+                  playsInline
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  preload="metadata"
+                  className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
+                />
+              )}
 
               {/* El botón de reproducir: un cuadrado con borde, como todo en el
                   sitio, que al pasar el cursor se invierte a blanco. El
@@ -56,6 +68,12 @@ export function GaleriaVideos({ videos }: { videos: VideoVisor[] }) {
                 </span>
               </span>
 
+              {/* Un degradé abajo para que el rótulo se lea también sobre una
+                  miniatura clara, como las que manda YouTube. */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent"
+              />
               <span className="absolute bottom-3 left-3 font-rotulo text-[10.5px] tracking-[0.14em] text-white/80 uppercase">
                 Reproducir
               </span>
