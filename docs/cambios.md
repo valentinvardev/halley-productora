@@ -286,6 +286,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | M | `448d11a` | Se van los paquetes: el panel, el paso previo y la lectura; el wizard vuelve a cinco pasos |
 | F, corregido | `c0942b0` | La pregunta vuelve al regreso, con el modal de "tenías uno a medias" |
 | N | `e636732` | Se va la página de videos, el visor y el botón; las columnas título y descripción quedan en la base con lo cargado |
+| sonido | `d7fdbad` | Probar vuelve a sonar lo guardado, un solo reloj para los avisos, sin sonido propio; el ajuste sonidoPagoKey queda en la base sin uso |
+| Ñ | `14d1c49` | Se van el modal, el link de YouTube y el marco embebido; la columna youtubeId queda en la base y los videos cargados desde YouTube dejan de verse |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -1287,3 +1289,111 @@ vez "el modal no se cerró" tres segundos y medio después de guardar, cuando la
 escritura había entrado: la base está lejos y esa escritura tardó más que la
 espera. Se confirmó leyendo la base, no el modal.
 
+
+### El sonido al cobrar: suena el elegido, se puede subir uno propio, y los avisos se van a tiempo
+
+**Pedido:** los sonidos del desplegable "Sonido al cobrar" no cambiaban al
+probarlos; poder subir un sonido personalizado; y los avisos de pago recibido
+tardaban demasiado en desvanecerse.
+
+**Qué pasaba.** El botón Probar avisaba "mostrá un cobro de prueba" sin decir
+con qué sonido, y el cartel usaba el sonido guardado que le pasa el layout del
+panel, que se carga una vez por sesión. Cambiar el desplegable no cambiaba lo
+que Probar hacía sonar, y aun después de Guardar seguía sonando el anterior
+hasta recargar la página. Los tres archivos sí son distintos (campana, moneda y
+pulso duran 0,99, 0,39 y 0,5 segundos): el problema era cuál se elegía, no el
+archivo. Y los carteles tenían un solo reloj que sacaba al primero de la fila
+y recién ahí empezaba a contar para el siguiente: con tres pagos seguidos, el
+tercero tardaba veintisiete segundos en irse.
+
+**Ahora.** Probar manda el sonido que está elegido en ese momento, aunque no se
+haya guardado, que es lo que uno espera al tocar Probar después de cambiar el
+desplegable. Al guardar, el panel se refresca para que el layout tenga el
+sonido nuevo. Cada cartel lleva su propio reloj de siete segundos desde que
+llega, y un clic sobre él lo saca antes.
+
+**El sonido propio.** Debajo del desplegable hay "Subir un sonido propio": un
+MP3, WAV, OGG o M4A de hasta 2 MB. Va al bucket bajo `sonidos/`, la clave
+queda en el ajuste `sonidoPagoKey`, aparece la opción "Sonido propio" en el
+desplegable ya elegida, y se escucha una vez. "Quitar" lo borra del bucket y
+vuelve a Campana. Se sirve por `/api/sonido`, que redirige a una URL firmada
+fresca, con una caché corta de dos minutos para que un archivo nuevo no siga
+sonando como el viejo.
+
+**Verificación.** Con el arnés sobre la app real: Campana, Moneda y Pulso
+hicieron sonar cada uno su archivo al tocar Probar sin guardar; tres carteles
+seguidos se fueron a los diez segundos del primer clic, cada uno a los siete
+de haber llegado. La subida: el PUT al bucket respondió 200, el ajuste se
+guardó, sonó `/api/sonido?v=…`, la ruta redirigió al archivo en CloudFront y el
+desplegable mostró "Sonido propio"; Quitar dejó la ruta en 404 y el
+desplegable en Campana. Una nota del arnés: la regla de CORS del bucket admite
+el dominio del sitio y `localhost:3000`, y el servidor de desarrollo estaba en
+el 3001 porque otra app ocupaba el 3000, así que el navegador de prueba
+bloqueó el PUT hasta correrlo sin esa comprobación. No es del código: en
+producción las fotos suben por la misma puerta.
+
+**Rollback:** fila "sonido" de la tabla.
+
+### Ñ. Videos de YouTube no listados, y el modal de videos por categoría
+
+**Pedido:** que los videos de cada servicio puedan ser de YouTube no listado,
+además de archivos subidos; y gestionarlos desde Contenidos, con un botón
+"Videos" al lado de "Subir" en cada categoría que abra un modal para manejar
+los videos de esa categoría.
+
+**Antes.** Un video entraba sólo subiendo el archivo, mezclado con las fotos de
+la categoría; el título y la descripción se editaban desde su celda en la
+galería, y para ordenarlos había que arrastrarlos entre las fotos.
+
+**Ahora.** Cada tarjeta de categoría en Contenidos tiene "Videos", con la
+cantidad al lado, entre "Subir" y "Ver galería". Abre un modal con los videos
+de esa categoría: el cuadro, el título, la descripción y de dónde viene
+(YouTube o Archivo) en cada fila; flechas para ordenarlos entre sí sin mover
+las fotos; la papelera; y tocando la fila, el formulario de título y
+descripción. Arriba, el campo para pegar un link de YouTube, en cualquiera de
+sus formas (largo, corto, un short, un embed o el id pelado), y al lado "O
+subir un archivo". El mismo video dos veces en la misma categoría se rechaza
+con "Ese video ya está en esta categoría"; en dos categorías distintas sí
+puede estar. El modal aclara que el video tiene que ser público o no listado:
+uno privado no se puede mostrar.
+
+**Cómo se guarda.** Un video de YouTube es una fila de contenido como
+cualquier pieza, con la columna nueva `youtubeId` y la clave de almacenamiento
+puesta en un centinela `youtube:{categoría}:{id}`. Así se ordena, se titula y
+se saca con el mismo código que el resto, y al sacarlo no hay nada que borrar
+del bucket: el video sigue en YouTube. La ruta `/api/contenido/{id}` redirige
+a la miniatura que genera YouTube, con lo que cualquier grilla que pida la
+pieza como imagen la muestra igual.
+
+**El visor.** Para un video de YouTube embebe el reproductor por el dominio sin
+cookies, con arranque automático, sin sugeridos de otros canales al terminar,
+con la marca al mínimo y la barra en blanco. Los controles siguen siendo los de
+YouTube: reemplazarlos exige cargar su SDK, que la política de seguridad del
+sitio no admite. Lo que sí es de Halley es todo lo de alrededor: el marco
+sobre negro, el contador "Video N de M", el título, la descripción y las
+flechas. La política de seguridad admite ahora el marco de esos dos dominios
+de YouTube; sin eso el navegador lo deja en blanco sin avisar. Los archivos
+subidos siguen con el reproductor propio.
+
+**La galería pública.** La sección de videos de la galería de cada servicio
+usa las mismas tarjetas y el mismo visor que la página de videos, con título,
+descripción y botón de reproducir. Antes era una grilla propia sin textos que
+abría el visor de fotos con un video adentro. El rótulo "Reproducir" lleva un
+degradé abajo para leerse también sobre una miniatura clara, como las que
+manda YouTube.
+
+**Verificación.** Con el arnés sobre la app real y un video público de prueba
+que se sacó al final: la fila apareció con su miniatura a los dos segundos y
+medio de tocar Agregar, el repetido se rechazó, el título y la descripción se
+guardaron y el botón pasó a decir "Videos 1"; en la galería del panel la celda
+muestra la imagen y no un video vacío, y `/api/contenido/{id}` redirigió a la
+miniatura de YouTube. En la página de bodas apareció "Ver videos" y se escondió
+"Ver qué incluye"; la página de videos mostró la tarjeta en dos columnas; el
+visor abrió el marco de YouTube, que cargó con 200 y sin ningún mensaje de la
+política de seguridad. Sacarlo avisó que "sigue en YouTube", vació la lista y
+el botón "Ver videos" desapareció. La primera corrida encontró el marco
+bloqueado por la política de seguridad: el script que aplicaba las ediciones
+había cortado antes de llegar a esa y a la de la celda del panel. Sin la
+corrida, esto habría salido con el visor en negro.
+
+**Rollback:** fila Ñ de la tabla.
