@@ -1396,4 +1396,12 @@ bloqueado por la política de seguridad: el script que aplicaba las ediciones
 había cortado antes de llegar a esa y a la de la celda del panel. Sin la
 corrida, esto habría salido con el visor en negro.
 
+**Ajuste posterior.** En el modal, el botón Agregar quedaba más abajo que el
+campo del link. La ayuda del campo ("Se pega el link del video y listo") vivía
+adentro del campo, y alinear los tres al pie de la fila los alineaba con la
+ayuda y no con el input; el botón de subir lo compensaba con un margen a mano
+y el de agregar no. La ayuda pasó a una fila propia debajo de los tres, y los
+pies del campo y de los dos botones quedan al ras, sin margen a mano. Medido en
+el navegador: cero píxeles de diferencia entre los tres.
+
 **Rollback:** fila Ñ de la tabla.

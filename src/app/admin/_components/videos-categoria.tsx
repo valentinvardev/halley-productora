@@ -131,7 +131,10 @@ export function VideosCategoria({
         </p>
 
         {/* ------------------------------------------------------ agregar */}
-        <div className="mt-5 grid gap-3 border border-gray-20 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        {/* La ayuda del campo va en una fila aparte, debajo de los tres, y no
+            adentro del campo: si fuera parte del campo, alinear los botones al
+            pie de la fila los dejaría a la altura de la ayuda y no del input. */}
+        <div className="mt-5 grid gap-x-3 gap-y-1.5 border border-gray-20 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <Campo
             label="Link de YouTube"
             placeholder="https://youtu.be/…"
@@ -141,11 +144,6 @@ export function VideosCategoria({
               // El aviso de repetido se va al tocar el link: ya no describe lo que hay.
               agregar.reset();
             }}
-            hint={
-              link && !idPegado
-                ? "No parece un link de YouTube."
-                : "Se pega el link del video y listo."
-            }
           />
           <Boton
             onClick={() => agregar.mutate({ categoria: slug, url: link })}
@@ -154,7 +152,7 @@ export function VideosCategoria({
             <IconoMas />
             {agregar.isPending ? "Agregando…" : "Agregar"}
           </Boton>
-          <div className="sm:mb-[26px]">
+          <div>
             <input
               ref={archivoRef}
               type="file"
@@ -174,6 +172,11 @@ export function VideosCategoria({
               {activo ? "Subiendo…" : "O subir un archivo"}
             </Boton>
           </div>
+          <span className="nota text-[11.5px] text-gray-45 sm:col-span-3">
+            {link && !idPegado
+              ? "No parece un link de YouTube."
+              : "Se pega el link del video y listo."}
+          </span>
         </div>
         {agregar.error && (
           <p className="nota mt-2 text-[12px] text-marca">
