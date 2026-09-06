@@ -288,6 +288,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | N | `e636732` | Se va la página de videos, el visor y el botón; las columnas título y descripción quedan en la base con lo cargado |
 | sonido | `d7fdbad` | Probar vuelve a sonar lo guardado, un solo reloj para los avisos, sin sonido propio; el ajuste sonidoPagoKey queda en la base sin uso |
 | Ñ | `14d1c49` | Se van el modal, el link de YouTube y el marco embebido; la columna youtubeId queda en la base y los videos cargados desde YouTube dejan de verse |
+| M, ajustado | `62ae4f5` | Vuelve el ícono por paquete: el selector en el editor y el cuadro al lado del nombre |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
