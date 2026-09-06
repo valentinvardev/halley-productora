@@ -1405,3 +1405,28 @@ pies del campo y de los dos botones quedan al ras, sin margen a mano. Medido en
 el navegador: cero píxeles de diferencia entre los tres.
 
 **Rollback:** fila Ñ de la tabla.
+
+### M, ajustado. El ícono sale del paquete
+
+**Pedido:** "los íconos no son para que estén al lado del título del evento,
+son para los ítems, lo cual hiciste bien".
+
+**Qué había.** Cada paquete llevaba un ícono elegido en el panel, de un set de
+doce, dibujado en un cuadro al lado del nombre: en la tarjeta del paso previo,
+en la franja "Paquete X" de los pasos siguientes, en la fila del panel y en la
+vista previa del editor. Y el desglose de cada paquete ya traía su propio
+ícono por línea: calendario para un momento, foto o video para la cobertura,
+más para un complemento. Ese segundo juego es el que Halley pidió; el primero
+sobraba y competía con él sin decir nada.
+
+**Ahora.** El nombre del paquete va solo, y los íconos quedan en el desglose,
+uno por ítem, deducidos de qué es cada cosa. Se sacó el selector de ícono del
+editor de paquetes, y el router ya no lo recibe ni lo guarda. La tarjeta
+"Armarlo a mi medida" pierde también su cuadro con el más, para no quedar como
+la única con dibujo.
+
+**La columna.** `Paquete.icono` sigue en la base con su valor por defecto y una
+nota en el esquema que dice que no se usa. Borrarla es un cambio destructivo
+que no hace falta para que nada funcione; si en un año sigue sin uso, se va.
+
+**Rollback:** fila "M, ajustado" de la tabla.

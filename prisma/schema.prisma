@@ -716,7 +716,8 @@ model Paquete {
 
     nombre String
     texto  String @default("")
-    /// El nombre de un ícono del set, para la tarjeta. Ver `_datos/paquetes.tsx`.
+    /// Sin uso desde septiembre de 2026: el ícono pasó a ser de cada ítem del
+    /// desglose, no del paquete. Queda para no borrar una columna en producción.
     icono  String @default("estrella")
 
     seleccion Json

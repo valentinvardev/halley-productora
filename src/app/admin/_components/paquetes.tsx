@@ -22,12 +22,6 @@ import {
   Vacio,
 } from "~/app/_components/ui";
 import {
-  ICONOS_PAQUETE,
-  IconoDePaquete,
-  NOMBRE_ICONO,
-  type IconoPaquete,
-} from "~/app/_datos/paquetes";
-import {
   EVENTOS,
   EVENTOS_ORDEN,
   SELECCION_VACIA,
@@ -373,10 +367,6 @@ function Fila({
         </button>
       </div>
 
-      <span className="grid h-12 w-12 shrink-0 place-items-center border border-ink">
-        <IconoDePaquete icono={paquete.icono} className="h-5 w-5" />
-      </span>
-
       <button
         type="button"
         onClick={alEditar}
@@ -438,9 +428,6 @@ function EditorPaquete({
 }) {
   const [nombre, setNombre] = useState(paquete?.nombre ?? "");
   const [texto, setTexto] = useState(paquete?.texto ?? "");
-  const [icono, setIcono] = useState<IconoPaquete>(
-    paquete?.icono ?? "estrella",
-  );
   const [sel, setSel] = useState<Seleccion>(
     paquete?.seleccion ?? SELECCION_VACIA,
   );
@@ -463,7 +450,6 @@ function EditorPaquete({
     const datos = {
       nombre: nombre.trim(),
       texto: texto.trim(),
-      icono,
       seleccion: sel,
     };
     if (paquete) editar.mutate({ id: paquete.id, ...datos });
@@ -533,34 +519,6 @@ function EditorPaquete({
             maxLength={300}
             placeholder="Para quién es y qué lo distingue. Opcional."
           />
-
-          <div>
-            <Etiqueta>Ícono</Etiqueta>
-            <div
-              className="mt-1.5 flex flex-wrap gap-1.5"
-              role="radiogroup"
-              aria-label="Ícono del paquete"
-            >
-              {ICONOS_PAQUETE.map((ic) => (
-                <button
-                  key={ic}
-                  type="button"
-                  role="radio"
-                  aria-checked={icono === ic}
-                  aria-label={NOMBRE_ICONO[ic]}
-                  title={NOMBRE_ICONO[ic]}
-                  onClick={() => setIcono(ic)}
-                  className={`grid h-10 w-10 cursor-pointer place-items-center border transition-colors ${
-                    icono === ic
-                      ? "border-ink bg-ink text-paper"
-                      : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
-                  }`}
-                >
-                  <IconoDePaquete icono={ic} className="h-4 w-4" />
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* El catálogo, para marcar. Es la misma estructura que recorre el
               wizard, en forma de lista: acá no hace falta vender cada ítem con
@@ -678,20 +636,15 @@ function EditorPaquete({
         <div className="lg:sticky lg:top-0 lg:self-start">
           <Etiqueta>Así se ofrece</Etiqueta>
           <div className="mt-1.5 border border-ink">
-            <div className="flex items-start gap-3 p-4">
-              <span className="grid h-10 w-10 shrink-0 place-items-center border border-ink">
-                <IconoDePaquete icono={icono} className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="font-titulo text-[1.3rem] leading-tight uppercase">
-                  {nombre.trim() || "Nombre del paquete"}
-                </div>
-                {texto.trim() && (
-                  <p className="mt-1 text-[13px] leading-relaxed text-gray-70">
-                    {texto}
-                  </p>
-                )}
+            <div className="p-4">
+              <div className="font-titulo text-[1.3rem] leading-tight uppercase">
+                {nombre.trim() || "Nombre del paquete"}
               </div>
+              {texto.trim() && (
+                <p className="mt-1 text-[13px] leading-relaxed text-gray-70">
+                  {texto}
+                </p>
+              )}
             </div>
             <div className="border-t border-gray-20 px-4 pt-3 pb-4">
               <Detalle lineas={lineas} total={total} />

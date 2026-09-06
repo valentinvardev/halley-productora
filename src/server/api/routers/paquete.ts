@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { ICONOS_PAQUETE } from "~/app/_datos/paquetes";
 import { lineasDe, sinCobertura } from "~/app/_datos/presupuesto";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { catalogoDe } from "~/server/catalogo";
@@ -29,7 +28,6 @@ const seleccion = z.object({
 const campos = {
   nombre: z.string().trim().min(2).max(60),
   texto: z.string().trim().max(300),
-  icono: z.enum(ICONOS_PAQUETE),
   seleccion,
 };
 
@@ -106,7 +104,6 @@ export const paqueteRouter = createTRPCRouter({
           evento: input.evento,
           nombre: input.nombre,
           texto: input.texto,
-          icono: input.icono,
           seleccion: input.seleccion,
           orden: (ultimo?.orden ?? -1) + 1,
         },
@@ -128,7 +125,6 @@ export const paqueteRouter = createTRPCRouter({
         data: {
           nombre: input.nombre,
           texto: input.texto,
-          icono: input.icono,
           seleccion: input.seleccion,
         },
       });

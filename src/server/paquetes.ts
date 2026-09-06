@@ -8,7 +8,7 @@ import {
   type Parte,
   type Seleccion,
 } from "~/app/_datos/presupuesto";
-import { esIconoPaquete, type Paquete } from "~/app/_datos/paquetes";
+import type { Paquete } from "~/app/_datos/paquetes";
 
 import { db } from "./db";
 
@@ -42,7 +42,6 @@ export async function paquetesDe(
           id: f.id,
           nombre: f.nombre,
           texto: f.texto,
-          icono: esIconoPaquete(f.icono) ? f.icono : ("estrella" as const),
           seleccion,
           total: totalDe(lineasDe(partes, seleccion)),
           activo: f.activo,

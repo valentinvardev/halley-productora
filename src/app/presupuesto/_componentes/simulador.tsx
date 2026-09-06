@@ -17,7 +17,6 @@ import {
   IconoBajar,
   IconoTilde,
   IconoFlecha,
-  IconoMas,
   IconoVolver,
 } from "~/app/_components/iconos";
 import { Boton, BotonTexto, Campo } from "~/app/_components/ui";
@@ -41,7 +40,7 @@ import {
   type Parte,
   type Seleccion,
 } from "~/app/_datos/presupuesto";
-import { IconoDePaquete, type Paquete } from "~/app/_datos/paquetes";
+import type { Paquete } from "~/app/_datos/paquetes";
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
@@ -837,16 +836,8 @@ export function Simulador({
             una sola cosa tendría que volver al principio y empezar de cero. */}
         {modo === "paquete" && paqueteElegido && paso !== "paquete" && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border border-gray-20 px-4 py-3">
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center border border-ink">
-                <IconoDePaquete
-                  icono={paqueteElegido.icono}
-                  className="h-4 w-4"
-                />
-              </span>
-              <span className="truncate font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
-                Paquete {paqueteElegido.nombre}
-              </span>
+            <span className="truncate font-rotulo text-[11.5px] tracking-[0.08em] uppercase">
+              Paquete {paqueteElegido.nombre}
             </span>
             <button
               type="button"
@@ -1697,20 +1688,18 @@ function PasoPaquete({
                 esElegido ? "border-ink" : "border-gray-20 hover:border-gray-45"
               }`}
             >
-              <div className="flex items-start gap-3 p-5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center border border-ink">
-                  <IconoDePaquete icono={p.icono} className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
-                    {p.nombre}
-                  </h3>
-                  {p.texto && (
-                    <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
-                      {p.texto}
-                    </p>
-                  )}
-                </div>
+              {/* Sin ícono al lado del nombre: los íconos son de los ítems, en
+                  el desglose de abajo, donde dicen qué es cada cosa. Uno más
+                  arriba competía con ellos sin decir nada. */}
+              <div className="p-5">
+                <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
+                  {p.nombre}
+                </h3>
+                {p.texto && (
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
+                    {p.texto}
+                  </p>
+                )}
               </div>
               <div className="mt-auto border-t border-gray-20 px-5 pt-3 pb-4">
                 <Detalle lineas={lineas} total={totalDe(lineas)} />
@@ -1736,19 +1725,14 @@ function PasoPaquete({
           onKeyDown={teclado(alPersonalizar)}
           className="flex cursor-pointer flex-col justify-between border border-dashed border-gray-45 bg-paper p-5 text-left transition-colors hover:border-ink"
         >
-          <div className="flex items-start gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center border border-dashed border-gray-45">
-              <IconoMas className="h-5 w-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
-                Armarlo a mi medida
-              </h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
-                Elegís vos qué cubrimos y con qué, momento por momento, y qué le
-                sumás. Es el recorrido completo.
-              </p>
-            </div>
+          <div>
+            <h3 className="font-titulo text-[1.5rem] leading-[0.95] uppercase">
+              Armarlo a mi medida
+            </h3>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-70">
+              Elegís vos qué cubrimos y con qué, momento por momento, y qué le
+              sumás. Es el recorrido completo.
+            </p>
           </div>
           <span className="mt-6 inline-flex items-center gap-2 font-rotulo text-[12px] tracking-[0.06em] text-gray-45 uppercase">
             Empezar de cero
