@@ -1463,3 +1463,32 @@ la cabecera; "Armarlo a mi medida" lleva a momentos con "Paso 2 de 6" y "Paso
 2". En quince, sin paquetes, momentos es "Paso 1 de 5" y "Paso 1".
 
 **Rollback:** fila "M, corregido" de la tabla.
+
+### I, ajustado. Los cubos giran en distintas direcciones
+
+**Pedido:** "los cubos de la página /entrar tienen que girar en distintas
+direcciones".
+
+**Qué había.** Los nueve cubos giraban sobre el mismo eje y hacia el mismo
+lado: siempre sobre la vertical, siempre hacia la izquierda. De a uno cada dos
+segundos, pero todos iguales, y eso se lee como una sola cinta que corre.
+
+**Ahora.** Cada cubo tiene su eje y su sentido. El eje alterna por posición,
+y como la grilla es de tres por tres, que es impar, queda en damero: dos
+cubos vecinos nunca giran sobre el mismo eje. El sentido cambia de a dos, así
+que hay cuatro combinaciones repartidas: sobre la vertical hacia un lado o el
+otro, sobre la horizontal hacia arriba o hacia abajo.
+
+**Un detalle de geometría.** La celda no es cuadrada (246 por 299 píxeles en
+la pantalla de prueba). El cubo tiene de profundidad la mitad del lado sobre
+el que gira: el ancho si gira sobre la vertical, el alto si gira sobre la
+horizontal. Con la misma medida para los dos, las aristas de las caras no se
+tocan al girar y se ve un hueco en la esquina. Cada cubo declara su medida y
+el resto del CSS es el de antes.
+
+**Verificación.** En el navegador, los nueve cubos quedaron Y X Y / X Y X /
+Y X Y, y en cuatro giros seguidos se vieron los cuatro sentidos: +X, -Y, -X y
++Y. La captura a mitad de un giro muestra el cubo de canto con las aristas
+cerradas.
+
+**Rollback:** fila "I, ajustado" de la tabla.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { api } from "~/trpc/react";
 
@@ -25,6 +25,21 @@ import { api } from "~/trpc/react";
 const CUBOS = 9;
 const CARAS = 4;
 const CADA_MS = 2200;
+
+/**
+ * Hacia dónde gira cada cubo.
+ *
+ * Todos para el mismo lado se leen como una sola cinta que corre; con eje y
+ * sentido propios, la pared se lee como cubos sueltos. El eje alterna por
+ * posición, y como la grilla es de tres, que es impar, queda en damero: dos
+ * vecinos nunca giran sobre el mismo eje. El sentido cambia de a dos.
+ */
+function giroDe(indice: number): { eje: "X" | "Y"; sentido: 1 | -1 } {
+  return {
+    eje: indice % 2 === 0 ? "Y" : "X",
+    sentido: Math.floor(indice / 2) % 2 === 0 ? -1 : 1,
+  };
+}
 
 export function Muestra() {
   const fotos = api.contenido.muestraAcceso.useQuery(undefined, {
@@ -87,15 +102,22 @@ function Cubo({
   giros: number;
   fotos: { id: string; url: string }[];
 }) {
+  const { eje, sentido } = giroDe(indice);
   return (
-    <div className="cubo relative bg-paper-dimmer">
+    <div
+      className="cubo relative bg-paper-dimmer"
+      // La mitad de la profundidad del cubo es la mitad del lado sobre el que
+      // gira: el ancho si gira sobre Y, el alto si gira sobre X. Si no
+      // coinciden, las aristas de las caras no se tocan al girar.
+      style={{ "--mitad": eje === "X" ? "50cqh" : "50cqw" } as CSSProperties}
+    >
       <div
         className="cubo-caras absolute inset-0"
         style={{
           // Retraído la mitad del ancho: así la cara de adelante queda justo en
           // el plano de la celda. Sin esto está más cerca del ojo que la celda,
           // se dibuja más grande por la perspectiva y pisa a las vecinas.
-          transform: `translateZ(calc(-1 * var(--mitad))) rotateY(${giros * -90}deg)`,
+          transform: `translateZ(calc(-1 * var(--mitad))) rotate${eje}(${giros * 90 * sentido}deg)`,
         }}
       >
         {Array.from({ length: CARAS }, (_, cara) => {
@@ -109,7 +131,7 @@ function Cubo({
               key={cara}
               className="cara absolute inset-0 overflow-hidden"
               style={{
-                transform: `rotateY(${cara * 90}deg) translateZ(var(--mitad))`,
+                transform: `rotate${eje}(${cara * 90}deg) translateZ(var(--mitad))`,
               }}
             >
               {foto ? (
