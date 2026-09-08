@@ -1437,3 +1437,28 @@ o personalizalo paso por paso". Lo del precio en vivo y el código ya lo dice la
 pantalla sola.
 
 **Rollback:** fila "M, ajustado" de la tabla.
+
+### M, corregido. El rótulo de cada pantalla cuenta como el indicador
+
+**Pedido:** "cuando vamos al paquete prearmado, en la parte de a quién le
+mandamos esto dice Paso 4, pero en el indicador de paso dice Paso 2 de 4".
+
+**Qué pasaba.** El indicador de arriba cuenta sobre la lista de pasos, que
+desde M cambia de largo: seis con paquetes y armado a mano, cuatro en modo
+paquete, cinco sin paquetes. El rótulo de cada pantalla, en cambio, estaba
+escrito a mano: "Paso 4" en contacto, "Paso 5" en fecha, "Paso 6" en pago, y
+"Parte 1" y "Parte 2" en momentos y complementos. Con la lista de seis
+coincidían por casualidad; en modo paquete, contacto es el segundo y decía
+cuarto.
+
+**Ahora.** El rótulo sale del mismo índice que el indicador: cada pantalla
+recibe "Paso N" ya calculado y lo dibuja. Momentos y complementos también:
+dicen "Paso 2" y "Paso 3" con paquetes, "Paso 1" y "Paso 2" sin ellos. El paso
+previo conserva "Para empezar".
+
+**Verificación.** Con el arnés en bodas, que tiene un paquete cargado: elegir
+el paquete y continuar lleva a contacto con "Paso 2 de 4" arriba y "Paso 2" en
+la cabecera; "Armarlo a mi medida" lleva a momentos con "Paso 2 de 6" y "Paso
+2". En quince, sin paquetes, momentos es "Paso 1 de 5" y "Paso 1".
+
+**Rollback:** fila "M, corregido" de la tabla.

@@ -749,6 +749,12 @@ export function Simulador({
 
   const nombreEvento = EVENTOS[evento];
 
+  // El rótulo de cada pantalla sale de la misma lista que la barra de
+  // progreso. Estaba escrito a mano ("Paso 4", "Paso 5", "Paso 6") y con
+  // los paquetes la lista cambió de largo: en modo paquete, contacto es el
+  // paso 2 y la pantalla decía 4.
+  const rotuloPaso = `Paso ${indice + 1}`;
+
   return (
     <div ref={arriba} className="scroll-mt-20">
       {modalSalida}
@@ -798,6 +804,7 @@ export function Simulador({
         {(paso === "momentos" || paso === "complementos") &&
           partes.find((pa) => pa.id === paso) && (
             <PasoParte
+              rotulo={rotuloPaso}
               parte={partes.find((pa) => pa.id === paso)!}
               sel={sel}
               alAlternar={alternar}
@@ -850,11 +857,16 @@ export function Simulador({
         )}
 
         {paso === "contacto" && (
-          <PasoContacto datos={datos} alCambiar={setDatos} />
+          <PasoContacto
+            rotulo={rotuloPaso}
+            datos={datos}
+            alCambiar={setDatos}
+          />
         )}
 
         {paso === "fecha" && (
           <PasoFecha
+            rotulo={rotuloPaso}
             valor={fechaEvento}
             alCambiar={setFechaEvento}
             sinFecha={sinFecha}
@@ -870,6 +882,7 @@ export function Simulador({
 
         {paso === "pago" && (
           <PasoPago
+            rotulo={rotuloPaso}
             plan={plan}
             alElegir={setPlan}
             cierre={cierre}
@@ -1015,8 +1028,10 @@ function PasoParte({
   alAlternar,
   alAlternarCobertura,
   preciosConfirmados,
+  rotulo,
   antes,
 }: {
+  rotulo: string;
   parte: Parte;
   sel: Seleccion;
   alAlternar: (item: Item, multiple: boolean, idsDeLaParte: string[]) => void;
@@ -1029,11 +1044,7 @@ function PasoParte({
 
   return (
     <section>
-      <Cabecera
-        rotulo={parte.rotulo}
-        titulo={parte.titulo}
-        bajada={parte.bajada}
-      />
+      <Cabecera rotulo={rotulo} titulo={parte.titulo} bajada={parte.bajada} />
 
       {antes}
 
@@ -1213,16 +1224,18 @@ function BloqueLocaciones({
 /* --------------------------------------------------------------- contacto */
 
 function PasoContacto({
+  rotulo,
   datos,
   alCambiar,
 }: {
+  rotulo: string;
   datos: Datos;
   alCambiar: (d: Datos) => void;
 }) {
   return (
     <section>
       <Cabecera
-        rotulo="Paso 4"
+        rotulo={rotulo}
         titulo="¿A quién le mandamos esto?"
         bajada="Con estos datos te guardamos el presupuesto y te podemos escribir si tenés alguna duda."
       />
@@ -1275,12 +1288,14 @@ function PasoContacto({
 /* ------------------------------------------------------------------ fecha */
 
 function PasoFecha({
+  rotulo,
   valor,
   alCambiar,
   sinFecha,
   alCambiarSinFecha,
   evento,
 }: {
+  rotulo: string;
   valor: string;
   alCambiar: (v: string) => void;
   sinFecha: boolean;
@@ -1290,7 +1305,7 @@ function PasoFecha({
   return (
     <section>
       <Cabecera
-        rotulo="Paso 5"
+        rotulo={rotulo}
         titulo="¿Qué día es?"
         bajada={`La fecha de ${evento}. Si todavía no tenés confirmado el salón o el día, elegí una aproximada: sirve igual para saber si tenemos equipo disponible.`}
       />
@@ -1334,6 +1349,7 @@ function PasoFecha({
 /* -------------------------------------------------------------------- pago */
 
 function PasoPago({
+  rotulo,
   plan,
   alElegir,
   cierre,
@@ -1341,6 +1357,7 @@ function PasoPago({
   parametros,
   fechaEvento,
 }: {
+  rotulo: string;
   plan: string;
   alElegir: (id: string) => void;
   cierre: ReturnType<typeof cierreDe>;
@@ -1366,7 +1383,7 @@ function PasoPago({
   return (
     <section>
       <Cabecera
-        rotulo="Paso 6"
+        rotulo={rotulo}
         titulo="Reserva y forma de pago"
         bajada="La reserva bloquea la fecha y congela el precio: a partir de ahí, lo que elegiste no cambia de valor. No es un cargo aparte, se descuenta del total."
       />
