@@ -1665,7 +1665,7 @@ function PasoPaquete({
       <Cabecera
         rotulo="Para empezar"
         titulo="¿Cómo lo armamos?"
-        bajada="Elegí un paquete que ya pensamos, o armalo vos ítem por ítem. En los dos casos el precio se ve en vivo y al final te queda guardado con su código."
+        bajada="Elegí un paquete que ya pensamos o personalizalo paso por paso."
       />
 
       <div

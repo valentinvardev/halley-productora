@@ -1430,4 +1430,10 @@ la única con dibujo.
 nota en el esquema que dice que no se usa. Borrarla es un cambio destructivo
 que no hace falta para que nada funcione; si en un año sigue sin uso, se va.
 
+**Texto.** La bajada del paso previo se acortó: de "Elegí un paquete que ya
+pensamos, o armalo vos ítem por ítem. En los dos casos el precio se ve en vivo
+y al final te queda guardado con su código" a "Elegí un paquete que ya pensamos
+o personalizalo paso por paso". Lo del precio en vivo y el código ya lo dice la
+pantalla sola.
+
 **Rollback:** fila "M, ajustado" de la tabla.
