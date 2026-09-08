@@ -290,6 +290,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | Ñ | `14d1c49` | Se van el modal, el link de YouTube y el marco embebido; la columna youtubeId queda en la base y los videos cargados desde YouTube dejan de verse |
 | M, ajustado | `62ae4f5` | Vuelve el ícono por paquete: el selector en el editor y el cuadro al lado del nombre |
 | M, corregido | `b6ff31c` | Vuelven los rótulos escritos a mano, con el desfasaje en modo paquete |
+| I, ajustado | `0ede2c8` | Los cubos vuelven a girar todos sobre la vertical y hacia el mismo lado |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
