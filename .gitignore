@@ -53,3 +53,6 @@ yarn-error.log*
 # logos ya recortados de public/marca/, que sí van al repo.
 /*.pdf
 /HALLEY-*.png
+# Un modelo 3D comprado que quedó en la carpeta por error. No es del sitio y
+# vive afuera del repositorio.
+/the-locust-purchased/
