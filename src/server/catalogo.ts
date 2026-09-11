@@ -39,7 +39,6 @@ import { db } from "./db";
  */
 const ENCABEZADOS = {
   momentos: {
-    rotulo: "Parte 1",
     titulo: "Qué cubrimos y con qué",
     bajada: {
       quince:
@@ -49,7 +48,6 @@ const ENCABEZADOS = {
     multiple: MOMENTOS_COMBINABLES,
   },
   complementos: {
-    rotulo: "Parte 2",
     titulo: "Que no le falte nada",
     bajada: {
       quince:
@@ -157,7 +155,6 @@ export async function catalogoDe(
     const cabeza = ENCABEZADOS[parte];
     return {
       id: parte,
-      rotulo: cabeza.rotulo,
       titulo: cabeza.titulo,
       bajada: cabeza.bajada[evento],
       multiple: cabeza.multiple,

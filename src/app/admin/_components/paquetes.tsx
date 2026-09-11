@@ -65,7 +65,6 @@ type Catalogo = RouterOutputs["catalogo"]["listar"];
 function partesDe(grupos: Catalogo): Parte[] {
   return grupos.map((g) => ({
     id: g.parte,
-    rotulo: "",
     titulo: ROTULO[g.parte],
     bajada: "",
     multiple: true,

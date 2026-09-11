@@ -174,7 +174,6 @@ export type Item = {
 
 export type Parte = {
   id: "momentos" | "complementos";
-  rotulo: string;
   titulo: string;
   bajada: string;
   /** Si se pueden elegir varios. */
@@ -372,7 +371,6 @@ function partesDe(momentos: Item[], quePasa: string): Parte[] {
   return [
     {
       id: "momentos",
-      rotulo: "Parte 1",
       titulo: "Qué cubrimos y con qué",
       bajada: quePasa,
       multiple: MOMENTOS_COMBINABLES,
@@ -380,7 +378,6 @@ function partesDe(momentos: Item[], quePasa: string): Parte[] {
     },
     {
       id: "complementos",
-      rotulo: "Parte 2",
       titulo: "Que no le falte nada",
       bajada:
         "Lo que se agrega sobre la cobertura. Nada de esto es obligatorio y todo se puede decidir después.",
