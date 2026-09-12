@@ -51,8 +51,27 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 
 - **Contenidos** por categoría (egresados, bodas, quince, marcas) que el admin
   sube a S3 y la landing muestra, con portadas rotativas y hero configurable.
+  La galería pública de cada servicio es un mosaico tipo VSCO que respeta la
+  proporción de cada foto, con un corazón con contador en cada una.
+- **Videos por servicio** — cada categoría tiene los suyos, subidos como archivo
+  o pegados como link de YouTube no listado, con título y descripción. Salen en
+  `/servicios/[slug]/videos` y en un visor propio a pantalla completa; el botón
+  "Ver videos" aparece sólo cuando hay alguno cargado.
 - **Pedido de presupuesto** — el visitante marca las fotos que le gustan con un
   corazón y el mensaje sale por WhatsApp al número que se configura en Ajustes.
+- **Simulador de presupuesto** (`/presupuesto`) — paso a paso, con el precio en
+  vivo: paquetes prearmados que Halley arma desde el panel con los ítems del
+  catálogo, o armado a mano momento por momento; contacto, fecha (o sin fecha)
+  y plan de cuotas según cuánto falta. Queda guardado con un código para
+  retomarlo, y un borrador local avisa si se abandona a medias.
+- **Textos editables** — la landing y las páginas de servicio se editan
+  tocando el texto, con `?editar=1` y la sesión del panel; `/admin/textos`
+  lista los bloques y lleva a cada página.
+- **Valoraciones** — después del servicio sale un link mágico por mail
+  (`/valorar/[token]`), y lo que llega se modera desde el panel antes de salir
+  en la portada.
+- **Aviso de cobro en el panel** — cuando entra un pago suena y aparece un
+  cartel en cualquier pantalla del panel, con un sonido del set o uno propio.
 
 ---
 
@@ -62,6 +81,10 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 |---|---|---|
 | `/` | público | Landing con la vitrina |
 | `/servicios/[slug]` | público | Egresados, bodas, quince, marcas |
+| `/servicios/[slug]/videos` | público | Los videos del servicio, con su visor |
+| `/presupuesto` · `/presupuesto/[evento]` | público | Simulador de presupuesto |
+| `/presupuesto/codigo/[codigo]` | público | Retomar un presupuesto guardado |
+| `/valorar/[token]` | link por mail | Dejar una valoración |
 | `/g/[slug]` | público | Registro de la familia en un grupo |
 | `/entrar` · `/registro` | público | Login de la familia |
 | `/acceso/[token]` | público | Canje del link de acceso |
@@ -72,15 +95,24 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | `/admin` | clave del panel | Grupos y particulares |
 | `/admin/grupos/[id]` | clave del panel | Detalle, alumnos, galerías, cuenta que cobra |
 | `/admin/galerias` | clave del panel | Galerías para compartir |
-| `/admin/contenidos` | clave del panel | Vitrina |
+| `/admin/contenidos` | clave del panel | Vitrina, con los videos de cada categoría |
+| `/admin/contenidos/[categoria]` | clave del panel | La galería de una categoría, para ordenar y titular |
+| `/admin/presupuestos` | clave del panel | Presupuestos emitidos |
+| `/admin/presupuestos/flujo` · `/paquetes` | clave del panel | Catálogo del simulador y paquetes prearmados |
+| `/admin/transacciones` | clave del panel | Movimientos de cobro |
+| `/admin/textos` | clave del panel | Textos de la landing y de los servicios |
+| `/admin/valoraciones` | clave del panel | Moderar valoraciones |
 | `/admin/cuentas` | clave del panel | Cuentas de pago |
 | `/admin/notificaciones` | clave del panel | Bandeja de emails |
-| `/admin/ajustes` | clave del panel | WhatsApp, Instagram, contacto |
+| `/admin/ajustes` | clave del panel | WhatsApp, Instagram, contacto, email de avisos, sonido al cobrar |
 | `/api/webhooks/talo` | Talo | Aviso de transferencia |
 | `/api/webhooks/mercadopago` | Mercado Pago | Aviso de pago (firma verificada) |
 | `/api/oauth/mercadopago` | Mercado Pago | Vuelta de la vinculación |
 | `/api/galeria/[fotoId]` | con permiso | Sirve una foto privada, firmada |
-| `/api/contenido/[id]` | público | Sirve una pieza de la vitrina |
+| `/api/contenido/[id]` | público | Sirve una pieza de la vitrina (o la miniatura de YouTube) |
+| `/api/aviso/[fotoId]` | familia del grupo | Sirve la foto de un aviso |
+| `/api/valoracion/[id]` | público si está publicada | Sirve la foto de una valoración |
+| `/api/sonido` | panel | Sirve el sonido propio del aviso de cobro |
 
 ---
 
