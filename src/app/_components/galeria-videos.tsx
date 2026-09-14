@@ -33,7 +33,16 @@ export function GaleriaVideos({ videos }: { videos: VideoVisor[] }) {
               aria-label={`Ver ${v.titulo ?? "el video"}`}
               className="relative block aspect-video w-full cursor-pointer overflow-hidden border border-gray-20 bg-black"
             >
-              {v.youtubeId ? (
+              {v.poster ? (
+                // La miniatura elegida a mano manda sobre cualquier otra.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={v.poster}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
+                />
+              ) : v.youtubeId ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={miniaturaYoutube(v.youtubeId)}

@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import {
   IconoAlerta,
   IconoBajar,
+  IconoImagen,
   IconoMas,
   IconoPapelera,
 } from "~/app/_components/iconos";
@@ -19,6 +20,7 @@ import {
 import { idDeYoutube, miniaturaYoutube } from "~/app/_datos/youtube";
 import { api, type RouterOutputs } from "~/trpc/react";
 
+import { ElegirImagen } from "./elegir-imagen";
 import { SubidaPopover } from "./subida-popover";
 import { useCargaContenido } from "./usar-carga";
 
@@ -66,6 +68,8 @@ export function VideosCategoria({
   const [editando, setEditando] = useState<string | null>(null);
   const [aBorrar, setABorrar] = useState<Pieza | null>(null);
   const [link, setLink] = useState("");
+  /** El video al que se le está eligiendo la miniatura, si hay uno. */
+  const [conMiniatura, setConMiniatura] = useState<Pieza | null>(null);
 
   const archivoRef = useRef<HTMLInputElement>(null);
   const { cola, activo, subir, limpiar } = useCargaContenido(slug, refrescar);
@@ -90,6 +94,9 @@ export function VideosCategoria({
   });
   const reordenar = api.contenido.reordenar.useMutation({
     onSettled: refrescar,
+  });
+  const ponerMiniatura = api.contenido.ponerMiniatura.useMutation({
+    onSuccess: () => void refrescar(),
   });
 
   /**
@@ -208,6 +215,7 @@ export function VideosCategoria({
                     editar.mutate({ id: v.id, titulo, descripcion })
                   }
                   alBorrar={() => setABorrar(v)}
+                  alElegirMiniatura={() => setConMiniatura(v)}
                   alMover={(d) => mover(v.id, d)}
                   moviendo={reordenar.isPending}
                 />
@@ -251,6 +259,20 @@ export function VideosCategoria({
         </div>
       </Modal>
 
+      {/* El selector de imágenes de siempre: una que ya está en la vitrina, o
+          una nueva. Elegir guarda al instante; no hay botón de guardar aparte
+          porque es un solo gesto. */}
+      <ElegirImagen
+        abierto={conMiniatura !== null}
+        alCerrar={() => setConMiniatura(null)}
+        valor={conMiniatura?.posterId ?? null}
+        alElegir={(posterId) => {
+          if (conMiniatura) {
+            ponerMiniatura.mutate({ id: conMiniatura.id, posterId });
+          }
+        }}
+      />
+
       <SubidaPopover cola={cola} activo={activo} alCerrar={limpiar} />
     </>
   );
@@ -268,6 +290,7 @@ function FilaVideo({
   alEditar,
   alGuardar,
   alBorrar,
+  alElegirMiniatura,
   alMover,
 }: {
   video: Pieza;
@@ -279,6 +302,7 @@ function FilaVideo({
   alEditar: () => void;
   alGuardar: (titulo: string, descripcion: string) => void;
   alBorrar: () => void;
+  alElegirMiniatura: () => void;
   alMover: (direccion: "sube" | "baja") => void;
 }) {
   const [titulo, setTitulo] = useState(video.titulo ?? "");
@@ -308,9 +332,24 @@ function FilaVideo({
           </button>
         </div>
 
-        {/* El cuadro: la miniatura de YouTube, o el primer cuadro del archivo. */}
-        <div className="relative h-14 w-24 shrink-0 overflow-hidden border border-gray-20 bg-black">
-          {video.youtubeId ? (
+        {/* El cuadro es también el botón para cambiarlo: la miniatura elegida
+            a mano, o si no la de YouTube, o el primer cuadro del archivo. */}
+        <button
+          type="button"
+          onClick={alElegirMiniatura}
+          title="Elegir la miniatura"
+          aria-label="Elegir la miniatura"
+          className="group relative h-14 w-24 shrink-0 cursor-pointer overflow-hidden border border-gray-20 bg-black"
+        >
+          {video.poster ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={video.poster}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          ) : video.youtubeId ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={miniaturaYoutube(video.youtubeId)}
@@ -329,7 +368,10 @@ function FilaVideo({
               className="h-full w-full object-cover"
             />
           )}
-        </div>
+          <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-transparent transition-colors group-hover:bg-black/60 group-hover:text-white">
+            <IconoImagen className="h-4 w-4" />
+          </span>
+        </button>
 
         <button
           type="button"
@@ -346,7 +388,8 @@ function FilaVideo({
             </span>
           )}
           <span className="mt-0.5 block font-rotulo text-[10.5px] tracking-[0.06em] text-gray-45 uppercase">
-            {video.youtubeId ? "YouTube" : "Archivo"} ·{" "}
+            {video.youtubeId ? "YouTube" : "Archivo"}
+            {video.poster ? " · miniatura propia" : ""} ·{" "}
             {editando ? "cerrar" : "editar título y descripción"}
           </span>
         </button>

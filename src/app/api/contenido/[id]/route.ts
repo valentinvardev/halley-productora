@@ -25,20 +25,37 @@ export async function GET(
     return new NextResponse("No encontrado", { status: 404 });
   }
 
+  // `?m=1` pide la versión chica. Va como parámetro y no como ruta aparte
+  // porque así las dos URLs son la misma entrada de caché para el navegador
+  // salvo por ese parámetro, y el que pide decide cuál necesita.
+  const mini = new URL(req.url).searchParams.get("m") === "1";
+
   // Un video de YouTube no tiene archivo acá: su "imagen" es la miniatura
-  // que YouTube genera, y con eso alcanza para cualquier grilla que pida
-  // la pieza como foto. El video en sí se embebe desde el visor.
+  // elegida a mano si hay, y si no la que YouTube genera. Con eso alcanza
+  // para cualquier grilla que pida la pieza como foto. El video en sí se
+  // embebe desde el visor.
   if (contenido.youtubeId) {
+    const poster = contenido.posterId
+      ? await db.contenido.findUnique({ where: { id: contenido.posterId } })
+      : null;
+    if (poster) {
+      const url = await urlDeLectura(
+        (mini && poster.s3KeyMini) || poster.s3Key,
+        3600,
+      );
+      if (url) {
+        return NextResponse.redirect(url, {
+          status: 307,
+          headers: { "Cache-Control": "private, max-age=1800" },
+        });
+      }
+    }
     return NextResponse.redirect(miniaturaYoutube(contenido.youtubeId), {
       status: 307,
       headers: { "Cache-Control": "public, max-age=86400" },
     });
   }
 
-  // `?m=1` pide la versión chica. Va como parámetro y no como ruta aparte
-  // porque así las dos URLs son la misma entrada de caché para el navegador
-  // salvo por ese parámetro, y el que pide decide cuál necesita.
-  const mini = new URL(req.url).searchParams.get("m") === "1";
   const clave = (mini && contenido.s3KeyMini) || contenido.s3Key;
 
   const url = await urlDeLectura(clave, 3600);

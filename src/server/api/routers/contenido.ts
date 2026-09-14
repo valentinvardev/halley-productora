@@ -137,6 +137,8 @@ export const contenidoRouter = createTRPCRouter({
         titulo: c.titulo,
         descripcion: c.descripcion,
         youtubeId: c.youtubeId,
+        posterId: c.posterId,
+        poster: c.posterId ? `/api/contenido/${c.posterId}?m=1` : null,
       }));
     }),
 
@@ -162,6 +164,46 @@ export const contenidoRouter = createTRPCRouter({
           titulo: input.titulo || null,
           descripcion: input.descripcion || null,
         },
+      });
+      return { ok: true };
+    }),
+
+  /**
+   * La miniatura de un video, elegida a mano.
+   *
+   * Es otra pieza de la vitrina, una imagen: la que ya está subida, o una
+   * nueva que el selector deja en la categoría del catálogo. Con `null` se
+   * vuelve a lo de siempre: el primer cuadro del archivo, o la miniatura de
+   * YouTube.
+   */
+  ponerMiniatura: adminProcedure
+    .input(z.object({ id: z.string(), posterId: z.string().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      const video = await ctx.db.contenido.findUnique({
+        where: { id: input.id },
+        select: { tipo: true },
+      });
+      if (!video || video.tipo !== "video") {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Ese video no está.",
+        });
+      }
+      if (input.posterId) {
+        const imagen = await ctx.db.contenido.findUnique({
+          where: { id: input.posterId },
+          select: { tipo: true },
+        });
+        if (!imagen || imagen.tipo !== "imagen") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "La miniatura tiene que ser una imagen.",
+          });
+        }
+      }
+      await ctx.db.contenido.update({
+        where: { id: input.id },
+        data: { posterId: input.posterId },
       });
       return { ok: true };
     }),

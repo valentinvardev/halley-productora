@@ -28,6 +28,8 @@ export type VideoVisor = {
   descripcion?: string | null;
   /** Si vive en YouTube, su id. Se embebe con los controles de YouTube. */
   youtubeId?: string | null;
+  /** La miniatura elegida a mano, si hay. */
+  poster?: string | null;
 };
 
 export function VisorVideo({
@@ -148,7 +150,11 @@ export function VisorVideo({
               className="aspect-video w-full border border-white/15 bg-black"
             />
           ) : (
-            <Reproductor key={video.id} src={video.url} />
+            <Reproductor
+              key={video.id}
+              src={video.url}
+              poster={video.poster ?? undefined}
+            />
           )}
 
           {(video.titulo ?? video.descripcion) && (

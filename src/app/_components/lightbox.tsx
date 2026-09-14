@@ -21,6 +21,8 @@ export type PiezaLightbox = {
   descripcion?: string | null;
   /** Si el video vive en YouTube, su id: se embebe en vez de reproducirse acá. */
   youtubeId?: string | null;
+  /** La miniatura elegida a mano para un video, si hay. */
+  poster?: string | null;
 };
 
 /**
@@ -187,7 +189,7 @@ export function Lightbox({
               className="aspect-video w-[min(1100px,92vw)] border border-white/15 bg-black"
             />
           ) : (
-            <Reproductor src={pieza.url} />
+            <Reproductor src={pieza.url} poster={pieza.poster ?? undefined} />
           )
         ) : (
           <Foto

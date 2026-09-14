@@ -31,7 +31,14 @@ function ponerVolumen(v: HTMLVideoElement, valor: number) {
   v.muted = n === 0;
 }
 
-export function Reproductor({ src }: { src: string }) {
+export function Reproductor({
+  src,
+  poster,
+}: {
+  src: string;
+  /** Lo que se ve antes del primer cuadro, si se eligió una miniatura. */
+  poster?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   const [andando, setAndando] = useState(false);
   const [mudo, setMudo] = useState(false);
@@ -103,6 +110,7 @@ export function Reproductor({ src }: { src: string }) {
       <video
         ref={ref}
         src={src}
+        poster={poster}
         autoPlay
         playsInline
         onClick={alternar}

@@ -1519,3 +1519,40 @@ cero el video quedó silenciado y el ícono pasó a "Activar sonido"; flecha
 arriba lo dejó en 0,1 sin silencio; silenciar con el botón vació la barra.
 
 **Rollback:** fila "N, ajustado" de la tabla.
+
+### Ñ, ajustado. La miniatura de cada video se elige desde el modal
+
+**Pedido:** "falta poder seleccionar desde el modal en el panel de admin la
+miniatura de los videos".
+
+**Antes.** La miniatura no se elegía: un archivo mostraba su primer cuadro,
+que suele ser negro o un fotograma cualquiera, y un video de YouTube la que
+YouTube genera.
+
+**Ahora.** En el modal de videos, el cuadro de cada fila es un botón. Abre el
+mismo selector de imágenes que usa el catálogo del simulador: una foto que ya
+está en la vitrina, de cualquier categoría, o una nueva que se sube desde ahí.
+Elegir guarda al instante, sin botón de guardar aparte; "Quitar la imagen"
+vuelve a lo de siempre. La fila lo dice al lado del origen: "Archivo ·
+miniatura propia".
+
+**Dónde se ve.** En la tarjeta de la página de videos, como cuadro del
+reproductor propio antes del primer fotograma, en la galería de la categoría
+en el panel, en la vista previa de Contenidos, y para un video de YouTube
+también en su dirección `/api/contenido/{id}`, que pasa a redirigir a la
+miniatura elegida en vez de a la de YouTube.
+
+**Cómo se guarda.** Una columna nueva en la pieza, `posterId`, que apunta a
+otra pieza de la vitrina. Es una relación de la tabla consigo misma: si la
+imagen elegida se borra, la referencia queda en null sola y el video vuelve
+a su cuadro de siempre, sin una miniatura rota.
+
+**Verificación.** Con un clip del hero movido a marcas por un minuto y
+devuelto al final: desde el modal, el selector cargó las 121 imágenes de la
+vitrina; elegir la primera dejó la fila con esa imagen y la leyenda
+"miniatura propia"; la página pública mostró la tarjeta con la imagen y sin
+video de fondo; el reproductor la tenía como cuadro previo; la celda de la
+galería del panel mostró la imagen; al reabrir el selector la elegida tenía
+su tilde, y "Quitar la imagen" devolvió el primer cuadro del archivo.
+
+**Rollback:** fila "Ñ, ajustado" de la tabla.

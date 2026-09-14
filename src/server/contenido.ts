@@ -58,6 +58,8 @@ export async function contenidoDe(categoria: string) {
     titulo: c.titulo,
     descripcion: c.descripcion,
     youtubeId: c.youtubeId,
+    // La miniatura elegida a mano, si hay. Chica: es para una tarjeta.
+    poster: c.posterId ? `/api/contenido/${c.posterId}?m=1` : null,
   }));
 }
 

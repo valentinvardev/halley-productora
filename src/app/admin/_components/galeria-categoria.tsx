@@ -340,7 +340,7 @@ export function GaleriaCategoria({
                       : ""
                   }`}
                 >
-                  {p.tipo === "video" && !p.youtubeId ? (
+                  {p.tipo === "video" && !p.youtubeId && !p.poster ? (
                     <video
                       src={p.url}
                       muted
@@ -352,7 +352,7 @@ export function GaleriaCategoria({
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={p.url}
+                      src={p.poster ?? p.url}
                       alt=""
                       className="h-full w-full object-cover"
                     />

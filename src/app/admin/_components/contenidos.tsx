@@ -262,7 +262,7 @@ function TarjetaCategoria({
                 key={p.id}
                 className="relative aspect-square overflow-hidden border border-gray-20 bg-paper-dim"
               >
-                {p.tipo === "video" && !p.youtubeId ? (
+                {p.tipo === "video" && !p.youtubeId && !p.poster ? (
                   <video
                     src={p.url}
                     muted
@@ -274,7 +274,7 @@ function TarjetaCategoria({
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.url}
+                    src={p.poster ?? p.url}
                     alt=""
                     className="h-full w-full object-cover"
                   />

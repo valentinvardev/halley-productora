@@ -5,62 +5,67 @@
 // pago se imputa contra la cuota impaga más vieja del alumno.
 
 generator client {
-    provider = "prisma-client-js"
-    output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Grupo y plan de cuotas                                                     */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Grupo y plan de cuotas
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 model Grupo {
-    id      String @id @default(cuid())
-    nombre  String // "Egresados 2027 – Colegio San Martín" o "Ana y Julián"
-    slug    String @unique // link público de registro: /g/[slug]
+  id     String @id @default(cuid())
+  nombre String // "Egresados 2027 – Colegio San Martín" o "Ana y Julián"
+  slug   String @unique // link público de registro: /g/[slug]
 
-    valoraciones Valoracion[]
+  valoraciones Valoracion[]
 
-    /// Para egresados, el colegio. Para un particular, el tipo de evento
-    /// ("Boda", "15 años"): funciona igual como subtítulo, alias y en los
-    /// avisos, así que se mantiene siempre cargado y nada aguas abajo cambia.
-    colegio String
+  /// Para egresados, el colegio. Para un particular, el tipo de evento
+  /// ("Boda", "15 años"): funciona igual como subtítulo, alias y en los
+  /// avisos, así que se mantiene siempre cargado y nada aguas abajo cambia.
+  colegio String
 
-    /// Egresados —muchos alumnos que comparten un plan— o particular —un cliente
-    /// único, una boda o un cumpleaños de 15, con su propio plan—. El modelo es
-    /// el mismo; cambia cómo se gestiona y se muestra.
-    tipo TipoCliente @default(EGRESADOS)
+  /// Egresados —muchos alumnos que comparten un plan— o particular —un cliente
+  /// único, una boda o un cumpleaños de 15, con su propio plan—. El modelo es
+  /// el mismo; cambia cómo se gestiona y se muestra.
+  tipo TipoCliente @default(EGRESADOS)
 
-    /// Permite que los padres se registren solos desde el link del grupo.
-    autoRegistro Boolean @default(true)
+  /// Permite que los padres se registren solos desde el link del grupo.
+  autoRegistro Boolean @default(true)
 
-    /// Grupo de prueba: los pagos se simulan y no tocan ningún proveedor.
-    ///
-    /// Es para ensayar el circuito entero —que la cuota se marque, que salga el
-    /// email, que se destrabe la galería— sin mover un peso. Va por grupo y no
-    /// por entorno a propósito: así se prueba en el sistema de verdad sin abrir
-    /// la puerta en los demás grupos, que es lo que hacía DEMO_ABIERTA.
-    ///
-    /// Se muestra en todas las pantallas donde aparece plata. Un cobro de
-    /// mentira que se ve igual que uno real es una trampa esperando.
-    modoPrueba Boolean @default(false)
+  /// Grupo de prueba: los pagos se simulan y no tocan ningún proveedor.
+  ///
+  /// Es para ensayar el circuito entero —que la cuota se marque, que salga el
+  /// email, que se destrabe la galería— sin mover un peso. Va por grupo y no
+  /// por entorno a propósito: así se prueba en el sistema de verdad sin abrir
+  /// la puerta en los demás grupos, que es lo que hacía DEMO_ABIERTA.
+  ///
+  /// Se muestra en todas las pantallas donde aparece plata. Un cobro de
+  /// mentira que se ve igual que uno real es una trampa esperando.
+  modoPrueba Boolean @default(false)
 
-    cuotas         Cuota[]
-    alumnos        Alumno[]
-    galerias       Galeria[]
-    avisos         AvisoGrupo[]
-    notificaciones Notificacion[]
+  cuotas         Cuota[]
+  alumnos        Alumno[]
+  galerias       Galeria[]
+  avisos         AvisoGrupo[]
+  notificaciones Notificacion[]
 
-    creadoEn DateTime @default(now())
-    /// A qué cuenta van los cobros de este grupo. Sin esto, la de por defecto.
-    cuentaPagoId String?
-    cuentaPago   CuentaPago? @relation(fields: [cuentaPagoId], references: [id], onDelete: SetNull)
-
+  creadoEn     DateTime    @default(now())
+  /// A qué cuenta van los cobros de este grupo. Sin esto, la de por defecto.
+  cuentaPagoId String?
+  cuentaPago   CuentaPago? @relation(fields: [cuentaPagoId], references: [id], onDelete: SetNull)
 }
 
 /// Una cuota del plan: "la 3 de 6, $45.000, vence el 05/09".
@@ -70,23 +75,23 @@ model Grupo {
 /// más cara y antes que las demás, y con eso alcanza —el orden de imputación, la
 /// mora y el conteo del plan siguen siendo los de siempre—.
 model Cuota {
-    id      String @id @default(cuid())
-    grupoId String
-    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  grupoId String
+  grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    /// Posición dentro del plan, y de ahí sale el orden en que se imputa lo que
-    /// se paga: de la más vieja a la más nueva.
-    numero  Int
-    monto   Decimal  @db.Decimal(12, 2)
-    venceEl DateTime
+  /// Posición dentro del plan, y de ahí sale el orden en que se imputa lo que
+  /// se paga: de la más vieja a la más nueva.
+  numero  Int
+  monto   Decimal  @db.Decimal(12, 2)
+  venceEl DateTime
 
-    pagos   Pago[]
-    ajustes CuotaAlumno[]
+  pagos   Pago[]
+  ajustes CuotaAlumno[]
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@unique([grupoId, numero])
-    @@index([grupoId])
+  @@unique([grupoId, numero])
+  @@index([grupoId])
 }
 
 /// Lo que este alumno paga por esta cuota, cuando no es lo que paga el grupo.
@@ -103,159 +108,177 @@ model Cuota {
 /// meses. Corriéndole la fecha al mes en que entró, el recargo arranca de cero
 /// solo y no hay nada que volver a tocar.
 model CuotaAlumno {
-    id String @id @default(cuid())
+  id String @id @default(cuid())
 
-    alumnoId String
-    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
-    cuotaId  String
-    cuota    Cuota  @relation(fields: [cuotaId], references: [id], onDelete: Cascade)
+  alumnoId String
+  alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  cuotaId  String
+  cuota    Cuota  @relation(fields: [cuotaId], references: [id], onDelete: Cascade)
 
-    /// Nulo es "lo que dice el grupo". Se guarda sólo lo que se cambió, así que
-    /// una fila que ajusta el monto sigue heredando la fecha del plan.
-    monto   Decimal?  @db.Decimal(12, 2)
-    venceEl DateTime?
+  /// Nulo es "lo que dice el grupo". Se guarda sólo lo que se cambió, así que
+  /// una fila que ajusta el monto sigue heredando la fecha del plan.
+  monto   Decimal?  @db.Decimal(12, 2)
+  venceEl DateTime?
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@unique([alumnoId, cuotaId])
-    @@index([alumnoId])
+  @@unique([alumnoId, cuotaId])
+  @@index([alumnoId])
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Alumno y cuenta del padre                                                  */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Alumno y cuenta del padre
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 model Alumno {
-    id     String @id @default(cuid())
-    nombre String
+  id     String @id @default(cuid())
+  nombre String
 
-    grupoId String
-    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  grupoId String
+  grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    /// Email al que el admin manda la invitación inicial, antes de que exista
-    /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
-    emailContacto String?
+  /// Email al que el admin manda la invitación inicial, antes de que exista
+  /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
+  emailContacto String?
 
-    /// Quiénes gestionan la cuota de este alumno. Un chico puede tener dos
-    /// papás —o un tutor más—, así que son varios y no uno; el tope está en
-    /// MAX_RESPONSABLES.
-    tutores Tutor[]
+  /// Quiénes gestionan la cuota de este alumno. Un chico puede tener dos
+  /// papás —o un tutor más—, así que son varios y no uno; el tope está en
+  /// MAX_RESPONSABLES.
+  tutores Tutor[]
 
-    /// Link personal sin login (/p/[token]). Sigue funcionando para el padre
-    /// que no se quiere registrar y es el que ya salió por mail.
-    token String @unique
+  /// Link personal sin login (/p/[token]). Sigue funcionando para el padre
+  /// que no se quiere registrar y es el que ya salió por mail.
+  token String @unique
 
-    valoraciones Valoracion[]
+  valoraciones Valoracion[]
 
-    /// Customer de Talo: va por alumno, no por cuenta, para que cada
-    /// transferencia se pueda imputar sin ambigüedad aunque haya hermanos.
-    taloCustomerId String @unique
-    cvu            String
-    alias          String
+  /// Customer de Talo: va por alumno, no por cuenta, para que cada
+  /// transferencia se pueda imputar sin ambigüedad aunque haya hermanos.
+  taloCustomerId String @unique
+  cvu            String
+  alias          String
 
-    /// La familia avisó que transfirió. No confirma nada: sirve para cruzarlo
-    /// contra lo que informa Talo.
-    reportoTransferenciaEl DateTime?
+  /// La familia avisó que transfirió. No confirma nada: sirve para cruzarlo
+  /// contra lo que informa Talo.
+  reportoTransferenciaEl DateTime?
 
-    pagos          Pago[]
-    notificaciones Notificacion[]
-    /// Los montos y vencimientos propios de este alumno, donde los tenga.
-    ajustesCuota   CuotaAlumno[]
+  pagos          Pago[]
+  notificaciones Notificacion[]
+  /// Los montos y vencimientos propios de este alumno, donde los tenga.
+  ajustesCuota   CuotaAlumno[]
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([grupoId])
+  @@index([grupoId])
 }
 
 /// Vínculo entre una cuenta y un alumno. Los responsables son todos iguales:
 /// cualquiera ve el plan, paga y puede sacar a otro.
 model Tutor {
-    id String @id @default(cuid())
+  id String @id @default(cuid())
 
-    cuentaId String
-    cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
-    alumnoId String
-    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  cuentaId String
+  cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  alumnoId String
+  alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@unique([cuentaId, alumnoId])
-    @@index([alumnoId])
-    @@index([cuentaId])
+  @@unique([cuentaId, alumnoId])
+  @@index([alumnoId])
+  @@index([cuentaId])
 }
 
 /// Cuenta del padre. Sin contraseña: se entra con un link mandado al email.
 model Cuenta {
-    id     String  @id @default(cuid())
-    email  String  @unique
-    nombre String?
+  id     String  @id @default(cuid())
+  email  String  @unique
+  nombre String?
 
-    tutorias Tutor[]
-    sesiones Sesion[]
+  tutorias Tutor[]
+  sesiones Sesion[]
 
-    creadoEn   DateTime  @default(now())
-    ultimoAcceso DateTime?
+  creadoEn     DateTime  @default(now())
+  ultimoAcceso DateTime?
 }
 
 /// Sesión abierta, referenciada por una cookie httpOnly.
 model Sesion {
-    id       String @id @default(cuid())
-    token    String @unique
-    cuentaId String
-    cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  token    String @unique
+  cuentaId String
+  cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
 
-    expiraEl DateTime
-    creadoEn DateTime @default(now())
+  expiraEl DateTime
+  creadoEn DateTime @default(now())
 
-    @@index([cuentaId])
+  @@index([cuentaId])
 }
 
 /// Magic link: un solo uso, con vencimiento corto.
 model EnlaceAcceso {
-    id    String @id @default(cuid())
-    token String @unique
-    email String
+  id    String @id @default(cuid())
+  token String @unique
+  email String
 
-    /// Si el link viene de un registro, el alumno que se está reclamando.
-    alumnoId String?
+  /// Si el link viene de un registro, el alumno que se está reclamando.
+  alumnoId String?
 
-    expiraEl DateTime
-    usadoEl  DateTime?
-    creadoEn DateTime  @default(now())
+  expiraEl DateTime
+  usadoEl  DateTime?
+  creadoEn DateTime  @default(now())
 
-    @@index([email])
+  @@index([email])
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Pagos                                                                      */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Pagos
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 model Pago {
-    id       String @id @default(cuid())
-    alumnoId String
-    alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  alumnoId String
+  alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
 
-    /// Cuota contra la que se imputó. Se completa al recibir el pago: se aplica
-    /// a la impaga más vieja.
-    cuotaId String?
-    cuota   Cuota?  @relation(fields: [cuotaId], references: [id], onDelete: SetNull)
+  /// Cuota contra la que se imputó. Se completa al recibir el pago: se aplica
+  /// a la impaga más vieja.
+  cuotaId String?
+  cuota   Cuota?  @relation(fields: [cuotaId], references: [id], onDelete: SetNull)
 
-    monto Decimal @db.Decimal(12, 2)
-    /// Id único del pago en el proveedor: la transacción de Talo o el payment de
-    /// Mercado Pago. Es la llave de idempotencia —el mismo pago no entra dos
-    /// veces— y por eso da igual de qué proveedor venga. La columna sigue
-    /// llamándose `taloTransactionId` para no migrar datos ya cargados.
-    refPago String @unique @map("taloTransactionId")
+  monto   Decimal @db.Decimal(12, 2)
+  /// Id único del pago en el proveedor: la transacción de Talo o el payment de
+  /// Mercado Pago. Es la llave de idempotencia —el mismo pago no entra dos
+  /// veces— y por eso da igual de qué proveedor venga. La columna sigue
+  /// llamándose `taloTransactionId` para no migrar datos ya cargados.
+  refPago String  @unique @map("taloTransactionId")
 
-    recibidoEn DateTime @default(now())
+  recibidoEn DateTime @default(now())
 
-    @@index([alumnoId])
-    @@index([cuotaId])
+  @@index([alumnoId])
+  @@index([cuotaId])
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Galería                                                                    */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Galería
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 /// Una galería de fotos, en dos modos según de dónde cuelgue:
 ///
@@ -267,27 +290,27 @@ model Pago {
 ///
 /// El modelo y las fotos son los mismos; cambia cómo se entra.
 model Galeria {
-    id      String  @id @default(cuid())
-    grupoId String?
-    grupo   Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  id      String  @id @default(cuid())
+  grupoId String?
+  grupo   Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    titulo    String
-    linkDrive String?
-    /// Atada: dura un año y después queda el respaldo en Drive. Nativa: la fecha
-    /// desde la que el link deja de funcionar (siempre presente).
-    venceEl   DateTime?
+  titulo    String
+  linkDrive String?
+  /// Atada: dura un año y después queda el respaldo en Drive. Nativa: la fecha
+  /// desde la que el link deja de funcionar (siempre presente).
+  venceEl   DateTime?
 
-    /// Sólo galerías nativas: el secreto del link para compartir (/galeria/…).
-    tokenPublico String? @unique
-    /// Sólo galerías nativas y opcional: `salt:hash` (scrypt). Sin esto, el link
-    /// alcanza para entrar.
-    passwordHash String?
+  /// Sólo galerías nativas: el secreto del link para compartir (/galeria/…).
+  tokenPublico String? @unique
+  /// Sólo galerías nativas y opcional: `salt:hash` (scrypt). Sin esto, el link
+  /// alcanza para entrar.
+  passwordHash String?
 
-    fotos FotoGaleria[]
+  fotos FotoGaleria[]
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([grupoId])
+  @@index([grupoId])
 }
 
 /// Una pieza entregable de la galería de un grupo.
@@ -296,61 +319,67 @@ model Galeria {
 /// mismo bucket pero se sirve siempre firmado y con permiso chequeado, nunca
 /// por el CDN abierto.
 model FotoGaleria {
-    id        String  @id @default(cuid())
-    galeriaId String
-    galeria   Galeria @relation(fields: [galeriaId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  galeriaId String
+  galeria   Galeria @relation(fields: [galeriaId], references: [id], onDelete: Cascade)
 
-    s3Key String @unique
-    /// Versión chica para la grilla del visor. El original queda intacto: es lo
-    /// que la familia se descarga.
-    s3KeyMini String?
-    /// El nombre original, que es con el que se descarga.
-    nombre String
-    tipo   String @default("imagen")
-    orden  Int    @default(0)
+  s3Key     String  @unique
+  /// Versión chica para la grilla del visor. El original queda intacto: es lo
+  /// que la familia se descarga.
+  s3KeyMini String?
+  /// El nombre original, que es con el que se descarga.
+  nombre    String
+  tipo      String  @default("imagen")
+  orden     Int     @default(0)
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([galeriaId, orden])
+  @@index([galeriaId, orden])
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Notificaciones                                                             */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Notificaciones
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 /// Bandeja de salida: todo mensaje que el sistema dispara queda registrado acá
 /// y se muestra en el panel. Con EMAIL_MODE=resend además sale por Resend.
 model Notificacion {
-    id           String           @id @default(cuid())
-    tipo         TipoNotificacion
-    destinatario String
-    asunto       String
-    cuerpo       String
+  id           String           @id @default(cuid())
+  tipo         TipoNotificacion
+  destinatario String
+  asunto       String
+  cuerpo       String
 
-    enviadoEl  DateTime?
-    resendId   String?
-    errorEnvio String?
+  enviadoEl  DateTime?
+  resendId   String?
+  errorEnvio String?
 
-    alumnoId String?
-    alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
-    grupoId  String?
-    grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  alumnoId String?
+  alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  grupoId  String?
+  grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([creadoEn])
+  @@index([creadoEn])
 }
 
 /// Sólo existe mientras Talo está en modo mock: guarda las transferencias
 /// simuladas para que el webhook pueda confirmar monto y fecha igual que lo
 /// haría contra `GET /customers/{id}/transactions/{id}`.
 model TransaccionMockTalo {
-    id         String   @id
-    customerId String
-    monto      Decimal  @db.Decimal(12, 2)
-    creadoEn   DateTime @default(now())
+  id         String   @id
+  customerId String
+  monto      Decimal  @db.Decimal(12, 2)
+  creadoEn   DateTime @default(now())
 
-    @@index([customerId])
+  @@index([customerId])
 }
 
 /// Espejo de un pago de Mercado Pago en modo demo. Guarda lo que en producción
@@ -358,16 +387,16 @@ model TransaccionMockTalo {
 /// preferencia, redirigir, volver, confirmar por webhook— se pueda recorrer
 /// entero sin credenciales reales ni plata de verdad.
 model TransaccionMockMercadoPago {
-    id                String   @id
-    cuentaPagoId      String
-    /// El id del alumno, tal como viaja en external_reference.
-    referenciaExterna String
-    monto             Decimal  @db.Decimal(12, 2)
-    /// Se marca cuando la pantalla demo confirma el pago.
-    aprobadoEn        DateTime?
-    creadoEn          DateTime @default(now())
+  id                String    @id
+  cuentaPagoId      String
+  /// El id del alumno, tal como viaja en external_reference.
+  referenciaExterna String
+  monto             Decimal   @db.Decimal(12, 2)
+  /// Se marca cuando la pantalla demo confirma el pago.
+  aprobadoEn        DateTime?
+  creadoEn          DateTime  @default(now())
 
-    @@index([cuentaPagoId])
+  @@index([cuentaPagoId])
 }
 
 /// Una cuenta que recibe cobros. Cada socio puede tener la suya —en Talo o en
@@ -377,33 +406,33 @@ model TransaccionMockMercadoPago {
 /// Las credenciales viven acá y nunca salen del servidor: el panel sólo ve los
 /// últimos caracteres para reconocerlas.
 model CuentaPago {
-    id           String        @id @default(cuid())
-    nombre       String
-    proveedor    ProveedorPago
-    /// El secreto: `client_secret` en Talo, access token en Mercado Pago.
-    credencial   String
-    /// Sólo Talo: permite apuntar a otro entorno.
-    apiUrl       String?
-    /// Sólo Talo, que necesita tres valores y no uno: con qué cliente y bajo qué
-    /// usuario se canjea el token. El secreto va en `credencial`.
-    taloClientId String?
-    taloUserId   String?
-    activa       Boolean       @default(true)
-    /// La que se usa cuando un grupo no eligió ninguna.
-    porDefecto   Boolean       @default(false)
-    creadoEn     DateTime      @default(now())
-    grupos       Grupo[]
+  id           String        @id @default(cuid())
+  nombre       String
+  proveedor    ProveedorPago
+  /// El secreto: `client_secret` en Talo, access token en Mercado Pago.
+  credencial   String
+  /// Sólo Talo: permite apuntar a otro entorno.
+  apiUrl       String?
+  /// Sólo Talo, que necesita tres valores y no uno: con qué cliente y bajo qué
+  /// usuario se canjea el token. El secreto va en `credencial`.
+  taloClientId String?
+  taloUserId   String?
+  activa       Boolean       @default(true)
+  /// La que se usa cuando un grupo no eligió ninguna.
+  porDefecto   Boolean       @default(false)
+  creadoEn     DateTime      @default(now())
+  grupos       Grupo[]
 
-    /// Vinculada por OAuth: el socio apretó "Conectar con Mercado Pago" en vez
-    /// de pasarnos un token a mano. Con esto el access token vence —180 días— y
-    /// se renueva solo con el refresh token, sin volver a molestarlo.
-    refreshToken String?
-    expiraEl     DateTime?
-    /// Id del vendedor en Mercado Pago: identifica de qué cuenta es el token y
-    /// evita vincular dos veces la misma.
-    mpUserId     String?       @unique
+  /// Vinculada por OAuth: el socio apretó "Conectar con Mercado Pago" en vez
+  /// de pasarnos un token a mano. Con esto el access token vence —180 días— y
+  /// se renueva solo con el refresh token, sin volver a molestarlo.
+  refreshToken String?
+  expiraEl     DateTime?
+  /// Id del vendedor en Mercado Pago: identifica de qué cuenta es el token y
+  /// evita vincular dos veces la misma.
+  mpUserId     String?   @unique
 
-    @@index([activa])
+  @@index([activa])
 }
 
 /// El `state` de una vinculación por OAuth en curso.
@@ -413,13 +442,13 @@ model CuentaPago {
 /// canjear un código suyo y dejar su cuenta enganchada como si fuera nuestra.
 /// Se usa una sola vez y vence rápido.
 model EstadoOauth {
-    id       String    @id @default(cuid())
-    estado   String    @unique
-    /// Nombre que el admin le puso a la cuenta antes de salir hacia MP.
-    nombre   String
-    usadoEl  DateTime?
-    expiraEl DateTime
-    creadoEn DateTime  @default(now())
+  id       String    @id @default(cuid())
+  estado   String    @unique
+  /// Nombre que el admin le puso a la cuenta antes de salir hacia MP.
+  nombre   String
+  usadoEl  DateTime?
+  expiraEl DateTime
+  creadoEn DateTime  @default(now())
 }
 
 /// Un aviso del grupo para su familia: fechas, instrucciones, lo que sea.
@@ -432,39 +461,39 @@ model EstadoOauth {
 /// tenga acceso al grupo: no hay nada que liberar al pagar, un aviso es
 /// justamente lo que hay que poder leer antes.
 model AvisoGrupo {
-    id      String @id @default(cuid())
-    grupoId String
-    grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  grupoId String
+  grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
-    titulo String
-    cuerpo String
+  titulo String
+  cuerpo String
 
-    /// Dónde va en la lista. El admin ordena; sin esto, el orden lo decidiría
-    /// la casualidad de cuándo se escribió cada uno.
-    orden Int @default(0)
+  /// Dónde va en la lista. El admin ordena; sin esto, el orden lo decidiría
+  /// la casualidad de cuándo se escribió cada uno.
+  orden Int @default(0)
 
-    /// Un borrador no se le muestra a nadie hasta que se publica.
-    publicado Boolean @default(true)
+  /// Un borrador no se le muestra a nadie hasta que se publica.
+  publicado Boolean @default(true)
 
-    fotos    FotoAviso[]
-    creadoEn DateTime    @default(now())
+  fotos    FotoAviso[]
+  creadoEn DateTime    @default(now())
 
-    @@index([grupoId, orden])
+  @@index([grupoId, orden])
 }
 
 /// Una foto adjunta a un aviso.
 model FotoAviso {
-    id      String     @id @default(cuid())
-    avisoId String
-    aviso   AvisoGrupo @relation(fields: [avisoId], references: [id], onDelete: Cascade)
+  id      String     @id @default(cuid())
+  avisoId String
+  aviso   AvisoGrupo @relation(fields: [avisoId], references: [id], onDelete: Cascade)
 
-    s3Key  String @unique
-    nombre String
-    orden  Int    @default(0)
+  s3Key  String @unique
+  nombre String
+  orden  Int    @default(0)
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([avisoId, orden])
+  @@index([avisoId, orden])
 }
 
 /// Bitácora de todo lo que pasa alrededor del dinero.
@@ -478,50 +507,50 @@ model FotoAviso {
 /// histórico, y tiene que seguir leyéndose aunque después se borre el alumno,
 /// el grupo o la cuenta que lo originó.
 model EventoPago {
-    id       String   @id @default(cuid())
-    creadoEn DateTime @default(now())
+  id       String   @id @default(cuid())
+  creadoEn DateTime @default(now())
 
-    /// TALO o MERCADOPAGO.
-    proveedor String
-    /// Qué pasó: cobro-iniciado, aviso-recibido, pago-registrado, aviso-rechazado.
-    tipo      String
-    /// Cómo terminó: el mismo motivo que devuelve el procesamiento.
-    resultado String?
-    /// Si terminó mal. Separa "no pasó nada raro" de "esto hay que mirarlo".
-    falla     Boolean  @default(false)
+  /// TALO o MERCADOPAGO.
+  proveedor String
+  /// Qué pasó: cobro-iniciado, aviso-recibido, pago-registrado, aviso-rechazado.
+  tipo      String
+  /// Cómo terminó: el mismo motivo que devuelve el procesamiento.
+  resultado String?
+  /// Si terminó mal. Separa "no pasó nada raro" de "esto hay que mirarlo".
+  falla     Boolean @default(false)
 
-    /// Id en el proveedor, cuando lo hay. Permite cruzar con el `Pago`.
-    refPago String?
-    /// La contraparte que hace falta para volver a pedirlo: el customer en Talo,
-    /// la cuenta que cobra en Mercado Pago. Sin esto, reintentar sería adivinar.
-    refCliente String?
-    monto      Decimal? @db.Decimal(12, 2)
+  /// Id en el proveedor, cuando lo hay. Permite cruzar con el `Pago`.
+  refPago    String?
+  /// La contraparte que hace falta para volver a pedirlo: el customer en Talo,
+  /// la cuenta que cobra en Mercado Pago. Sin esto, reintentar sería adivinar.
+  refCliente String?
+  monto      Decimal? @db.Decimal(12, 2)
 
-    /// Cuándo dejó de ser un problema: se completa al reintentar con éxito. Los
-    /// resueltos dejan de contar en "para mirar", que si no nunca bajaría.
-    resueltoEn DateTime?
+  /// Cuándo dejó de ser un problema: se completa al reintentar con éxito. Los
+  /// resueltos dejan de contar en "para mirar", que si no nunca bajaría.
+  resueltoEn DateTime?
 
-    alumnoId     String?
-    alumnoNombre String?
-    grupoId      String?
-    grupoNombre  String?
-    cuentaNombre String?
+  alumnoId     String?
+  alumnoNombre String?
+  grupoId      String?
+  grupoNombre  String?
+  cuentaNombre String?
 
-    /// Texto libre para lo que no entra en los campos de arriba.
-    detalle String?
+  /// Texto libre para lo que no entra en los campos de arriba.
+  detalle String?
 
-    @@index([creadoEn])
-    @@index([refPago])
-    @@index([alumnoId])
+  @@index([creadoEn])
+  @@index([refPago])
+  @@index([alumnoId])
 }
 
 /// Ajustes del sitio que el admin edita sin tocar código: el WhatsApp al que
 /// escriben las familias, el Instagram, la casilla de contacto. Clave/valor para
 /// que sumar uno nuevo no pida una migración.
 model Ajuste {
-    clave         String   @id
-    valor         String
-    actualizadoEn DateTime @updatedAt
+  clave         String   @id
+  valor         String
+  actualizadoEn DateTime @updatedAt
 }
 
 /// Una pieza de la vitrina: la foto o el video que el admin sube por categoría
@@ -529,37 +558,43 @@ model Ajuste {
 /// (sin el prefijo del cliente, que lo pone la capa de S3). `orden` fija en qué
 /// posición se ve dentro de su categoría.
 model Contenido {
-    id        String   @id @default(cuid())
-    categoria String
-    s3Key     String   @unique
-    /// Versión chica para las grillas. Opcional: las piezas subidas antes de que
-    /// existiera no la tienen, y ahí se cae a `s3Key`.
-    s3KeyMini String?
-    tipo      String   @default("imagen")
-    /// Medidas del original, en píxeles y con la rotación del EXIF ya
-    /// aplicada. Existen para que la vitrina pueda reservarle a cada foto su
-    /// forma antes de que la foto llegue, y así no se acomode sola a la vista
-    /// del que mira. Opcionales: las piezas viejas no las tienen y se miden
-    /// solas la primera vez que alguien abre su categoría.
-    ancho     Int?
-    alto      Int?
-    orden     Int      @default(0)
-    /// Cuántas veces tocaron el corazón. Un contador y no una tabla de likes:
-    /// no hay sesión, así que no hay a quién atarle cada like, y lo que la web
-    /// muestra es el número.
-    likes     Int      @default(0)
-    /// Hoy los usan sólo los videos: el título y la descripción que muestra la
-    /// página de videos de cada servicio. Se cargan desde el panel, pieza por
-    /// pieza, y vacíos no se muestran.
-    titulo      String?
-    descripcion String?
-    /// Si el video vive en YouTube (no listado), su id. La `s3Key` lleva
-    /// entonces un centinela `youtube:{categoria}:{id}` para no romper el
-    /// único y para que el mismo video pueda estar en dos categorías.
-    youtubeId   String?
-    creadoEn  DateTime @default(now())
+  id                 String      @id @default(cuid())
+  categoria          String
+  s3Key              String      @unique
+  /// Versión chica para las grillas. Opcional: las piezas subidas antes de que
+  /// existiera no la tienen, y ahí se cae a `s3Key`.
+  s3KeyMini          String?
+  tipo               String      @default("imagen")
+  /// Medidas del original, en píxeles y con la rotación del EXIF ya
+  /// aplicada. Existen para que la vitrina pueda reservarle a cada foto su
+  /// forma antes de que la foto llegue, y así no se acomode sola a la vista
+  /// del que mira. Opcionales: las piezas viejas no las tienen y se miden
+  /// solas la primera vez que alguien abre su categoría.
+  ancho              Int?
+  alto               Int?
+  orden              Int         @default(0)
+  /// Cuántas veces tocaron el corazón. Un contador y no una tabla de likes:
+  /// no hay sesión, así que no hay a quién atarle cada like, y lo que la web
+  /// muestra es el número.
+  likes              Int         @default(0)
+  /// Hoy los usan sólo los videos: el título y la descripción que muestra la
+  /// página de videos de cada servicio. Se cargan desde el panel, pieza por
+  /// pieza, y vacíos no se muestran.
+  titulo             String?
+  descripcion        String?
+  /// Si el video vive en YouTube (no listado), su id. La `s3Key` lleva
+  /// entonces un centinela `youtube:{categoria}:{id}` para no romper el
+  /// único y para que el mismo video pueda estar en dos categorías.
+  youtubeId          String?
+  /// La miniatura elegida a mano para un video: otra pieza de la vitrina, una
+  /// imagen. Sin ella, un archivo muestra su primer cuadro y uno de YouTube la
+  /// miniatura que genera YouTube. Si la imagen se borra, esto queda en null.
+  posterId           String?
+  poster             Contenido?  @relation("MiniaturaDeVideo", fields: [posterId], references: [id], onDelete: SetNull)
+  videosConMiniatura Contenido[] @relation("MiniaturaDeVideo")
+  creadoEn           DateTime    @default(now())
 
-    @@index([categoria, orden])
+  @@index([categoria, orden])
 }
 
 /// Un presupuesto armado desde el simulador público.
@@ -574,42 +609,42 @@ model Contenido {
 /// se emitió aunque el catálogo cambie de precios al día siguiente. Es lo que
 /// hace que "la reserva congela el precio" sea verdad y no una frase.
 model Presupuesto {
-    id     String @id @default(cuid())
-    /// El que se le pasa al cliente: Q-PEREZ-2026-4F2A. Se dicta por teléfono,
-    /// así que el alfabeto del hash no tiene caracteres ambiguos.
-    codigo String @unique
+  id     String @id @default(cuid())
+  /// El que se le pasa al cliente: Q-PEREZ-2026-4F2A. Se dicta por teléfono,
+  /// así que el alfabeto del hash no tiene caracteres ambiguos.
+  codigo String @unique
 
-    /// "quince" o "boda".
-    evento String
+  /// "quince" o "boda".
+  evento String
 
-    /// Las líneas congeladas: `[{ id, nombre, detalle?, precio }]`.
-    items Json
+  /// Las líneas congeladas: `[{ id, nombre, detalle?, precio }]`.
+  items Json
 
-    total           Decimal @db.Decimal(12, 2)
-    reserva         Decimal @db.Decimal(12, 2)
-    /// El saldo con el descuento o el interés del plan ya aplicados.
-    saldoFinanciado Decimal @db.Decimal(12, 2)
-    /// El id del plan elegido: "unico", "3", "6", "9".
-    plan            String
+  total           Decimal @db.Decimal(12, 2)
+  reserva         Decimal @db.Decimal(12, 2)
+  /// El saldo con el descuento o el interés del plan ya aplicados.
+  saldoFinanciado Decimal @db.Decimal(12, 2)
+  /// El id del plan elegido: "unico", "3", "6", "9".
+  plan            String
 
-    nombre      String
-    celular     String
-    email       String
-    /// Pidió copia por mail y novedades por WhatsApp.
-    quiereCopia Boolean @default(false)
+  nombre      String
+  celular     String
+  email       String
+  /// Pidió copia por mail y novedades por WhatsApp.
+  quiereCopia Boolean @default(false)
 
-    /// La fecha del evento. Aproximada: se aclara que puede no estar cerrada.
-    fechaEvento DateTime?
+  /// La fecha del evento. Aproximada: se aclara que puede no estar cerrada.
+  fechaEvento DateTime?
 
-    /// Se marca cuando Halley lo contactó, para que la lista del panel no
-    /// obligue a acordarse de a quién ya se le escribió.
-    contactadoEn DateTime?
+  /// Se marca cuando Halley lo contactó, para que la lista del panel no
+  /// obligue a acordarse de a quién ya se le escribió.
+  contactadoEn DateTime?
 
-    creadoEn      DateTime @default(now())
-    actualizadoEn DateTime @updatedAt
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
 
-    @@index([creadoEn])
-    @@index([evento])
+  @@index([creadoEn])
+  @@index([evento])
 }
 
 /// Un ítem del catálogo del simulador: algo que se puede contratar.
@@ -624,41 +659,41 @@ model Presupuesto {
 /// fila obligaría a que compartan el precio. Editar dos veces es el costo de
 /// poder cobrarlos distinto.
 model ItemPresupuesto {
-    id String @id @default(cuid())
+  id String @id @default(cuid())
 
-    /// "quince" o "boda".
-    evento String
-    /// "momentos", "coberturas" o "complementos".
-    parte  String
+  /// "quince" o "boda".
+  evento String
+  /// "momentos", "coberturas" o "complementos".
+  parte  String
 
-    /// El nombre corto con el que el ítem viaja en un presupuesto emitido.
-    ///
-    /// No es el id: los presupuestos guardan sus líneas con esta clave, así que
-    /// tiene que sobrevivir a que alguien renombre el ítem. Se deriva del
-    /// nombre la primera vez y después ya no cambia.
-    clave String
+  /// El nombre corto con el que el ítem viaja en un presupuesto emitido.
+  ///
+  /// No es el id: los presupuestos guardan sus líneas con esta clave, así que
+  /// tiene que sobrevivir a que alguien renombre el ítem. Se deriva del
+  /// nombre la primera vez y después ya no cambia.
+  clave String
 
-    nombre String
-    texto  String
-    precio Decimal @db.Decimal(12, 2)
+  nombre String
+  texto  String
+  precio Decimal @db.Decimal(12, 2)
 
-    orden Int @default(0)
-    /// Apagado no se muestra en el simulador, pero no se borra: un ítem que se
-    /// deja de ofrecer una temporada sigue estando en los presupuestos viejos.
-    activo Boolean @default(true)
+  orden  Int     @default(0)
+  /// Apagado no se muestra en el simulador, pero no se borra: un ítem que se
+  /// deja de ofrecer una temporada sigue estando en los presupuestos viejos.
+  activo Boolean @default(true)
 
-    /// La foto que acompaña, si tiene. Apunta a una pieza de `Contenido` —la
-    /// misma tabla que la vitrina— para no tener dos sistemas de imágenes: así
-    /// se puede elegir algo ya subido o subir una nueva, y se sirve por la ruta
-    /// firmada que ya existe.
-    imagenId String?
+  /// La foto que acompaña, si tiene. Apunta a una pieza de `Contenido` —la
+  /// misma tabla que la vitrina— para no tener dos sistemas de imágenes: así
+  /// se puede elegir algo ya subido o subir una nueva, y se sirve por la ruta
+  /// firmada que ya existe.
+  imagenId String?
 
-    opciones OpcionItem[]
+  opciones OpcionItem[]
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@unique([evento, clave])
-    @@index([evento, parte, orden])
+  @@unique([evento, clave])
+  @@index([evento, parte, orden])
 }
 
 /// Algo que cuelga de un ítem y le suma al precio.
@@ -677,25 +712,25 @@ model ItemPresupuesto {
 /// La tabla sigue llamándose `LocacionPresupuesto` para no migrar las filas ya
 /// cargadas; el modelo cambió de nombre cuando dejó de ser sólo eso.
 model OpcionItem {
-    id     String          @id @default(cuid())
-    itemId String
-    item   ItemPresupuesto @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id     String          @id @default(cuid())
+  itemId String
+  item   ItemPresupuesto @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-    /// "locacion" o "cobertura".
-    tipo String @default("locacion")
+  /// "locacion" o "cobertura".
+  tipo String @default("locacion")
 
-    clave  String
-    nombre String
-    texto  String
-    /// Lo que suma sobre el precio del ítem. Puede ser cero.
-    extra  Decimal @db.Decimal(12, 2)
+  clave  String
+  nombre String
+  texto  String
+  /// Lo que suma sobre el precio del ítem. Puede ser cero.
+  extra  Decimal @db.Decimal(12, 2)
 
-    orden    Int     @default(0)
-    imagenId String?
+  orden    Int     @default(0)
+  imagenId String?
 
-    @@unique([itemId, clave])
-    @@index([itemId, tipo, orden])
-    @@map("LocacionPresupuesto")
+  @@unique([itemId, clave])
+  @@index([itemId, tipo, orden])
+  @@map("LocacionPresupuesto")
 }
 
 /// Un presupuesto prearmado: una selección del catálogo con nombre propio.
@@ -710,64 +745,70 @@ model OpcionItem {
 /// coberturas }`, con claves y no ids de base, que es lo que sobrevive a que
 /// alguien renombre un ítem.
 model Paquete {
-    id     String @id @default(cuid())
-    /// "quince" o "boda".
-    evento String
+  id     String @id @default(cuid())
+  /// "quince" o "boda".
+  evento String
 
-    nombre String
-    texto  String @default("")
-    /// Sin uso desde septiembre de 2026: el ícono pasó a ser de cada ítem del
-    /// desglose, no del paquete. Queda para no borrar una columna en producción.
-    icono  String @default("estrella")
+  nombre String
+  texto  String @default("")
+  /// Sin uso desde septiembre de 2026: el ícono pasó a ser de cada ítem del
+  /// desglose, no del paquete. Queda para no borrar una columna en producción.
+  icono  String @default("estrella")
 
-    seleccion Json
+  seleccion Json
 
-    orden  Int     @default(0)
-    /// Apagado no se ofrece, pero no se borra.
-    activo Boolean @default(true)
+  orden  Int     @default(0)
+  /// Apagado no se ofrece, pero no se borra.
+  activo Boolean @default(true)
 
-    creadoEn DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-    @@index([evento, orden])
+  @@index([evento, orden])
 }
 
 enum ProveedorPago {
-    TALO
-    MERCADOPAGO
+  TALO
+  MERCADOPAGO
 }
 
 enum TipoCliente {
-    EGRESADOS
-    PARTICULAR
+  EGRESADOS
+  PARTICULAR
 }
 
 enum EstadoCuota {
-    PENDIENTE
-    PAGADA
-    VENCIDA
+  PENDIENTE
+  PAGADA
+  VENCIDA
 }
 
 enum TipoNotificacion {
-    INVITACION
-    ACCESO
-    CONFIRMACION_PADRE
-    AVISO_ADMIN
-    RECORDATORIO
-    /// La transferencia entró pero no alcanzó a completar la cuota. Es el único
-    /// aviso que sale de un pago que no cerró nada: sin él, la familia manda
-    /// menos de lo que debía y el sistema se queda callado justo ahí.
-    PAGO_PARCIAL
-    /// La copia del presupuesto armado en el simulador. Va a alguien que
-    /// todavía no es cliente, así que no cuelga de ningún alumno ni grupo.
-    PRESUPUESTO
-    /// El pedido de valoración después del servicio, con el link para
-    /// dejarla.
-    VALORACION
+  INVITACION
+  ACCESO
+  CONFIRMACION_PADRE
+  AVISO_ADMIN
+  RECORDATORIO
+  /// La transferencia entró pero no alcanzó a completar la cuota. Es el único
+  /// aviso que sale de un pago que no cerró nada: sin él, la familia manda
+  /// menos de lo que debía y el sistema se queda callado justo ahí.
+  PAGO_PARCIAL
+  /// La copia del presupuesto armado en el simulador. Va a alguien que
+  /// todavía no es cliente, así que no cuelga de ningún alumno ni grupo.
+  PRESUPUESTO
+  /// El pedido de valoración después del servicio, con el link para
+  /// dejarla.
+  VALORACION
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Valoraciones                                                               */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Valoraciones
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 /// Una valoración pedida a una familia después del servicio.
 ///
@@ -778,28 +819,28 @@ enum TipoNotificacion {
 /// tres momentos de lo mismo, y así el link pedido y la valoración recibida
 /// nunca se pueden desatar.
 model Valoracion {
-    id    String @id @default(cuid())
-    token String @unique
+  id    String @id @default(cuid())
+  token String @unique
 
-    alumnoId String?
-    alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: SetNull)
-    grupoId  String?
-    grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: SetNull)
-    /// A quién se le mandó el pedido.
-    email    String
+  alumnoId String?
+  alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: SetNull)
+  grupoId  String?
+  grupo    Grupo?  @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  /// A quién se le mandó el pedido.
+  email    String
 
-    expiraEl DateTime
-    usadoEl  DateTime?
+  expiraEl DateTime
+  usadoEl  DateTime?
 
-    /// Lo que dejó la familia. Vacío hasta que usa el link.
-    nombre     String  @default("")
-    comentario String  @default("")
-    estrellas  Int     @default(0)
-    /// Foto de perfil opcional, en S3.
-    fotoKey    String?
+  /// Lo que dejó la familia. Vacío hasta que usa el link.
+  nombre     String  @default("")
+  comentario String  @default("")
+  estrellas  Int     @default(0)
+  /// Foto de perfil opcional, en S3.
+  fotoKey    String?
 
-    publicada Boolean  @default(false)
-    creadoEn  DateTime @default(now())
+  publicada Boolean  @default(false)
+  creadoEn  DateTime @default(now())
 
-    @@index([publicada, creadoEn])
+  @@index([publicada, creadoEn])
 }
