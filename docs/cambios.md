@@ -1493,3 +1493,28 @@ Y X Y, y en cuatro giros seguidos se vieron los cuatro sentidos: +X, -Y, -X y
 cerradas.
 
 **Rollback:** fila "I, ajustado" de la tabla.
+
+### N, ajustado. El reproductor tiene volumen, no sólo silencio
+
+**Pedido:** "sólo faltaría que el player tenga para subir o bajar el volumen y
+no sólo mutear".
+
+**Ahora.** Al lado del botón de silencio hay una barra de volumen, la misma
+barra recta que la del tiempo pero más corta. Llevarla a cero silencia y el
+ícono lo dice; subirla desde cero saca el silencio, porque nadie sube el
+volumen para seguir sin oír. Con el teclado, flecha arriba y flecha abajo
+suben y bajan de a diez; izquierda y derecha siguen siendo del visor, que las
+usa para pasar de video. El botón de silencio sigue andando y la barra lo
+refleja vacía mientras está en silencio.
+
+**En el teléfono no aparece.** En iOS el volumen del video lo manejan los
+botones del aparato y el navegador ignora lo que se le pida desde la página.
+Una barra que no hace nada es peor que ninguna, así que en pantallas chicas
+queda sólo el botón de silencio, que sí funciona.
+
+**Verificación.** Con un clip del hero movido a marcas por un minuto y
+devuelto al final, en el visor público: la barra puso el volumen en 0,3; en
+cero el video quedó silenciado y el ícono pasó a "Activar sonido"; flecha
+arriba lo dejó en 0,1 sin silencio; silenciar con el botón vació la barra.
+
+**Rollback:** fila "N, ajustado" de la tabla.

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
  * Los controles nativos los dibuja cada navegador a su manera y rompen el tono
  * del sitio; estos son de la marca: barra recta, sin relieve, en blanco sobre el
  * video. Lo mínimo que un visor necesita —play, tiempo, barra para buscar,
- * silencio y pantalla completa— y nada más.
+ * volumen con su silencio, y pantalla completa— y nada más.
  *
  * El estado sale del elemento `<video>`, no de React: la fuente de verdad es el
  * reproductor, así que si el video se pausa solo o termina, la UI lo refleja.
@@ -21,10 +21,21 @@ function reloj(seg: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/**
+ * Pone el volumen entre cero y uno. Cero es silencio y se marca como tal, así
+ * el ícono lo dice; cualquier cosa por encima de cero lo saca del silencio.
+ */
+function ponerVolumen(v: HTMLVideoElement, valor: number) {
+  const n = Math.min(1, Math.max(0, Math.round(valor * 100) / 100));
+  v.volume = n;
+  v.muted = n === 0;
+}
+
 export function Reproductor({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [andando, setAndando] = useState(false);
   const [mudo, setMudo] = useState(false);
+  const [volumen, setVolumen] = useState(1);
   const [t, setT] = useState(0);
   const [total, setTotal] = useState(0);
 
@@ -37,6 +48,7 @@ export function Reproductor({ src }: { src: string }) {
       setT(v.currentTime);
       setTotal(v.duration);
       setMudo(v.muted);
+      setVolumen(v.volume);
     };
 
     v.addEventListener("timeupdate", sincronizar);
@@ -53,14 +65,20 @@ export function Reproductor({ src }: { src: string }) {
     };
   }, [src]);
 
-  // Espacio para play/pausa, como en cualquier reproductor.
+  // Espacio para play/pausa y flechas arriba y abajo para el volumen, como en
+  // cualquier reproductor. Izquierda y derecha quedan libres: son del visor,
+  // que las usa para pasar de video.
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
-      e.preventDefault();
       const v = ref.current;
       if (!v) return;
-      void (v.paused ? v.play() : v.pause());
+      if (e.code === "Space") {
+        e.preventDefault();
+        void (v.paused ? v.play() : v.pause());
+      } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        ponerVolumen(v, v.volume + (e.code === "ArrowUp" ? 0.1 : -0.1));
+      }
     };
     document.addEventListener("keydown", tecla);
     return () => document.removeEventListener("keydown", tecla);
@@ -73,6 +91,9 @@ export function Reproductor({ src }: { src: string }) {
   };
 
   const avance = total > 0 ? (t / total) * 100 : 0;
+  // Con silencio la barra se ve vacía, que es lo que se escucha. Volver a
+  // subirla saca el silencio: nadie sube el volumen para seguir sin oír.
+  const nivel = mudo ? 0 : volumen;
 
   return (
     <div
@@ -182,6 +203,32 @@ export function Reproductor({ src }: { src: string }) {
             )}
           </svg>
         </button>
+
+        {/* El volumen: la misma barra que la del tiempo, más corta. Va oculta
+            en pantallas chicas porque en iOS el volumen del video lo manejan
+            los botones del teléfono y el navegador ignora lo que se le pida
+            desde acá; una barra que no hace nada es peor que ninguna. */}
+        <div className="relative hidden w-20 shrink-0 sm:block">
+          <div className="h-[3px] w-full bg-white/25">
+            <div
+              className="h-full bg-white"
+              style={{ width: `${nivel * 100}%` }}
+            />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.02}
+            value={nivel}
+            aria-label="Volumen"
+            onChange={(e) => {
+              const v = ref.current;
+              if (v) ponerVolumen(v, Number(e.target.value));
+            }}
+            className="absolute inset-x-0 -top-2 h-6 w-full cursor-pointer opacity-0"
+          />
+        </div>
 
         <button
           type="button"
