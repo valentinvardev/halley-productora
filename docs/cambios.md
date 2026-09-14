@@ -292,6 +292,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | M, corregido | `b6ff31c` | Vuelven los rótulos escritos a mano, con el desfasaje en modo paquete |
 | I, ajustado | `0ede2c8` | Los cubos vuelven a girar todos sobre la vertical y hacia el mismo lado |
 | N, ajustado | `eeb84cc` | El reproductor vuelve a tener sólo el botón de silencio |
+| Ñ, ajustado | `5c1a18e` | Se va el selector de miniatura; la columna posterId queda en la base sin uso |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
