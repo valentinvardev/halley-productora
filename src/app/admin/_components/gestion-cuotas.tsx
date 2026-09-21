@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { IconoAlerta, IconoTilde } from "~/app/_components/iconos";
 import { Desplegable } from "~/app/_components/desplegable";
@@ -37,8 +37,10 @@ export type AlumnoCuotas = {
   id: string;
   nombre: string;
   deuda: number;
+  /** Lo mismo sin la mora: sólo el capital que falta. */
+  deudaSinMora: number;
   /** El plan imputado: cuánto falta de cada cuota, hoy, con la mora incluida. */
-  cuotas: { numero: number; saldo: number }[];
+  cuotas: { numero: number; saldo: number; saldoSinMora: number }[];
   /** Lo que se marcó a mano: es lo único que se puede deshacer. */
   manual: { cantidad: number; total: number };
 };
@@ -72,6 +74,31 @@ export function GestionCuotas({
   const [modo, setModo] = useState<"marcar" | "deshacer">("marcar");
   /** Al deshacer: todos los marcados a mano, o sólo el último de cada uno. */
   const [todosLosManuales, setTodosLosManuales] = useState(false);
+  /**
+   * Si el pago que se registra incluye la mora.
+   *
+   * Viene en sí, que es lo que se hacía siempre. El caso de destildarlo es
+   * el de la familia que pagó por otro medio y se carga tarde: el atraso
+   * fue administrativo y cobrarle el recargo sería cobrarle un error
+   * nuestro. Al destildarlo la mora de esas cuotas queda perdonada.
+   */
+  const [cobrarMora, setCobrarMora] = useState(true);
+
+  /**
+   * Cada vez que se abre, la pantalla arranca limpia.
+   *
+   * El componente queda montado aunque esté cerrado, así que sin esto la
+   * selección se decidía una sola vez, en el primer render de la página. Al
+   * entrar desde la ficha de un alumno la lista llega con él solo, pero ya
+   * era tarde para tildarlo: el modal abría con todo en cero.
+   */
+  const idsClave = alumnos.map((a) => a.id).join(",");
+  useEffect(() => {
+    if (!abierto) return;
+    setElegidos(new Set(unico ? idsClave.split(",") : []));
+    setCobrarMora(true);
+    setModo("marcar");
+  }, [abierto, unico, idsClave]);
 
   const avisar = async (n: number, total: number, verbo: string) => {
     setConfirmando(false);
@@ -107,6 +134,8 @@ export function GestionCuotas({
    * cuota no se le crea un pago de cero, así que tampoco se lo cuenta.
    */
   const previo = useMemo(() => {
+    let capital = 0;
+    let mora = 0;
     let total = 0;
     let cuantos = 0;
     for (const a of alumnos) {
@@ -123,17 +152,24 @@ export function GestionCuotas({
         continue;
       }
 
-      const monto =
+      // Las dos cifras salen del mismo plan ya imputado, así que el desglose
+      // es exacto y no una estimación: es lo que se va a registrar.
+      const linea =
         cuota === null
-          ? a.deuda
-          : (a.cuotas.find((c) => c.numero === cuota)?.saldo ?? 0);
-      if (monto > 0) {
-        total += monto;
+          ? { con: a.deuda, sin: a.deudaSinMora }
+          : {
+              con: a.cuotas.find((c) => c.numero === cuota)?.saldo ?? 0,
+              sin: a.cuotas.find((c) => c.numero === cuota)?.saldoSinMora ?? 0,
+            };
+      if (linea.con > 0) {
+        capital += linea.sin;
+        mora += linea.con - linea.sin;
+        total += cobrarMora ? linea.con : linea.sin;
         cuantos += 1;
       }
     }
-    return { total, cuantos };
-  }, [alumnos, elegidos, cuota, modo, todosLosManuales]);
+    return { capital, mora, total, cuantos };
+  }, [alumnos, elegidos, cuota, modo, todosLosManuales, cobrarMora]);
 
   const alternar = (id: string) =>
     setElegidos((s) => {
@@ -177,7 +213,7 @@ export function GestionCuotas({
 
         <p className="mt-4 text-[14px] leading-relaxed text-gray-70">
           {modo === "marcar"
-            ? "Elegí a quiénes y qué cuota. Se registra el pago que la salda, por lo que falte hoy con la mora incluida — es para lo que se cobró por fuera del sistema."
+            ? "Elegí a quiénes y qué cuota. Se registra el pago que la salda por lo que falte hoy. Es para lo que se cobró por fuera del sistema: en efectivo, a otra cuenta, o de palabra."
             : "Saca los pagos que se marcaron a mano y las cuotas vuelven a figurar como estaban. Los que entraron por Talo o Mercado Pago no se tocan: esa plata entró de verdad."}
         </p>
 
@@ -264,24 +300,78 @@ export function GestionCuotas({
               alCambiar={(v) => setTodosLosManuales(v === "todos")}
               opciones={[
                 { valor: "ultimo", etiqueta: "El último marcado de cada uno" },
-                { valor: "todos", etiqueta: "Todos los marcados a mano" },
+                {
+                  valor: "todos",
+                  etiqueta: "Todos los marcados a mano",
+                },
               ]}
             />
           )}
 
+          {/* La casilla aparece sólo cuando hay mora que cobrar: si no hay,
+              es un control que no cambia nada y sólo hace dudar. */}
+          {modo === "marcar" && previo.mora > 0 && (
+            <label className="flex cursor-pointer items-start gap-2.5 border border-gray-20 px-3.5 py-3">
+              <input
+                type="checkbox"
+                checked={cobrarMora}
+                onChange={(e) => setCobrarMora(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]"
+              />
+              <span className="min-w-0">
+                <span className="block font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
+                  Cobrar la mora
+                </span>
+                <span className="nota mt-0.5 block text-[11.5px]">
+                  {cobrarMora
+                    ? "Se cobra el recargo por el atraso, como siempre."
+                    : "El recargo queda perdonado y no vuelve a aparecer."}
+                </span>
+              </span>
+            </label>
+          )}
+
           {/* El total sale de los planes que ya vinieron imputados, así que es el
-              monto exacto y no una estimación. */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-3.5 py-3">
-            <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-45 uppercase">
-              {modo === "marcar" ? "Se va a registrar" : "Se va a deshacer"}
-            </span>
-            <span className="font-display text-[18px] tabular-nums">
-              {previo.cuantos === 0
-                ? "nada"
-                : `${pesos(previo.total)} · ${previo.cuantos} pago${
-                    previo.cuantos === 1 ? "" : "s"
-                  }`}
-            </span>
+              monto exacto y no una estimación. Con mora de por medio se muestra
+              el desglose: "cuánto de esto es recargo" es justo lo que hay que
+              saber para decidir si se cobra. */}
+          <div className="border border-gray-20 bg-paper-dim px-3.5 py-3">
+            {modo === "marcar" && previo.mora > 0 && (
+              <div className="mb-2.5 grid gap-1.5 border-b border-gray-20 pb-2.5">
+                {(
+                  [
+                    ["Capital", previo.capital, false],
+                    ["Mora", previo.mora, !cobrarMora],
+                  ] as const
+                ).map(([texto, monto, tachado]) => (
+                  <div
+                    key={texto}
+                    className="flex items-baseline justify-between gap-3"
+                  >
+                    <span className="nota text-[12px]">{texto}</span>
+                    <span
+                      className={`font-display text-[14px] tabular-nums ${
+                        tachado ? "text-gray-45 line-through" : "text-gray-70"
+                      }`}
+                    >
+                      {pesos(monto)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-45 uppercase">
+                {modo === "marcar" ? "Se va a registrar" : "Se va a deshacer"}
+              </span>
+              <span className="font-display text-[18px] tabular-nums">
+                {previo.cuantos === 0
+                  ? "nada"
+                  : `${pesos(previo.total)} · ${previo.cuantos} pago${
+                      previo.cuantos === 1 ? "" : "s"
+                    }`}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -324,7 +414,11 @@ export function GestionCuotas({
                 {previo.cuantos} pago{previo.cuantos === 1 ? "" : "s"} por{" "}
                 {pesos(previo.total)}
               </strong>
-              , con la mora incluida.
+              {previo.mora > 0
+                ? cobrarMora
+                  ? ", con la mora incluida."
+                  : `, sin la mora. Se le perdonan ${pesos(previo.mora)} de recargo, y no vuelven a aparecer.`
+                : "."}
             </>
           ) : (
             <>
@@ -335,6 +429,8 @@ export function GestionCuotas({
               </strong>{" "}
               y esas cuotas vuelven a figurar impagas. Los que entraron por Talo
               o Mercado Pago no se tocan.
+              {todosLosManuales &&
+                " Si le habías perdonado la mora a alguna cuota, también vuelve."}
             </>
           )}
         </p>
@@ -353,7 +449,11 @@ export function GestionCuotas({
           <Boton
             onClick={() =>
               modo === "marcar"
-                ? marcar.mutate({ alumnoIds: [...elegidos], cuota })
+                ? marcar.mutate({
+                    alumnoIds: [...elegidos],
+                    cuota,
+                    cobrarMora,
+                  })
                 : deshacer.mutate({
                     alumnoIds: [...elegidos],
                     todos: todosLosManuales,

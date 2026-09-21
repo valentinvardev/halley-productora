@@ -120,6 +120,15 @@ model CuotaAlumno {
   monto   Decimal?  @db.Decimal(12, 2)
   venceEl DateTime?
 
+  /// La mora de esta cuota, perdonada para este alumno.
+  ///
+  /// Se pone al marcar la cuota como pagada sin intereses, que es el caso de
+  /// la familia que abonó por otro medio: el atraso fue administrativo y no
+  /// de ella. No es lo mismo que bajarle el monto, porque la mora se calcula
+  /// desde el vencimiento y volvería a crecer sola el mes que viene.
+  /// Sacándola, la mora vuelve a correr desde donde estaba.
+  sinMora Boolean @default(false)
+
   creadoEn DateTime @default(now())
 
   @@unique([alumnoId, cuotaId])

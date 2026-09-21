@@ -10,6 +10,7 @@ import {
   IconoPapelera,
   IconoProbeta,
   IconoSobre,
+  IconoTilde,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { PlanCuotas, type CuotaVista } from "~/app/_components/plan-cuotas";
@@ -103,12 +104,15 @@ export function AccionesAlumno({
   modoDemo,
   alCerrar,
   alRefrescar,
+  alMarcarCuotas,
 }: {
   /** `null` cierra el modal: es el alumno que se está gestionando. */
   alumno: AlumnoAcciones | null;
   modoDemo: boolean;
   alCerrar: () => void;
   alRefrescar: (mensaje?: string) => Promise<void>;
+  /** Abre la gestión de cuotas apuntando sólo a este alumno. */
+  alMarcarCuotas: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -257,6 +261,23 @@ export function AccionesAlumno({
               destacar={datos.plan.proxima?.id}
             />
           </div>
+
+          {/* La puerta a marcar cuotas de este alumno. Va acá, debajo del
+              plan, porque se decide mirándolo: qué cuota está impaga y
+              cuánto lleva de recargo. La misma pantalla del grupo, con este
+              alumno ya tildado. */}
+          {datos.plan.deuda > 0 && (
+            <div className="mt-4">
+              <Boton variante="fantasma" onClick={alMarcarCuotas}>
+                <IconoTilde />
+                Marcar cuotas pagadas
+              </Boton>
+              <p className="nota mt-1.5 text-[11.5px]">
+                Para lo que se cobró por fuera del sistema. Ahí se elige si se
+                le cobra la mora o no.
+              </p>
+            </div>
+          )}
         </Seccion>
 
         <Seccion titulo="Precio de esta familia">

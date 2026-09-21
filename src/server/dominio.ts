@@ -18,6 +18,8 @@ type CuotaPlan = {
   numero: number;
   monto: unknown;
   venceEl: Date;
+  /** Si a este alumno se le perdonó la mora de esta cuota. */
+  sinMora?: boolean;
 };
 
 /**
@@ -30,6 +32,9 @@ export type AjusteCuota = {
   cuotaId: string;
   monto: unknown | null;
   venceEl: Date | null;
+  /** La mora de esta cuota, perdonada. A diferencia de los otros dos, no es
+      un valor que reemplaza al del grupo: el grupo no tiene mora propia. */
+  sinMora: boolean;
 };
 
 export type CuotaImputada = {
@@ -43,6 +48,14 @@ export type CuotaImputada = {
   /** Cuánto de la cuota (con recargo) quedó cubierto. */
   aplicado: number;
   saldo: number;
+  /**
+   * Lo que faltaría si no se cobrara la mora: sólo el capital impago.
+   *
+   * Existe para poder ofrecer las dos cifras al marcar una cuota como pagada
+   * sin preguntarle nada más al servidor, y para que el número que se ve
+   * antes de confirmar sea exactamente el que se va a registrar.
+   */
+  saldoSinMora: number;
   estado: EstadoCuota;
 };
 
@@ -59,7 +72,10 @@ export type CuotaImputada = {
  * hacer, el día que alguien lo olvide el panel mostraría un precio y el cobro
  * otro — y eso no falla ruidosamente, falla en silencio y por plata.
  */
-function planDelAlumno(cuotas: CuotaPlan[], ajustes: AjusteCuota[]): CuotaPlan[] {
+function planDelAlumno(
+  cuotas: CuotaPlan[],
+  ajustes: AjusteCuota[],
+): CuotaPlan[] {
   if (ajustes.length === 0) return cuotas;
 
   const porCuota = new Map(ajustes.map((a) => [a.cuotaId, a]));
@@ -70,6 +86,7 @@ function planDelAlumno(cuotas: CuotaPlan[], ajustes: AjusteCuota[]): CuotaPlan[]
       ...c,
       monto: ajuste.monto ?? c.monto,
       venceEl: ajuste.venceEl ?? c.venceEl,
+      sinMora: ajuste.sinMora,
     };
   });
 }
@@ -156,10 +173,12 @@ export function imputarPagos(
       const monto = Number(cuota.monto);
       const vencida = cuota.venceEl.getTime() < ahora.getTime();
       // El recargo sólo tiene sentido sobre lo que sigue impago; una cuota ya
-      // cubierta no acumula mora hacia atrás.
-      const recargoPosible = vencida
-        ? monto * recargoPorMora(cuota.venceEl, ahora)
-        : 0;
+      // cubierta no acumula mora hacia atrás. Y la perdonada no lo tiene
+      // nunca: no es que esté pagada, es que no se le cobra.
+      const recargoPosible =
+        vencida && !cuota.sinMora
+          ? monto * recargoPorMora(cuota.venceEl, ahora)
+          : 0;
       const exigible = monto + recargoPosible;
 
       const aplicado = Math.min(Math.max(resto, 0), exigible);
@@ -184,6 +203,7 @@ export function imputarPagos(
         recargo,
         aplicado,
         saldo: Math.max(monto + recargo - aplicado, 0),
+        saldoSinMora: Math.max(monto - aplicado, 0),
         estado,
       };
     });
@@ -200,6 +220,8 @@ export function imputarPagos(
     pagado,
     /** Lo que falta, capital impago más recargo. */
     deuda: imputadas.reduce((t, c) => t + c.saldo, 0),
+    /** Lo que faltaría perdonándole toda la mora: sólo el capital. */
+    deudaSinMora: imputadas.reduce((t, c) => t + c.saldoSinMora, 0),
     /** Transfirió de más: queda a cuenta de las cuotas que vengan. */
     aFavor: Math.max(resto, 0),
     /** La primera sin saldar: es la que hay que pagar ahora. */

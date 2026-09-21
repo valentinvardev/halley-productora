@@ -36,7 +36,11 @@ async function crearPreferenciaPago(
 ) {
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
-    include: { grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } }, pagos: true, ajustesCuota: true },
+    include: {
+      grupo: { include: { cuotas: { orderBy: { numero: "asc" } } } },
+      pagos: true,
+      ajustesCuota: true,
+    },
   });
 
   const { proveedor, cuenta } = await proveedorDeGrupo(alumno.grupoId);
@@ -47,7 +51,11 @@ async function crearPreferenciaPago(
     });
   }
 
-  const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
+  const plan = imputarPagos(
+    alumno.grupo.cuotas,
+    alumno.ajustesCuota,
+    sumarPagos(alumno.pagos),
+  );
   // `soloProxima` recorta hasta la primera impaga: es el monto que ve la familia
   // en el link. Si no, respeta el `hastaCuotaId` del panel (o el plan entero).
   const hastaId = opciones.soloProxima
@@ -104,7 +112,11 @@ async function crearPreferenciaPago(
 async function simularTransferencia(alumnoId: string, montoManual?: number) {
   const alumno = await db.alumno.findUniqueOrThrow({
     where: { id: alumnoId },
-    include: { grupo: { include: { cuotas: true } }, pagos: true, ajustesCuota: true },
+    include: {
+      grupo: { include: { cuotas: true } },
+      pagos: true,
+      ajustesCuota: true,
+    },
   });
 
   // Sin esto, cualquiera con el token de una familia se da por pagado sin
@@ -114,7 +126,11 @@ async function simularTransferencia(alumnoId: string, montoManual?: number) {
     throw new TRPCError({ code: "NOT_FOUND", message: "No disponible." });
   }
 
-  const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
+  const plan = imputarPagos(
+    alumno.grupo.cuotas,
+    alumno.ajustesCuota,
+    sumarPagos(alumno.pagos),
+  );
   const monto = montoManual ?? plan.proxima?.saldo;
 
   if (!monto) {
@@ -185,12 +201,26 @@ export const pagoRouter = createTRPCRouter({
         alumnoIds: z.array(z.string()).min(1).max(500),
         /** El número de cuota, o `null` para saldar todo lo que falte. */
         cuota: z.number().int().positive().nullable(),
+        /**
+         * Si el pago incluye la mora acumulada.
+         *
+         * En false se registra sólo el capital y la mora de esas cuotas queda
+         * perdonada. Hace falta perdonarla y no simplemente no cobrarla: acá
+         * el estado de una cuota se deriva de lo pagado, así que un pago que
+         * cubre sólo el capital dejaría la cuota impaga por el recargo, y la
+         * familia seguiría debiendo justo lo que se le quiso perdonar.
+         */
+        cobrarMora: z.boolean().default(true),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const alumnos = await ctx.db.alumno.findMany({
         where: { id: { in: input.alumnoIds } },
-        include: { pagos: true, ajustesCuota: true, grupo: { include: { cuotas: true } } },
+        include: {
+          pagos: true,
+          ajustesCuota: true,
+          grupo: { include: { cuotas: true } },
+        },
       });
       if (alumnos.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
 
@@ -213,8 +243,32 @@ export const pagoRouter = createTRPCRouter({
                 (c) => c.numero === input.cuota && c.saldo > 0,
               );
 
-        const monto = objetivo.reduce((t, c) => t + c.saldo, 0);
+        // Con la mora adentro se cobra el saldo entero; sin ella, sólo el
+        // capital que falta de cada cuota.
+        const monto = objetivo.reduce(
+          (t, c) => t + (input.cobrarMora ? c.saldo : c.saldoSinMora),
+          0,
+        );
         if (monto <= 0) continue;
+
+        // Antes de registrar el pago queda anotado que a estas cuotas no se
+        // les cobra mora. Si no, el recargo se volvería a calcular solo y la
+        // cuota seguiría figurando impaga apenas se refresque la pantalla.
+        if (!input.cobrarMora) {
+          for (const cuota of objetivo.filter((c) => c.recargo > 0)) {
+            await ctx.db.cuotaAlumno.upsert({
+              where: {
+                alumnoId_cuotaId: { alumnoId: alumno.id, cuotaId: cuota.id },
+              },
+              create: {
+                alumnoId: alumno.id,
+                cuotaId: cuota.id,
+                sinMora: true,
+              },
+              update: { sinMora: true },
+            });
+          }
+        }
 
         await ctx.db.pago.create({
           data: {
@@ -279,6 +333,17 @@ export const pagoRouter = createTRPCRouter({
       await ctx.db.pago.deleteMany({
         where: { id: { in: aBorrar.map((p) => p.id) } },
       });
+
+      // Deshacer todo es volver a foja cero, y eso incluye la mora que se
+      // haya perdonado al marcar. Deshacer sólo el último no la toca: no hay
+      // forma de saber cuál de los pagos anteriores la perdonó, y borrar un
+      // perdón que el administrador no quiso deshacer es peor que dejarlo.
+      if (input.todos) {
+        await ctx.db.cuotaAlumno.updateMany({
+          where: { alumnoId: { in: input.alumnoIds }, sinMora: true },
+          data: { sinMora: false },
+        });
+      }
 
       return {
         borrados: aBorrar.length,

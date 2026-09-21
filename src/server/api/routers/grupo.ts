@@ -183,6 +183,8 @@ export const grupoRouter = createTRPCRouter({
               total: plan.total,
               pagado: plan.pagado,
               deuda: plan.deuda,
+              /** Lo mismo perdonándole la mora: sólo el capital que falta. */
+              deudaSinMora: plan.deudaSinMora,
               aFavor: plan.aFavor,
               alDia: plan.alDia,
               cuotas: plan.cuotas,

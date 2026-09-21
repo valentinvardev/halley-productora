@@ -61,6 +61,8 @@ export function DetalleGrupo({ id }: { id: string }) {
   const [editandoMontos, setEditandoMontos] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
+  /** El alumno al que se le están marcando cuotas, cuando se entra por su ficha. */
+  const [cuotasDe, setCuotasDe] = useState<string | null>(null);
   const refrescar = async (mensaje?: string) => {
     await utils.grupo.detalle.invalidate({ id });
     await utils.grupo.listar.invalidate();
@@ -400,37 +402,57 @@ export function DetalleGrupo({ id }: { id: string }) {
         modoDemo={grupo.modoDemo}
         alCerrar={() => setGestionandoId(null)}
         alRefrescar={refrescar}
+        // Desde la ficha se pasa a la misma pantalla, con este alumno solo.
+        // Cierra una y abre la otra: dos modales encimados no se leen.
+        alMarcarCuotas={() => {
+          setCuotasDe(gestionandoId);
+          setGestionandoId(null);
+        }}
       />
 
       <GestionCuotas
-        abierto={gestionandoCuotas}
-        alCerrar={() => setGestionandoCuotas(false)}
-        grupoNombre={grupo.nombre}
+        abierto={gestionandoCuotas || cuotasDe !== null}
+        alCerrar={() => {
+          setGestionandoCuotas(false);
+          setCuotasDe(null);
+        }}
+        grupoNombre={
+          cuotasDe
+            ? (grupo.alumnos.find((a) => a.id === cuotasDe)?.nombre ??
+              grupo.nombre)
+            : grupo.nombre
+        }
         totalCuotas={grupo.cuotas.length}
         // Cada alumno viaja con su plan ya imputado, que es lo que le permite al
         // modal mostrar cuánto debe cada uno y sumar el total exacto de lo que se
         // va a registrar sin volver a preguntar.
-        alumnos={grupo.alumnos.map((a) => ({
-          id: a.id,
-          nombre: a.nombre,
-          deuda: a.plan.deuda,
-          cuotas: a.plan.cuotas.map((c) => ({
-            numero: c.numero,
-            saldo: c.saldo,
-          })),
-          // Los marcados a mano se reconocen por el prefijo de la referencia, y
-          // son los únicos que se pueden deshacer: un pago de Talo o de Mercado
-          // Pago entró de verdad y borrarlo dejaría al panel mintiendo.
-          manual: a.pagos
-            .filter((p) => p.refPago.startsWith("manual:"))
-            .reduce(
-              (t, p) => ({
-                cantidad: t.cantidad + 1,
-                total: t.total + p.monto,
-              }),
-              { cantidad: 0, total: 0 },
-            ),
-        }))}
+        // Entrando por la ficha viaja ese alumno solo, y el modal lo tilda
+        // porque es el único. Desde el menú del grupo viajan todos.
+        alumnos={grupo.alumnos
+          .filter((a) => cuotasDe === null || a.id === cuotasDe)
+          .map((a) => ({
+            id: a.id,
+            nombre: a.nombre,
+            deuda: a.plan.deuda,
+            deudaSinMora: a.plan.deudaSinMora,
+            cuotas: a.plan.cuotas.map((c) => ({
+              numero: c.numero,
+              saldo: c.saldo,
+              saldoSinMora: c.saldoSinMora,
+            })),
+            // Los marcados a mano se reconocen por el prefijo de la referencia, y
+            // son los únicos que se pueden deshacer: un pago de Talo o de Mercado
+            // Pago entró de verdad y borrarlo dejaría al panel mintiendo.
+            manual: a.pagos
+              .filter((p) => p.refPago.startsWith("manual:"))
+              .reduce(
+                (t, p) => ({
+                  cantidad: t.cantidad + 1,
+                  total: t.total + p.monto,
+                }),
+                { cantidad: 0, total: 0 },
+              ),
+          }))}
         alRefrescar={refrescar}
       />
 

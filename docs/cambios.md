@@ -1607,3 +1607,54 @@ las invitaciones pasaron de 19 a 20: ninguna de las 19 familias ya invitadas
 recibió un segundo mail.
 
 **Rollback:** fila O de la tabla.
+
+### P. La mora se puede perdonar al marcar una cuota pagada
+
+**Pedido:** poder no cobrarle intereses al que se anota tarde, por si ya abonó
+por otro medio, con una casilla para confirmarlo y una vista previa de cuánto
+es la mora y cuánto el total con ella sumada. Confirmado con Fran.
+
+**Antes.** Marcar una cuota como pagada registraba el saldo entero, con la mora
+adentro, y no había forma de dejarla afuera. Para la familia que pagó en
+efectivo o a otra cuenta y se carga una semana después, eso es cobrarle un
+recargo por un atraso que fue administrativo y no de ella.
+
+**El problema de fondo.** Acá el estado de una cuota no se guarda: se deriva
+repartiendo lo pagado sobre el plan, y la mora se recalcula desde la fecha de
+vencimiento cada vez. Así que no alcanzaba con registrar sólo el capital: la
+cuota seguiría mostrando saldo, y ese saldo sería justamente el recargo que se
+quiso perdonar. Perdonar tenía que quedar anotado.
+
+**Ahora.** Cada alumno puede tener la mora de una cuota perdonada. Es una
+columna en la tabla donde ya guarda lo que tiene distinto del grupo, como un
+precio negociado aparte, así que no hizo falta inventar nada nuevo. Se pone al
+marcar la cuota sin cobrar la mora, y se saca al deshacer.
+
+**En la pantalla.** Donde antes había un solo número, ahora hay un desglose:
+capital, mora y el total. Al lado, una casilla "Cobrar la mora", que viene
+marcada porque cobrarla sigue siendo lo normal. Al destildarla el total baja al
+capital en vivo, el recargo se muestra tachado, y la confirmación dice cuánto se
+está perdonando antes de aplicarlo. La casilla aparece sólo cuando hay mora que
+cobrar: si no la hay, sería un control que no cambia nada.
+
+**Desde cada alumno.** La gestión de cuotas se abre ahora también desde la ficha
+del alumno, debajo de su plan, con él ya tildado y su nombre en el encabezado.
+Es donde se decide, mirando qué cuota está impaga y cuánto lleva de recargo. La
+pantalla es la misma que la del menú del grupo, que sigue estando para marcar a
+varios de una.
+
+**Al deshacer.** Deshacer todo lo marcado a mano devuelve también la mora
+perdonada, y la confirmación lo avisa. Deshacer sólo el último marcado no la
+toca: no hay forma de saber cuál de los pagos anteriores la perdonó, y borrar un
+perdón que nadie quiso deshacer es peor que dejarlo.
+
+**Verificación.** Con un alumno real del grupo de egresados, restaurando su
+estado exacto al final. Tenía una cuota con recargo, y el desglose mostró el
+capital y la mora por separado. Al destildar la casilla el total bajó al capital
+y el recargo quedó tachado. Al confirmar se registró el capital solo, y el
+alumno quedó debiendo cero: la cuota no volvió a aparecer impaga por el recargo,
+que era el riesgo. Al deshacer todo, los pagos a mano desaparecieron, la marca
+de perdón se fue y la mora volvió a contarse. Su pago anterior se restauró con
+su monto, su referencia y su fecha originales.
+
+**Rollback:** fila P de la tabla.
