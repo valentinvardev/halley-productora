@@ -72,8 +72,20 @@ export function GestionCuotas({
     () => new Set(unico ? alumnos.map((a) => a.id) : []),
   );
 
-  /** Qué cuotas se marcan, por número. Vacío es todo lo que falte. */
-  const [cuotas, setCuotas] = useState<number[]>([]);
+  /**
+   * Hasta qué cuota se marca. `null` es todo lo que falte.
+   *
+   * Es un hasta y no una selección suelta porque lo que se paga se imputa de
+   * la cuota más vieja a la más nueva, siempre. Marcar la tres debiendo la uno
+   * no es algo que el sistema pueda cumplir: la plata iría a la uno igual, y
+   * la tres seguiría figurando impaga después de haberla marcado. Eligiendo
+   * hasta dónde, lo que se ve al confirmar es lo que después queda.
+   */
+  const [hasta, setHasta] = useState<number | null>(null);
+
+  /** Las cuotas que entran, que son todas las de antes del corte. */
+  const cuotas =
+    hasta === null ? [] : Array.from({ length: hasta }, (_, i) => i + 1);
   const [confirmando, setConfirmando] = useState(false);
 
   /** Marcar o deshacer. Son la misma pantalla porque comparten la selección. */
@@ -103,7 +115,7 @@ export function GestionCuotas({
     if (!abierto) return;
     setElegidos(new Set(unico ? idsClave.split(",") : []));
     setCobrarMora(true);
-    setCuotas([]);
+    setHasta(null);
     setModo("marcar");
   }, [abierto, unico, idsClave]);
 
@@ -177,7 +189,8 @@ export function GestionCuotas({
       }
     }
     return { capital, mora, total, cuantos };
-  }, [alumnos, elegidos, cuotas, modo, todosLosManuales, cobrarMora]);
+    // `cuotas` sale de `hasta`, así que alcanza con mirar el corte.
+  }, [alumnos, elegidos, hasta, modo, todosLosManuales, cobrarMora]);
 
   const alternar = (id: string) =>
     setElegidos((s) => {
@@ -297,9 +310,9 @@ export function GestionCuotas({
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setCuotas([])}
+                  onClick={() => setHasta(null)}
                   className={`cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
-                    cuotas.length === 0
+                    hasta === null
                       ? "border-ink bg-ink text-paper"
                       : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
                   }`}
@@ -308,19 +321,15 @@ export function GestionCuotas({
                 </button>
                 {Array.from({ length: totalCuotas }, (_, i) => i + 1).map(
                   (n) => {
-                    const puesta = cuotas.includes(n);
+                    // Todas las de antes del corte quedan pintadas: se lee como
+                    // "hasta acá" y no como una lista de tildes sueltas.
+                    const puesta = hasta !== null && n <= hasta;
                     return (
                       <button
                         key={n}
                         type="button"
                         aria-pressed={puesta}
-                        onClick={() =>
-                          setCuotas((s) =>
-                            s.includes(n)
-                              ? s.filter((x) => x !== n)
-                              : [...s, n].sort((a, b) => a - b),
-                          )
-                        }
+                        onClick={() => setHasta(hasta === n ? null : n)}
                         className={`w-10 cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
                           puesta
                             ? "border-ink bg-ink text-paper"
@@ -333,10 +342,12 @@ export function GestionCuotas({
                   },
                 )}
               </div>
-              <p className="nota mt-1.5 text-[11.5px]">
-                {cuotas.length === 0
+              <p className="nota mt-1.5 max-w-[60ch] text-[11.5px]">
+                {hasta === null
                   ? "Se salda todo lo que cada uno deba."
-                  : `Se saldan ${cuotas.length === 1 ? "la cuota" : "las cuotas"} ${listar(cuotas)}, y sólo lo que falte de ${cuotas.length === 1 ? "ella" : "ellas"}.`}
+                  : hasta === 1
+                    ? "Se salda la cuota 1, por lo que falte de ella."
+                    : `Se saldan las cuotas ${listar(cuotas)}, por lo que falte de cada una. Van juntas porque lo que se paga se imputa de la más vieja a la más nueva.`}
               </p>
             </div>
           ) : (
@@ -447,10 +458,10 @@ export function GestionCuotas({
             ? todosLosManuales
               ? "Deshacer todo lo marcado a mano"
               : "Deshacer el último marcado"
-            : cuotas.length === 0
+            : hasta === null
               ? "Marcar todo lo que falte"
-              : cuotas.length === 1
-                ? `Marcar la cuota ${cuotas[0]}`
+              : hasta === 1
+                ? "Marcar la cuota 1"
                 : `Marcar las cuotas ${listar(cuotas)}`
         }
       >

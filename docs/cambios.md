@@ -1695,3 +1695,33 @@ vencidas del plan, destildada, y al tildarla pasó a decir que arranca sin
 recargo por esas tres.
 
 **Rollback:** fila Q de la tabla.
+
+### Q, corregido. Marcar cuotas es marcar hasta una cuota
+
+**Lo que pasaba.** Marcar la cuota tres debiendo la uno registraba el monto de
+la tres, pero esa plata se imputaba a la uno y a parte de la dos, porque lo que
+se paga se aplica siempre de la cuota más vieja a la más nueva. Resultado: se
+marcaba la tres y la tres seguía figurando impaga, con su mora ya perdonada. El
+administrador veía que marcar no hacía efecto, y tenía razón.
+
+Es anterior a la mora opcional. El desplegable de una sola cuota tenía el mismo
+problema desde que existe, sólo que sin el perdón de por medio se notaba menos:
+la deuda bajaba lo que tenía que bajar, pero en la cuota equivocada.
+
+**Ahora.** Las casillas numeradas eligen hasta dónde, no cuáles. Tocando la
+tres quedan pintadas la uno, la dos y la tres, y debajo se lee que van juntas
+porque lo que se paga se imputa de la más vieja a la más nueva. Así lo que se
+ve antes de confirmar es lo que queda después.
+
+No se pierde nada con esto: marcar una cuota salteando las anteriores era algo
+que el sistema no podía cumplir. Una familia que debe julio y paga el monto de
+septiembre está pagando julio, y esa es la regla de imputación de siempre.
+
+**Verificación.** Contra el panel real, con dos alumnos de prueba borrados al
+terminar. Marcando la cuota uno sin intereses: se registró su capital, quedó
+pagada y sin mora, y el resto del plan no se movió. Marcando hasta la tres sin
+intereses: se registraron los tres capitales juntos, las tres quedaron pagadas
+y la deuda bajó exactamente a lo que queda del plan. Antes de la corrección,
+ese mismo caso dejaba la tres impaga.
+
+**Rollback:** fila "Q, corregido" de la tabla.
