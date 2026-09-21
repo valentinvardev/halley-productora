@@ -42,7 +42,11 @@ function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
   let vencidos = 0;
 
   for (const alumno of alumnos) {
-    const plan = imputarPagos(cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
+    const plan = imputarPagos(
+      cuotas,
+      alumno.ajustesCuota,
+      sumarPagos(alumno.pagos),
+    );
     esperado += plan.total;
     recaudado += plan.pagado;
 
@@ -99,7 +103,10 @@ export const grupoRouter = createTRPCRouter({
           alumnos: {
             orderBy: { creadoEn: "asc" },
             include: {
-              tutores: { include: { cuenta: true }, orderBy: { creadoEn: "asc" } },
+              tutores: {
+                include: { cuenta: true },
+                orderBy: { creadoEn: "asc" },
+              },
               pagos: { orderBy: { recibidoEn: "desc" } },
               ajustesCuota: true,
             },
@@ -118,7 +125,11 @@ export const grupoRouter = createTRPCRouter({
         linkRegistro: linkGrupo(grupo.slug),
         modoDemo: simuladorTaloActivo(),
         cuentaPago: grupo.cuentaPago
-          ? { id: grupo.cuentaPago.id, nombre: grupo.cuentaPago.nombre, proveedor: grupo.cuentaPago.proveedor }
+          ? {
+              id: grupo.cuentaPago.id,
+              nombre: grupo.cuentaPago.nombre,
+              proveedor: grupo.cuentaPago.proveedor,
+            }
           : null,
         /**
          * Si este grupo puede darle un CVU a un alumno nuevo.
@@ -147,11 +158,17 @@ export const grupoRouter = createTRPCRouter({
           venceEl: g.venceEl,
         })),
         alumnos: grupo.alumnos.map((a) => {
-          const plan = imputarPagos(grupo.cuotas, a.ajustesCuota, sumarPagos(a.pagos));
+          const plan = imputarPagos(
+            grupo.cuotas,
+            a.ajustesCuota,
+            sumarPagos(a.pagos),
+          );
           return {
             id: a.id,
             nombre: a.nombre,
             emailContacto: a.emailContacto,
+            /** Null si la familia todavía no recibió la invitación. */
+            invitadaEl: a.invitadaEl,
             alias: a.alias,
             cvu: a.cvu,
             /** El que se le manda a la familia: crea la cuenta. */

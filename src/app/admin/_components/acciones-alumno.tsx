@@ -164,7 +164,13 @@ export function AccionesAlumno({
 
   const recordar = api.alumno.recordar.useMutation({
     onSuccess: (r) =>
-      avisar(r.enviado ? "Recordatorio enviado" : "No hay nada que recordar"),
+      avisar(
+        r.enviado
+          ? "Recordatorio enviado"
+          : "motivo" in r && r.motivo === "sin-invitar"
+            ? "Esta familia todavía no fue invitada — invitala primero"
+            : "No hay nada que recordar",
+      ),
   });
 
   const simular = api.pago.simular.useMutation({

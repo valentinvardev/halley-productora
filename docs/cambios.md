@@ -1557,3 +1557,52 @@ galería del panel mostró la imagen; al reabrir el selector la elegida tenía
 su tilde, y "Quitar la imagen" devolvió el primer cuadro del archivo.
 
 **Rollback:** fila "Ñ, ajustado" de la tabla.
+
+### O. Cargar alumnos sin invitarlos, para invitarlos después
+
+**Pedido:** "es posible que podamos directamente agregar padres y no invitarlos,
+para invitarlos después pero tenerlos registrados mientras tanto".
+
+**Antes.** Agregar un alumno siempre mandaba la invitación en el mismo acto. Los
+dos botones lo decían: "Agregar e invitar" y "Cargar e invitar". No había forma
+de anotar un alumno sin que su familia recibiera un mail en ese momento.
+
+**Ahora.** Los dos formularios tienen una casilla "Invitar ahora", marcada de
+entrada, que es lo de siempre. Sacándola, el alumno queda cargado completo, con
+su email de contacto, su CVU y su link de pago, y la familia no se entera. El
+botón cambia a "Agregar" y a "Cargar" para que no prometa un mail que no va a
+salir, y debajo de la casilla se lee qué pasa en cada caso.
+
+**Cómo se sabe a quién falta invitar.** Cada alumno guarda la fecha en que salió
+su invitación. En null, la familia todavía no recibió nada, y la fila lo muestra
+con una etiqueta "Sin invitar" al lado de "Sin cuenta". Arriba, en Acciones,
+aparece "Invitar a los que faltan" con cuántos son, y sólo aparece si hay
+alguno. "Invitar a todos" sigue estando para el caso de querer reenviarle al
+grupo entero.
+
+**Los recordatorios esperan a la invitación.** Un recordatorio de cuota a una
+familia que nunca fue invitada sería el primer mail que recibe de Halley, y le
+hablaría de una deuda sin haberle explicado antes de qué se trata. Así que
+"Recordar pendientes" saltea a los que todavía no fueron invitados y dice
+cuántos salteó, y el recordatorio de a uno avisa "esta familia todavía no fue
+invitada, invitala primero" en vez de mandarlo igual.
+
+**Los que ya estaban.** Hasta ahora agregar siempre invitaba, así que los 19
+alumnos cargados quedaron marcados como invitados el día que se crearon. Sin
+eso, "Invitar a los que faltan" les hubiera escrito a todos de nuevo y los
+recordatorios se habrían frenado para el grupo entero.
+
+**Una precisión.** Lo que queda anotado es el alumno con el email de la familia.
+La cuenta del padre recién existe cuando él entra por la invitación y se
+registra: eso no se puede adelantar desde el panel.
+
+**Verificación.** Con un alumno de prueba cargado y borrado al final: la casilla
+vino marcada y el botón decía "Agregar e invitar"; al sacarla el botón pasó a
+"Agregar" y el texto de abajo cambió; el alumno entró con las etiquetas "Sin
+cuenta" y "Sin invitar"; el menú del grupo mostró "Invitar a los que faltan
+(1)"; el recordatorio de a uno respondió "Esta familia todavía no fue invitada";
+e "Invitar a los que faltan" reportó una sola invitación enviada. En la base,
+las invitaciones pasaron de 19 a 20: ninguna de las 19 familias ya invitadas
+recibió un segundo mail.
+
+**Rollback:** fila O de la tabla.

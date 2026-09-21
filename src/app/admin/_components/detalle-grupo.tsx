@@ -93,7 +93,11 @@ export function DetalleGrupo({ id }: { id: string }) {
       ),
   });
   const recordarPendientes = api.alumno.recordarPendientes.useMutation({
-    onSuccess: (r) => refrescar(`Recordatorios enviados: ${r.enviados}`),
+    onSuccess: (r) =>
+      refrescar(
+        `Recordatorios enviados: ${r.enviados}` +
+          (r.sinInvitar ? ` · sin invitar todavía: ${r.sinInvitar}` : ""),
+      ),
   });
   if (isLoading) return <EsqueletoDetalle />;
   if (!grupo) return <Vacio>No encontramos el grupo</Vacio>;
@@ -103,6 +107,8 @@ export function DetalleGrupo({ id }: { id: string }) {
   // igual que la tabla. Si el alumno se elimina, esto da null y se cierra.
   const gestionando: AlumnoAcciones | null =
     grupo.alumnos.find((a) => a.id === gestionandoId) ?? null;
+
+  const faltanInvitar = grupo.alumnos.filter((a) => !a.invitadaEl).length;
 
   return (
     <>
@@ -115,6 +121,20 @@ export function DetalleGrupo({ id }: { id: string }) {
         titulo={grupo.nombre}
         acciones={
           <MenuAcciones>
+            {/* Los que faltan primero: es lo que se toca después de cargar
+                alumnos sin invitar, y el de abajo le vuelve a escribir a todo
+                el grupo. */}
+            {faltanInvitar > 0 && (
+              <ItemAccion
+                onClick={() =>
+                  invitarTodos.mutate({ grupoId: id, soloPendientes: true })
+                }
+                disabled={invitarTodos.isPending}
+              >
+                <IconoSobre />
+                Invitar a los que faltan ({faltanInvitar})
+              </ItemAccion>
+            )}
             <ItemAccion
               onClick={() => invitarTodos.mutate({ grupoId: id })}
               disabled={invitarTodos.isPending}
@@ -277,6 +297,10 @@ export function DetalleGrupo({ id }: { id: string }) {
                       ) : (
                         <Tag>Sin cuenta</Tag>
                       )}
+                      {/* Cargado y todavía sin avisarle a nadie. Es un estado
+                          buscado, no un error: por eso dice "sin invitar" y no
+                          algo que suene a que falta arreglarlo. */}
+                      {!a.invitadaEl && <Tag>Sin invitar</Tag>}
                     </div>
                   </td>
 
@@ -784,6 +808,15 @@ function AltaAlumnos({
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [texto, setTexto] = useState("");
+  /**
+   * Si la invitación sale al agregar.
+   *
+   * Viene marcado, que es lo de siempre y lo que se quiere casi todas las
+   * veces. Desmarcarlo deja al alumno cargado y a la familia sin enterarse:
+   * sirve para armar el grupo entero antes de avisarle a nadie, y después
+   * invitar a todos de una con "Invitar a los que faltan".
+   */
+  const [invitar, setInvitar] = useState(true);
 
   const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
@@ -826,14 +859,15 @@ function AltaAlumnos({
         </div>
         <p className="nota mt-2 max-w-[62ch]">
           Este grupo no tiene una cuenta de Talo asignada, y tampoco hay una
-          marcada como <strong className="font-normal text-ink">por
-          defecto</strong> que esté activa. Cada alumno necesita su propio CVU
-          para poder cobrarle, y ese CVU lo emite la cuenta — sin una, no se
-          puede dar de alta a nadie.
+          marcada como{" "}
+          <strong className="font-normal text-ink">por defecto</strong> que esté
+          activa. Cada alumno necesita su propio CVU para poder cobrarle, y ese
+          CVU lo emite la cuenta — sin una, no se puede dar de alta a nadie.
         </p>
         <p className="nota mt-2 max-w-[62ch]">
-          Asignale una arriba, en <strong className="font-normal text-ink">
-          Cuenta que cobra</strong>, o marcá una como por defecto en{" "}
+          Asignale una arriba, en{" "}
+          <strong className="font-normal text-ink">Cuenta que cobra</strong>, o
+          marcá una como por defecto en{" "}
           <Link href="/admin/cuentas" className="underline underline-offset-2">
             Cuentas de pago
           </Link>
@@ -883,7 +917,7 @@ function AltaAlumnos({
               grupoId,
               nombre,
               emailContacto: email,
-              invitar: true,
+              invitar,
             });
           }}
           className="grid gap-4"
@@ -905,9 +939,14 @@ function AltaAlumnos({
               hint="Se usa para mandarle la invitación a registrarse."
             />
           </div>
+          <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
           <div className="flex gap-3">
             <Boton type="submit" disabled={agregar.isPending}>
-              {agregar.isPending ? "Creando en Talo…" : "Agregar e invitar"}
+              {agregar.isPending
+                ? "Creando en Talo…"
+                : invitar
+                  ? "Agregar e invitar"
+                  : "Agregar"}
             </Boton>
             <Boton
               type="button"
@@ -922,7 +961,7 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            enBloque.mutate({ grupoId, texto, invitar: true });
+            enBloque.mutate({ grupoId, texto, invitar });
           }}
           className="grid gap-4"
         >
@@ -935,9 +974,14 @@ function AltaAlumnos({
             placeholder={"Fernando Ríos, familia.rios@mail.com\nCarla Pérez"}
             required
           />
+          <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
           <div className="flex gap-3">
             <Boton type="submit" disabled={enBloque.isPending}>
-              {enBloque.isPending ? "Creando en Talo…" : "Cargar e invitar"}
+              {enBloque.isPending
+                ? "Creando en Talo…"
+                : invitar
+                  ? "Cargar e invitar"
+                  : "Cargar"}
             </Boton>
             <Boton
               type="button"
@@ -949,6 +993,41 @@ function AltaAlumnos({
           </div>
         </form>
       )}
+    </div>
+  );
+}
+
+/**
+ * La casilla de invitar, igual en los dos formularios.
+ *
+ * La explicación va al lado y no escondida: lo que está en juego es si una
+ * familia recibe un mail hoy, y eso se decide leyendo, no adivinando.
+ */
+function CasillaInvitar({
+  puesta,
+  alCambiar,
+}: {
+  puesta: boolean;
+  alCambiar: (v: boolean) => void;
+}) {
+  return (
+    <div>
+      <label className="flex cursor-pointer items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={puesta}
+          onChange={(e) => alCambiar(e.target.checked)}
+          className="h-4 w-4 accent-[var(--color-ink)]"
+        />
+        <span className="font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
+          Invitar ahora
+        </span>
+      </label>
+      <p className="nota mt-1 max-w-[62ch] text-[11.5px]">
+        {puesta
+          ? "Le llega el mail para registrarse apenas se carga."
+          : "Queda cargado y la familia no se entera. Después se invita desde 'Invitar a los que faltan'."}
+      </p>
     </div>
   );
 }

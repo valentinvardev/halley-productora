@@ -116,6 +116,14 @@ export async function invitarFamilia(
   const emails = email ? [email] : destinatarios(alumno);
   if (emails.length === 0) return { enviado: false as const };
 
+  // Queda anotado que esta familia ya recibió algo. Con eso se puede
+  // invitar sólo a los que faltan sin escribirle dos veces a nadie, y los
+  // recordatorios de cuota saben que no son el primer mail que llega.
+  await db.alumno.update({
+    where: { id: alumnoId },
+    data: { invitadaEl: new Date() },
+  });
+
   const plan = imputarPagos(
     alumno.grupo.cuotas,
     alumno.ajustesCuota,

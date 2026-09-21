@@ -147,6 +147,12 @@ model Alumno {
   /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
   emailContacto String?
 
+  /// Cuándo salió la invitación a registrarse. En null, la familia todavía no
+  /// recibió nada: el alumno se cargó para tenerlo anotado y se invita después.
+  /// Es lo que deja invitar sólo a los que faltan, y lo que evita que un
+  /// recordatorio de cuota sea el primer mail que esa familia recibe.
+  invitadaEl DateTime?
+
   /// Quiénes gestionan la cuota de este alumno. Un chico puede tener dos
   /// papás —o un tutor más—, así que son varios y no uno; el tope está en
   /// MAX_RESPONSABLES.

@@ -74,11 +74,26 @@ export const alumnoRouter = createTRPCRouter({
       invitarFamilia(input.alumnoId, { email: input.email || undefined }),
     ),
 
+  /**
+   * Invita al grupo entero, o sólo a los que todavía no recibieron nada.
+   *
+   * Lo segundo es lo que hace falta cuando se cargan alumnos sin invitar y
+   * después se los quiere sumar: invitar a todos de nuevo le escribiría otra
+   * vez a las familias que ya se registraron.
+   */
   invitarTodos: adminProcedure
-    .input(z.object({ grupoId: z.string() }))
+    .input(
+      z.object({
+        grupoId: z.string(),
+        soloPendientes: z.boolean().default(false),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const alumnos = await ctx.db.alumno.findMany({
-        where: { grupoId: input.grupoId },
+        where: {
+          grupoId: input.grupoId,
+          ...(input.soloPendientes ? { invitadaEl: null } : {}),
+        },
         select: { id: true },
       });
 
@@ -105,8 +120,19 @@ export const alumnoRouter = createTRPCRouter({
       });
 
       const emails = destinatarios(alumno);
-      const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
-      if (emails.length === 0 || !plan.proxima) return { enviado: false as const };
+      const plan = imputarPagos(
+        alumno.grupo.cuotas,
+        alumno.ajustesCuota,
+        sumarPagos(alumno.pagos),
+      );
+      if (emails.length === 0 || !plan.proxima)
+        return { enviado: false as const };
+
+      // A una familia que todavía no fue invitada no se le arranca por un
+      // recordatorio de cuota: sería el primer mail que recibe de Halley, y
+      // diría que debe plata sin haberle explicado nunca de qué se trata.
+      if (!alumno.invitadaEl)
+        return { enviado: false as const, motivo: "sin-invitar" as const };
 
       // El recordatorio va a todos los responsables del alumno.
       for (const email of emails) {
@@ -138,8 +164,18 @@ export const alumnoRouter = createTRPCRouter({
       });
 
       let enviados = 0;
+      let sinInvitar = 0;
       for (const alumno of alumnos) {
-        const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
+        // Mismo criterio que el recordatorio de a uno: primero la invitación.
+        if (!alumno.invitadaEl) {
+          sinInvitar += 1;
+          continue;
+        }
+        const plan = imputarPagos(
+          alumno.grupo.cuotas,
+          alumno.ajustesCuota,
+          sumarPagos(alumno.pagos),
+        );
         if (!plan.proxima) continue;
 
         // A todos los responsables del alumno, no a uno solo.
@@ -156,7 +192,7 @@ export const alumnoRouter = createTRPCRouter({
           enviados += 1;
         }
       }
-      return { enviados };
+      return { enviados, sinInvitar };
     }),
 
   /** Saca a un responsable de un alumno (registro equivocado). */
