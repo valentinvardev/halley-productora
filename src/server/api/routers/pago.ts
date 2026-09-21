@@ -199,8 +199,14 @@ export const pagoRouter = createTRPCRouter({
         /** A quiénes. Vienen elegidos de una lista, no por alcance: marcar es
             siempre para alguien en particular, aunque ese alguien sean todos. */
         alumnoIds: z.array(z.string()).min(1).max(500),
-        /** El número de cuota, o `null` para saldar todo lo que falte. */
-        cuota: z.number().int().positive().nullable(),
+        /**
+         * Qué cuotas se saldan, por número. Vacío es todo lo que falte.
+         *
+         * Es una lista y no un número porque lo normal es marcar varias de una:
+         * la familia que pagó tres meses juntos en efectivo no se carga de a
+         * una cuota por vez.
+         */
+        cuotas: z.array(z.number().int().positive()).max(60).default([]),
         /**
          * Si el pago incluye la mora acumulada.
          *
@@ -234,14 +240,13 @@ export const pagoRouter = createTRPCRouter({
           sumarPagos(alumno.pagos),
         );
 
-        // Sin cuota se salda todo lo que falte de una; con cuota, sólo esa. Las
-        // que ya están pagas no aportan saldo, así que quedan afuera solas.
-        const objetivo =
-          input.cuota === null
-            ? plan.cuotas.filter((c) => c.saldo > 0)
-            : plan.cuotas.filter(
-                (c) => c.numero === input.cuota && c.saldo > 0,
-              );
+        // Sin lista se salda todo lo que falte; con lista, sólo esas. Las que
+        // ya están pagas no aportan saldo, así que quedan afuera solas.
+        const objetivo = plan.cuotas.filter(
+          (c) =>
+            c.saldo > 0 &&
+            (input.cuotas.length === 0 || input.cuotas.includes(c.numero)),
+        );
 
         // Con la mora adentro se cobra el saldo entero; sin ella, sólo el
         // capital que falta de cada cuota.

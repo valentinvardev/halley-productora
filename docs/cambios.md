@@ -1659,3 +1659,38 @@ de perdón se fue y la mora volvió a contarse. Su pago anterior se restauró co
 su monto, su referencia y su fecha originales.
 
 **Rollback:** fila P de la tabla.
+
+### Q. Varias cuotas a la vez, y la mora vieja del que entra tarde
+
+**Pedido:** poder marcar varias cuotas como pagas de una, en vez de una sola o
+todas; y tener al agregar un alumno la opción de no sumarle intereses.
+
+**Varias cuotas.** Donde había un desplegable de una sola cuota ahora hay una
+fila de casillas numeradas: se tildan las que se pagaron y listo. "Todo lo que
+falte" sigue siendo la primera y la que viene puesta. Debajo se lee en una
+frase qué se va a hacer, y el total de arriba se actualiza al tildar. Era un
+desplegable porque al principio se marcaba de a una, y lo normal es al revés:
+la familia que se pone al día con tres meses juntos no se carga de a una cuota
+por vez.
+
+**La mora del que entra tarde.** Los dos formularios de alta tienen ahora una
+casilla "No cobrarle la mora de lo ya vencido", que aparece sólo si el plan
+tiene cuotas vencidas. Sin ella, el que se suma a mitad de año entra debiendo
+el recargo de los meses en que todavía no era alumno. Tildándola arranca sin
+ese recargo, y lo que se atrase de acá en adelante sí le corre, porque de eso
+ya es responsable. Se anota cuota por cuota, así que después se puede volver
+atrás con una sola.
+
+**Lo que faltaba.** Esto último se había pedido en el primer mensaje y quedó
+afuera: la casilla al marcar como pagada cubre el caso de la familia que ya
+abonó, pero no el de sumar a alguien sabiendo que arranca con mora que no es
+suya. Son dos momentos distintos y hacían falta los dos.
+
+**Verificación.** Con el grupo de egresados, sin llegar a registrar nada: el
+selector mostró las seis cuotas del plan, tildando la uno y la tres la frase
+pasó a "Se saldan las cuotas 1 y 3" y la confirmación a "Marcar las cuotas 1 y
+3". La casilla del alta apareció con el texto que cuenta las tres cuotas
+vencidas del plan, destildada, y al tildarla pasó a decir que arranca sin
+recargo por esas tres.
+
+**Rollback:** fila Q de la tabla.

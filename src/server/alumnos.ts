@@ -12,6 +12,32 @@ import { notificarInvitacion } from "./notificaciones";
  * pueda imputar sin ambigüedad.
  */
 
+/**
+ * Le perdona la mora de todo lo que ya estaba vencido.
+ *
+ * Es para el que se suma tarde a un plan que arrancó hace meses: llega con
+ * cuotas vencidas encima y un recargo que corrió mientras no era alumno. Lo
+ * que venga de acá en adelante sí le corre, porque de eso ya es responsable.
+ *
+ * Se anota cuota por cuota y no como una marca en el alumno: así el día que
+ * se quiera volver atrás con una sola, se puede.
+ */
+export async function perdonarMoraVencida(alumnoId: string, grupoId: string) {
+  const vencidas = await db.cuota.findMany({
+    where: { grupoId, venceEl: { lt: new Date() } },
+    select: { id: true },
+  });
+
+  for (const cuota of vencidas) {
+    await db.cuotaAlumno.upsert({
+      where: { alumnoId_cuotaId: { alumnoId, cuotaId: cuota.id } },
+      create: { alumnoId, cuotaId: cuota.id, sinMora: true },
+      update: { sinMora: true },
+    });
+  }
+  return vencidas.length;
+}
+
 export async function crearAlumno(input: {
   grupoId: string;
   nombre: string;

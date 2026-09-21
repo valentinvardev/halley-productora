@@ -239,6 +239,11 @@ export function DetalleGrupo({ id }: { id: string }) {
         <AltaAlumnos
           grupoId={id}
           habilitado={grupo.puedeAltaDeAlumnos}
+          // Cuántas cuotas ya vencieron: sin ninguna, no hay mora vieja que
+          // perdonarle a nadie y la casilla no tiene sentido.
+          cuotasVencidas={
+            grupo.cuotas.filter((c) => new Date(c.venceEl) < new Date()).length
+          }
           alTerminar={refrescar}
         />
       )}
@@ -818,11 +823,14 @@ function Galerias({
 function AltaAlumnos({
   grupoId,
   habilitado,
+  cuotasVencidas,
   alTerminar,
 }: {
   grupoId: string;
   /** Si el grupo tiene de dónde sacar credenciales para pedir el CVU. */
   habilitado: boolean;
+  /** Cuántas cuotas del plan ya vencieron. */
+  cuotasVencidas: number;
   alTerminar: (mensaje?: string) => Promise<void>;
 }) {
   const [modo, setModo] = useState<"cerrado" | "uno" | "bloque">("cerrado");
@@ -839,6 +847,14 @@ function AltaAlumnos({
    * invitar a todos de una con "Invitar a los que faltan".
    */
   const [invitar, setInvitar] = useState(true);
+  /**
+   * Si al alumno no se le cobra la mora de lo que ya venció.
+   *
+   * Viene en no, porque lo normal es sumar a alguien al empezar y ahí no hay
+   * nada vencido. El caso de tildarlo es el que se suma a mitad de año: el
+   * recargo de los meses en que no era alumno no es suyo.
+   */
+  const [sinMoraPrevia, setSinMoraPrevia] = useState(false);
 
   const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
@@ -940,6 +956,7 @@ function AltaAlumnos({
               nombre,
               emailContacto: email,
               invitar,
+              sinMoraPrevia,
             });
           }}
           className="grid gap-4"
@@ -962,6 +979,11 @@ function AltaAlumnos({
             />
           </div>
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
+          <CasillaSinMora
+            puesta={sinMoraPrevia}
+            alCambiar={setSinMoraPrevia}
+            cuantas={cuotasVencidas}
+          />
           <div className="flex gap-3">
             <Boton type="submit" disabled={agregar.isPending}>
               {agregar.isPending
@@ -983,7 +1005,7 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            enBloque.mutate({ grupoId, texto, invitar });
+            enBloque.mutate({ grupoId, texto, invitar, sinMoraPrevia });
           }}
           className="grid gap-4"
         >
@@ -997,6 +1019,11 @@ function AltaAlumnos({
             required
           />
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
+          <CasillaSinMora
+            puesta={sinMoraPrevia}
+            alCambiar={setSinMoraPrevia}
+            cuantas={cuotasVencidas}
+          />
           <div className="flex gap-3">
             <Boton type="submit" disabled={enBloque.isPending}>
               {enBloque.isPending
@@ -1049,6 +1076,44 @@ function CasillaInvitar({
         {puesta
           ? "Le llega el mail para registrarse apenas se carga."
           : "Queda cargado y la familia no se entera. Después se invita desde 'Invitar a los que faltan'."}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * La casilla de la mora vieja, en los dos formularios de alta.
+ *
+ * Aparece sólo si hay algo vencido: en un grupo que recién arranca no hay mora
+ * que perdonar y sería un control que no hace nada.
+ */
+function CasillaSinMora({
+  puesta,
+  alCambiar,
+  cuantas,
+}: {
+  puesta: boolean;
+  alCambiar: (v: boolean) => void;
+  cuantas: number;
+}) {
+  if (cuantas === 0) return null;
+  return (
+    <div>
+      <label className="flex cursor-pointer items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={puesta}
+          onChange={(e) => alCambiar(e.target.checked)}
+          className="h-4 w-4 accent-[var(--color-ink)]"
+        />
+        <span className="font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
+          No cobrarle la mora de lo ya vencido
+        </span>
+      </label>
+      <p className="nota mt-1 max-w-[62ch] text-[11.5px]">
+        {puesta
+          ? `Arranca sin recargo por ${cuantas === 1 ? "la cuota que ya venció" : `las ${cuantas} cuotas que ya vencieron`}. Lo que se atrase de acá en adelante sí le corre.`
+          : `El plan tiene ${cuantas === 1 ? "una cuota vencida" : `${cuantas} cuotas vencidas`}, así que entra debiendo ese recargo. Tildalo si se suma ahora y no corresponde.`}
       </p>
     </div>
   );

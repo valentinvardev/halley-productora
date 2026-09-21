@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { IconoAlerta, IconoTilde } from "~/app/_components/iconos";
 import { Desplegable } from "~/app/_components/desplegable";
 import { Modal } from "~/app/_components/modal";
-import { Boton } from "~/app/_components/ui";
+import { Boton, Etiqueta } from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
@@ -32,6 +32,12 @@ import { api } from "~/trpc/react";
  * servidor. Ver "$ 481.500 en 12 pagos" antes de apretar es lo que evita el error
  * que después no se deshace.
  */
+
+/** "1, 3 y 4": para nombrar las cuotas elegidas en una frase. */
+function listar(numeros: number[]) {
+  if (numeros.length <= 1) return numeros.join("");
+  return `${numeros.slice(0, -1).join(", ")} y ${numeros.at(-1)}`;
+}
 
 export type AlumnoCuotas = {
   id: string;
@@ -66,8 +72,8 @@ export function GestionCuotas({
     () => new Set(unico ? alumnos.map((a) => a.id) : []),
   );
 
-  /** Qué cuota se marca. `null` es todo lo que falte. */
-  const [cuota, setCuota] = useState<number | null>(null);
+  /** Qué cuotas se marcan, por número. Vacío es todo lo que falte. */
+  const [cuotas, setCuotas] = useState<number[]>([]);
   const [confirmando, setConfirmando] = useState(false);
 
   /** Marcar o deshacer. Son la misma pantalla porque comparten la selección. */
@@ -97,6 +103,7 @@ export function GestionCuotas({
     if (!abierto) return;
     setElegidos(new Set(unico ? idsClave.split(",") : []));
     setCobrarMora(true);
+    setCuotas([]);
     setModo("marcar");
   }, [abierto, unico, idsClave]);
 
@@ -154,13 +161,14 @@ export function GestionCuotas({
 
       // Las dos cifras salen del mismo plan ya imputado, así que el desglose
       // es exacto y no una estimación: es lo que se va a registrar.
-      const linea =
-        cuota === null
-          ? { con: a.deuda, sin: a.deudaSinMora }
-          : {
-              con: a.cuotas.find((c) => c.numero === cuota)?.saldo ?? 0,
-              sin: a.cuotas.find((c) => c.numero === cuota)?.saldoSinMora ?? 0,
-            };
+      const elegidas =
+        cuotas.length === 0
+          ? a.cuotas
+          : a.cuotas.filter((c) => cuotas.includes(c.numero));
+      const linea = elegidas.reduce(
+        (t, c) => ({ con: t.con + c.saldo, sin: t.sin + c.saldoSinMora }),
+        { con: 0, sin: 0 },
+      );
       if (linea.con > 0) {
         capital += linea.sin;
         mora += linea.con - linea.sin;
@@ -169,7 +177,7 @@ export function GestionCuotas({
       }
     }
     return { capital, mora, total, cuantos };
-  }, [alumnos, elegidos, cuota, modo, todosLosManuales, cobrarMora]);
+  }, [alumnos, elegidos, cuotas, modo, todosLosManuales, cobrarMora]);
 
   const alternar = (id: string) =>
     setElegidos((s) => {
@@ -281,18 +289,56 @@ export function GestionCuotas({
 
         <div className="mt-5 grid gap-3">
           {modo === "marcar" ? (
-            <Desplegable
-              label="Qué se marca"
-              valor={cuota === null ? "todas" : String(cuota)}
-              alCambiar={(v) => setCuota(v === "todas" ? null : Number(v))}
-              opciones={[
-                { valor: "todas", etiqueta: "Todo lo que falte" },
-                ...Array.from({ length: totalCuotas }, (_, i) => ({
-                  valor: String(i + 1),
-                  etiqueta: `Cuota ${i + 1}`,
-                })),
-              ]}
-            />
+            // Cuotas sueltas, tildando las que se pagaron. Era un desplegable de
+            // una sola, y lo normal es marcar varias juntas: la familia que se
+            // puso al día con tres meses de una no se carga de a una por vez.
+            <div>
+              <Etiqueta>Qué se marca</Etiqueta>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCuotas([])}
+                  className={`cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
+                    cuotas.length === 0
+                      ? "border-ink bg-ink text-paper"
+                      : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+                  }`}
+                >
+                  Todo lo que falte
+                </button>
+                {Array.from({ length: totalCuotas }, (_, i) => i + 1).map(
+                  (n) => {
+                    const puesta = cuotas.includes(n);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        aria-pressed={puesta}
+                        onClick={() =>
+                          setCuotas((s) =>
+                            s.includes(n)
+                              ? s.filter((x) => x !== n)
+                              : [...s, n].sort((a, b) => a - b),
+                          )
+                        }
+                        className={`w-10 cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
+                          puesta
+                            ? "border-ink bg-ink text-paper"
+                            : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+              <p className="nota mt-1.5 text-[11.5px]">
+                {cuotas.length === 0
+                  ? "Se salda todo lo que cada uno deba."
+                  : `Se saldan ${cuotas.length === 1 ? "la cuota" : "las cuotas"} ${listar(cuotas)}, y sólo lo que falte de ${cuotas.length === 1 ? "ella" : "ellas"}.`}
+              </p>
+            </div>
           ) : (
             <Desplegable
               label="Qué se deshace"
@@ -401,9 +447,11 @@ export function GestionCuotas({
             ? todosLosManuales
               ? "Deshacer todo lo marcado a mano"
               : "Deshacer el último marcado"
-            : cuota === null
+            : cuotas.length === 0
               ? "Marcar todo lo que falte"
-              : `Marcar la cuota ${cuota}`
+              : cuotas.length === 1
+                ? `Marcar la cuota ${cuotas[0]}`
+                : `Marcar las cuotas ${listar(cuotas)}`
         }
       >
         <p className="text-[14px] leading-relaxed text-gray-70">
@@ -451,7 +499,7 @@ export function GestionCuotas({
               modo === "marcar"
                 ? marcar.mutate({
                     alumnoIds: [...elegidos],
-                    cuota,
+                    cuotas,
                     cobrarMora,
                   })
                 : deshacer.mutate({
