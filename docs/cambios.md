@@ -295,6 +295,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | Ñ, ajustado | `5c1a18e` | Se va el selector de miniatura; la columna posterId queda en la base sin uso |
 | O | `abc9d4c` | Agregar vuelve a invitar siempre; la columna invitadaEl queda en la base sin uso |
 | P | `1097f51` | Marcar una cuota vuelve a cobrar siempre la mora; la columna sinMora queda en la base y los perdones ya dados se pierden |
+| Q | `fc16755` | Vuelve el desplegable de una cuota sola y se va la casilla de mora vieja del alta |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
