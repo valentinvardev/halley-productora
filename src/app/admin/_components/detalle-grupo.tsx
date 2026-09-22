@@ -239,11 +239,12 @@ export function DetalleGrupo({ id }: { id: string }) {
         <AltaAlumnos
           grupoId={id}
           habilitado={grupo.puedeAltaDeAlumnos}
-          // Cuántas cuotas ya vencieron: sin ninguna, no hay mora vieja que
-          // perdonarle a nadie y la casilla no tiene sentido.
-          cuotasVencidas={
-            grupo.cuotas.filter((c) => new Date(c.venceEl) < new Date()).length
-          }
+          // El plan con cuáles ya vencieron: sin ninguna vencida no hay mora
+          // que perdonarle a nadie y el selector no tiene sentido.
+          cuotas={grupo.cuotas.map((c) => ({
+            numero: c.numero,
+            vencida: new Date(c.venceEl) < new Date(),
+          }))}
           alTerminar={refrescar}
         />
       )}
@@ -823,14 +824,14 @@ function Galerias({
 function AltaAlumnos({
   grupoId,
   habilitado,
-  cuotasVencidas,
+  cuotas,
   alTerminar,
 }: {
   grupoId: string;
   /** Si el grupo tiene de dónde sacar credenciales para pedir el CVU. */
   habilitado: boolean;
-  /** Cuántas cuotas del plan ya vencieron. */
-  cuotasVencidas: number;
+  /** El plan del grupo, con cuáles ya vencieron. */
+  cuotas: { numero: number; vencida: boolean }[];
   alTerminar: (mensaje?: string) => Promise<void>;
 }) {
   const [modo, setModo] = useState<"cerrado" | "uno" | "bloque">("cerrado");
@@ -848,13 +849,13 @@ function AltaAlumnos({
    */
   const [invitar, setInvitar] = useState(true);
   /**
-   * Si al alumno no se le cobra la mora de lo que ya venció.
+   * A qué cuotas no se les cobra mora, por número.
    *
-   * Viene en no, porque lo normal es sumar a alguien al empezar y ahí no hay
-   * nada vencido. El caso de tildarlo es el que se suma a mitad de año: el
-   * recargo de los meses en que no era alumno no es suyo.
+   * Arranca vacío, porque lo normal es sumar a alguien al empezar y ahí no hay
+   * nada vencido. Se eligen de a una y no en bloque: el que se suma a mitad de
+   * año puede haber arreglado algunas de las que ya vencieron y deber el resto.
    */
-  const [sinMoraPrevia, setSinMoraPrevia] = useState(false);
+  const [sinMoraCuotas, setSinMoraCuotas] = useState<number[]>([]);
 
   const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
@@ -956,7 +957,7 @@ function AltaAlumnos({
               nombre,
               emailContacto: email,
               invitar,
-              sinMoraPrevia,
+              sinMoraCuotas,
             });
           }}
           className="grid gap-4"
@@ -979,10 +980,10 @@ function AltaAlumnos({
             />
           </div>
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
-          <CasillaSinMora
-            puesta={sinMoraPrevia}
-            alCambiar={setSinMoraPrevia}
-            cuantas={cuotasVencidas}
+          <CuotasSinMora
+            cuotas={cuotas}
+            elegidas={sinMoraCuotas}
+            alCambiar={setSinMoraCuotas}
           />
           <div className="flex gap-3">
             <Boton type="submit" disabled={agregar.isPending}>
@@ -1005,7 +1006,7 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            enBloque.mutate({ grupoId, texto, invitar, sinMoraPrevia });
+            enBloque.mutate({ grupoId, texto, invitar, sinMoraCuotas });
           }}
           className="grid gap-4"
         >
@@ -1019,10 +1020,10 @@ function AltaAlumnos({
             required
           />
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
-          <CasillaSinMora
-            puesta={sinMoraPrevia}
-            alCambiar={setSinMoraPrevia}
-            cuantas={cuotasVencidas}
+          <CuotasSinMora
+            cuotas={cuotas}
+            elegidas={sinMoraCuotas}
+            alCambiar={setSinMoraCuotas}
           />
           <div className="flex gap-3">
             <Boton type="submit" disabled={enBloque.isPending}>
@@ -1082,39 +1083,103 @@ function CasillaInvitar({
 }
 
 /**
- * La casilla de la mora vieja, en los dos formularios de alta.
+ * A qué cuotas no cobrarles mora, al dar de alta.
  *
  * Aparece sólo si hay algo vencido: en un grupo que recién arranca no hay mora
  * que perdonar y sería un control que no hace nada.
+ *
+ * Se elige de a una y no en bloque. Empezó siendo una casilla de "todo lo ya
+ * vencido", y el caso real es más fino: el que se suma a mitad de año puede
+ * haber arreglado dos de las tres que debe y no la tercera. El atajo de las
+ * vencidas queda igual, porque es lo que se toca casi siempre.
+ *
+ * A diferencia del selector de marcar pagas, acá sí se eligen sueltas: perdonar
+ * la mora de una cuota no depende de las otras, mientras que la plata que entra
+ * se imputa de la más vieja a la más nueva y no se puede saltear.
  */
-function CasillaSinMora({
-  puesta,
+function CuotasSinMora({
+  cuotas,
+  elegidas,
   alCambiar,
-  cuantas,
 }: {
-  puesta: boolean;
-  alCambiar: (v: boolean) => void;
-  cuantas: number;
+  cuotas: { numero: number; vencida: boolean }[];
+  elegidas: number[];
+  alCambiar: (v: number[]) => void;
 }) {
-  if (cuantas === 0) return null;
+  const vencidas = cuotas.filter((c) => c.vencida).map((c) => c.numero);
+  if (vencidas.length === 0) return null;
+
+  const todasLasVencidas =
+    elegidas.length === vencidas.length &&
+    vencidas.every((n) => elegidas.includes(n));
+
+  const chip = (activo: boolean) =>
+    `cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
+      activo
+        ? "border-ink bg-ink text-paper"
+        : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+    }`;
+
   return (
     <div>
-      <label className="flex cursor-pointer items-center gap-2.5">
-        <input
-          type="checkbox"
-          checked={puesta}
-          onChange={(e) => alCambiar(e.target.checked)}
-          className="h-4 w-4 accent-[var(--color-ink)]"
-        />
-        <span className="font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
-          No cobrarle la mora de lo ya vencido
-        </span>
-      </label>
-      <p className="nota mt-1 max-w-[62ch] text-[11.5px]">
-        {puesta
-          ? `Arranca sin recargo por ${cuantas === 1 ? "la cuota que ya venció" : `las ${cuantas} cuotas que ya vencieron`}. Lo que se atrase de acá en adelante sí le corre.`
-          : `El plan tiene ${cuantas === 1 ? "una cuota vencida" : `${cuantas} cuotas vencidas`}, así que entra debiendo ese recargo. Tildalo si se suma ahora y no corresponde.`}
+      <Etiqueta>No cobrarle la mora de estas cuotas</Etiqueta>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => alCambiar([])}
+          className={chip(elegidas.length === 0)}
+        >
+          Ninguna
+        </button>
+        <button
+          type="button"
+          onClick={() => alCambiar(todasLasVencidas ? [] : vencidas)}
+          className={chip(todasLasVencidas)}
+        >
+          Las ya vencidas
+        </button>
+        <span aria-hidden="true" className="mx-1 h-5 w-px bg-gray-20" />
+        {cuotas.map((c) => {
+          const puesta = elegidas.includes(c.numero);
+          return (
+            <button
+              key={c.numero}
+              type="button"
+              aria-pressed={puesta}
+              title={
+                c.vencida
+                  ? `Cuota ${c.numero}, ya vencida`
+                  : `Cuota ${c.numero}, todavía no vence`
+              }
+              onClick={() =>
+                alCambiar(
+                  puesta
+                    ? elegidas.filter((x) => x !== c.numero)
+                    : [...elegidas, c.numero].sort((a, b) => a - b),
+                )
+              }
+              className={`w-10 ${chip(puesta)} ${
+                // Las que todavía no vencieron van atenuadas: hoy no acumulan
+                // nada, y tildarlas es adelantarse a un recargo que no existe.
+                c.vencida || puesta ? "" : "opacity-45"
+              }`}
+            >
+              {c.numero}
+            </button>
+          );
+        })}
+      </div>
+      <p className="nota mt-1.5 max-w-[62ch] text-[11.5px]">
+        {elegidas.length === 0
+          ? `Ya ${vencidas.length === 1 ? "venció la cuota" : "vencieron las cuotas"} ${listarNumeros(vencidas)}, así que entra debiendo ese recargo. Elegí a cuáles no cobrárselo.`
+          : `Arranca sin recargo en ${elegidas.length === 1 ? "la cuota" : "las cuotas"} ${listarNumeros(elegidas)}. En las demás corre la regla de siempre.`}
       </p>
     </div>
   );
+}
+
+/** "1, 2 y 3": para nombrar cuotas en una frase. */
+function listarNumeros(numeros: number[]) {
+  if (numeros.length <= 1) return numeros.join("");
+  return `${numeros.slice(0, -1).join(", ")} y ${numeros.at(-1)}`;
 }

@@ -13,29 +13,36 @@ import { notificarInvitacion } from "./notificaciones";
  */
 
 /**
- * Le perdona la mora de todo lo que ya estaba vencido.
+ * Le perdona la mora de las cuotas que se le indiquen, por número.
  *
  * Es para el que se suma tarde a un plan que arrancó hace meses: llega con
- * cuotas vencidas encima y un recargo que corrió mientras no era alumno. Lo
- * que venga de acá en adelante sí le corre, porque de eso ya es responsable.
+ * cuotas vencidas encima y un recargo que corrió mientras no era alumno. Cuáles
+ * se le perdonan lo decide quien lo carga, porque no siempre son todas las
+ * vencidas: puede haber arreglado la mitad y deber la otra.
  *
- * Se anota cuota por cuota y no como una marca en el alumno: así el día que
- * se quiera volver atrás con una sola, se puede.
+ * Se anota cuota por cuota y no como una marca en el alumno, así se puede
+ * volver atrás con una sola.
  */
-export async function perdonarMoraVencida(alumnoId: string, grupoId: string) {
-  const vencidas = await db.cuota.findMany({
-    where: { grupoId, venceEl: { lt: new Date() } },
+export async function perdonarMora(
+  alumnoId: string,
+  grupoId: string,
+  numeros: number[],
+) {
+  if (numeros.length === 0) return 0;
+
+  const cuotas = await db.cuota.findMany({
+    where: { grupoId, numero: { in: numeros } },
     select: { id: true },
   });
 
-  for (const cuota of vencidas) {
+  for (const cuota of cuotas) {
     await db.cuotaAlumno.upsert({
       where: { alumnoId_cuotaId: { alumnoId, cuotaId: cuota.id } },
       create: { alumnoId, cuotaId: cuota.id, sinMora: true },
       update: { sinMora: true },
     });
   }
-  return vencidas.length;
+  return cuotas.length;
 }
 
 export async function crearAlumno(input: {

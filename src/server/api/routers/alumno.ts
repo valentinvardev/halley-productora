@@ -6,7 +6,7 @@ import {
   destinatarios,
   invitarFamilia,
   parsearAlumnos,
-  perdonarMoraVencida,
+  perdonarMora,
 } from "~/server/alumnos";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
 import { notificarRecordatorio } from "~/server/notificaciones";
@@ -19,8 +19,8 @@ export const alumnoRouter = createTRPCRouter({
         nombre: z.string().min(2),
         emailContacto: z.string().email().optional().or(z.literal("")),
         invitar: z.boolean().default(true),
-        /** Para el que entra tarde: no le cobres la mora de lo ya vencido. */
-        sinMoraPrevia: z.boolean().default(false),
+        /** A qué cuotas no cobrarle mora, por número. Para el que entra tarde. */
+        sinMoraCuotas: z.array(z.number().int().positive()).max(60).default([]),
       }),
     )
     .mutation(async ({ input }) => {
@@ -30,8 +30,8 @@ export const alumnoRouter = createTRPCRouter({
         emailContacto: input.emailContacto || null,
       });
 
-      if (!yaExistia && input.sinMoraPrevia) {
-        await perdonarMoraVencida(alumno.id, input.grupoId);
+      if (!yaExistia) {
+        await perdonarMora(alumno.id, input.grupoId, input.sinMoraCuotas);
       }
       if (!yaExistia && input.invitar) await invitarFamilia(alumno.id);
       return { id: alumno.id, yaExistia };
@@ -43,8 +43,8 @@ export const alumnoRouter = createTRPCRouter({
         grupoId: z.string(),
         texto: z.string().min(1),
         invitar: z.boolean().default(true),
-        /** Para los que entran tarde: no les cobres la mora de lo ya vencido. */
-        sinMoraPrevia: z.boolean().default(false),
+        /** A qué cuotas no cobrarles mora, por número. Para los que entran tarde. */
+        sinMoraCuotas: z.array(z.number().int().positive()).max(60).default([]),
       }),
     )
     .mutation(async ({ input }) => {
@@ -64,9 +64,7 @@ export const alumnoRouter = createTRPCRouter({
           continue;
         }
         creados += 1;
-        if (input.sinMoraPrevia) {
-          await perdonarMoraVencida(alumno.id, input.grupoId);
-        }
+        await perdonarMora(alumno.id, input.grupoId, input.sinMoraCuotas);
         if (input.invitar) await invitarFamilia(alumno.id);
       }
 

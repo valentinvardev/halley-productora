@@ -1726,3 +1726,36 @@ y la deuda bajó exactamente a lo que queda del plan. Antes de la corrección,
 ese mismo caso dejaba la tres impaga.
 
 **Rollback:** fila "Q, corregido" de la tabla.
+
+### R. A qué cuotas no cobrarles mora, elegidas de a una
+
+**Pedido de Fran:** que no sean puntualmente las vencidas, sino poder elegir
+cuota por cuota a cuáles no cobrarles intereses.
+
+**Antes.** Al dar de alta había una casilla sola: "No cobrarle la mora de lo ya
+vencido", todo o nada. Servía para el que se suma a mitad de año, pero no para
+el caso más fino, que es el real: alguien que arregló dos de las tres cuotas
+que debe y no la tercera.
+
+**Ahora.** En su lugar hay una fila de casillas numeradas, una por cuota del
+plan, que se tildan de a una. Al lado quedan dos atajos: "Ninguna" y "Las ya
+vencidas", que es lo que se toca casi siempre. Las cuotas que todavía no
+vencieron se ven atenuadas, porque hoy no acumulan nada y tildarlas es
+adelantarse a un recargo que no existe. Debajo se lee en una frase qué queda
+perdonado y que en el resto corre la regla de siempre.
+
+**Por qué acá sí se eligen sueltas.** En la pantalla de marcar pagas, las
+casillas eligen hasta dónde y no cuáles, porque lo que se paga se imputa de la
+cuota más vieja a la más nueva y saltear una no es algo que el sistema pueda
+cumplir. Perdonar la mora es distinto: no mueve plata, y el perdón de una cuota
+no depende de las otras. Por eso son dos selectores parecidos con reglas
+distintas, y cada uno hace lo que su caso permite.
+
+**Verificación.** Contra el panel real, con un alumno de prueba borrado al
+terminar. El selector mostró las seis cuotas con las tres vencidas en firme y
+las otras tres atenuadas. El atajo tildó las tres vencidas, destildar la dos
+dejó la uno y la tres, y tildar la cinco la sumó aunque no haya vencido. Al
+crear el alumno, en la base quedaron perdonadas exactamente las cuotas 1, 3 y
+5.
+
+**Rollback:** fila R de la tabla.
