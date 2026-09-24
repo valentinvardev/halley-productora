@@ -19,7 +19,7 @@ import { render, textosDe } from "./plantillas";
  */
 
 type Alumno = { id: string; nombre: string; token: string; alias: string };
-type Grupo = { id: string; nombre: string; colegio: string; slug: string };
+type Grupo = { id: string; nombre: string; subtitulo: string; slug: string };
 
 /**
  * La casilla de Halley para los avisos.
@@ -275,7 +275,7 @@ export async function notificarPagoRecibido(
     {
       tipo: "AVISO_ADMIN",
       destinatario: await casillaDeAvisos(),
-      asunto: `Pago recibido — ${alumno.nombre} (${grupo.colegio})`,
+      asunto: `Pago recibido — ${alumno.nombre} (${grupo.subtitulo})`,
       cuerpo: [
         `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, cuota ${pago.cuota}.`,
         "",
@@ -289,7 +289,7 @@ export async function notificarPagoRecibido(
       grupoId: grupo.id,
     },
     plantillaEmail({
-      preheader: `${pesos(pago.monto)} de ${alumno.nombre} — ${grupo.colegio}.`,
+      preheader: `${pesos(pago.monto)} de ${alumno.nombre} — ${grupo.subtitulo}.`,
       titulo: "Pago recibido",
       parrafos: [
         `Se acreditó un pago de ${alumno.nombre}, cuota ${pago.cuota}.`,
@@ -382,7 +382,7 @@ export async function notificarPagoParcial(
     {
       tipo: "AVISO_ADMIN",
       destinatario: await casillaDeAvisos(),
-      asunto: `Pago incompleto — ${alumno.nombre} (${grupo.colegio})`,
+      asunto: `Pago incompleto — ${alumno.nombre} (${grupo.subtitulo})`,
       cuerpo: [
         `${alumno.nombre} transfirió ${pesos(pago.monto)} para la cuota ${pago.cuota}, y faltaron ${pesos(pago.falta)}.`,
         "",

@@ -25,6 +25,25 @@ datasource db {
  * --------------------------------------------------------------------------
  */
 
+/// Un colegio: junta los cursos que son del mismo lugar.
+///
+/// Existe para el panel y nada más. Cada curso sigue teniendo su plan de
+/// cuotas, su link de registro y su cuenta que cobra; el colegio sólo los
+/// muestra juntos con los números sumados, y se despliega para ver cada uno.
+/// Un grupo puede no tener colegio y queda suelto en la lista, como siempre.
+model Colegio {
+  id     String @id @default(cuid())
+  nombre String
+  /// En qué orden salen en la lista.
+  orden  Int    @default(0)
+
+  grupos Grupo[]
+
+  creadoEn DateTime @default(now())
+
+  @@index([orden])
+}
+
 model Grupo {
   id     String @id @default(cuid())
   nombre String // "Egresados 2027 – Colegio San Martín" o "Ana y Julián"
@@ -32,10 +51,20 @@ model Grupo {
 
   valoraciones Valoracion[]
 
-  /// Para egresados, el colegio. Para un particular, el tipo de evento
-  /// ("Boda", "15 años"): funciona igual como subtítulo, alias y en los
-  /// avisos, así que se mantiene siempre cargado y nada aguas abajo cambia.
-  colegio String
+  /// La línea que va debajo del nombre: el colegio en egresados, el tipo de
+  /// evento ("Boda", "15 años") en un particular. Funciona igual como alias y
+  /// en los avisos, así que se mantiene siempre cargado.
+  ///
+  /// Se llama `subtitulo` y no `colegio` desde que el colegio es una fila
+  /// propia: dos cosas distintas no pueden llamarse igual. La columna sigue
+  /// siendo `colegio` para no migrar nada.
+  subtitulo String @map("colegio")
+
+  /// El colegio que agrupa a este grupo con los demás cursos suyos, si lo
+  /// tiene. Es sólo para verlos juntos y sumados en el panel: el plan, el
+  /// cobro y las galerías siguen siendo de cada grupo.
+  colegioId String?
+  colegio   Colegio? @relation(fields: [colegioId], references: [id], onDelete: SetNull)
 
   /// Egresados —muchos alumnos que comparten un plan— o particular —un cliente
   /// único, una boda o un cumpleaños de 15, con su propio plan—. El modelo es

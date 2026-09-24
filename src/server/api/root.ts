@@ -2,6 +2,7 @@ import { avisoRouter } from "~/server/api/routers/aviso";
 import { transaccionRouter } from "~/server/api/routers/transaccion";
 import { ajusteRouter } from "~/server/api/routers/ajuste";
 import { alumnoRouter } from "~/server/api/routers/alumno";
+import { colegioRouter } from "~/server/api/routers/colegio";
 import { subgrupoRouter } from "~/server/api/routers/subgrupo";
 import { catalogoRouter } from "~/server/api/routers/catalogo";
 import { contenidoRouter } from "~/server/api/routers/contenido";
@@ -27,6 +28,7 @@ export const appRouter = createTRPCRouter({
   grupo: grupoRouter,
   alumno: alumnoRouter,
   subgrupo: subgrupoRouter,
+  colegio: colegioRouter,
   cuenta: cuentaRouter,
   publico: publicoRouter,
   pago: pagoRouter,

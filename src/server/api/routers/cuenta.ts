@@ -41,7 +41,7 @@ export const cuentaRouter = createTRPCRouter({
 
       return {
         nombre: grupo.nombre,
-        colegio: grupo.colegio,
+        colegio: grupo.subtitulo,
         cuotas: grupo.cuotas.length,
         montoCuota: primera ? Number(primera.monto) : 0,
         primerVencimiento: primera?.venceEl ?? null,
@@ -161,7 +161,7 @@ export const cuentaRouter = createTRPCRouter({
         reportoTransferenciaEl: alumno.reportoTransferenciaEl,
         grupo: {
           nombre: alumno.grupo.nombre,
-          colegio: alumno.grupo.colegio,
+          colegio: alumno.grupo.subtitulo,
         },
         monto,
         /** Con tolerancia de un centavo, igual que la imputación. */
@@ -237,7 +237,7 @@ export const cuentaRouter = createTRPCRouter({
         modoDemo: simuladorTaloActivo(),
         grupo: {
           nombre: a.grupo.nombre,
-          colegio: a.grupo.colegio,
+          colegio: a.grupo.subtitulo,
           slug: a.grupo.slug,
         },
         /** Los otros papás: quién más está gestionando esta cuota. */

@@ -71,6 +71,7 @@ export const grupoRouter = createTRPCRouter({
     const grupos = await ctx.db.grupo.findMany({
       orderBy: { creadoEn: "desc" },
       include: {
+        colegio: true,
         cuotas: true,
         alumnos: {
           select: { pagos: { select: { monto: true } }, ajustesCuota: true },
@@ -82,7 +83,11 @@ export const grupoRouter = createTRPCRouter({
       id: g.id,
       nombre: g.nombre,
       slug: g.slug,
-      colegio: g.colegio,
+      colegio: g.subtitulo,
+      /** El colegio que lo agrupa, si está en alguno. Sólo para el panel. */
+      agrupadoEn: g.colegio
+        ? { id: g.colegio.id, nombre: g.colegio.nombre }
+        : null,
       tipo: g.tipo,
       autoRegistro: g.autoRegistro,
       modoPrueba: g.modoPrueba,
@@ -119,7 +124,7 @@ export const grupoRouter = createTRPCRouter({
         id: grupo.id,
         nombre: grupo.nombre,
         slug: grupo.slug,
-        colegio: grupo.colegio,
+        colegio: grupo.subtitulo,
         tipo: grupo.tipo,
         autoRegistro: grupo.autoRegistro,
         modoPrueba: grupo.modoPrueba,
@@ -251,7 +256,7 @@ export const grupoRouter = createTRPCRouter({
       const grupo = await ctx.db.grupo.create({
         data: {
           nombre: input.nombre,
-          colegio: input.colegio,
+          subtitulo: input.colegio,
           autoRegistro: input.autoRegistro,
           cuentaPagoId: input.cuentaPagoId ?? null,
           slug,
@@ -308,7 +313,7 @@ export const grupoRouter = createTRPCRouter({
       const grupo = await ctx.db.grupo.create({
         data: {
           nombre: input.cliente,
-          colegio: input.evento,
+          subtitulo: input.evento,
           tipo: "PARTICULAR",
           // Un particular no tiene link público de auto-registro: lo invita el
           // admin, uno solo.

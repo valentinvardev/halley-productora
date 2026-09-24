@@ -1810,3 +1810,49 @@ Borrar la carpeta la devolvió a "Sin asignar" sin perder a nadie: el grupo
 terminó con sus 20 alumnos y cero carpetas.
 
 **Rollback:** fila S de la tabla.
+
+### T. Colegios: varios cursos en un renglón, con los números sumados
+
+**Pedido:** poder agrupar grupos en un item, que ese item una los números de
+los grupos agrupados, y con un desplegable ver los grupos incluidos y volver a
+los números individuales.
+
+**Qué es.** Un colegio junta los cursos que son del mismo lugar. Existe para el
+panel y nada más: cada curso sigue con su plan de cuotas, su link de registro y
+su cuenta que cobra. Jesús María ya tenía tres cursos cargados como tres grupos
+sueltos, sin nada que los juntara.
+
+**En la lista.** El colegio se ve como una tarjeta con los mismos cuatro
+números que un curso, pero sumados: recaudado, plan total, al día y con
+vencidas. Abajo, un desplegable que dice cuántos cursos tiene y los muestra
+tal como se veían antes, cada uno con los suyos. Los que no están en ningún
+colegio quedan abajo, bajo el rótulo "Sin colegio".
+
+**Cómo se arma.** Cada tarjeta de curso tiene un botón que dice a qué colegio
+pertenece, o "Sin colegio". Se toca y se elige de una lista. Los colegios se
+crean con un botón arriba de la lista, se renombran y se borran. Borrar un
+colegio no borra ningún grupo ni toca un peso: los cursos vuelven a la lista
+sueltos.
+
+**Un nombre que se aclaró de paso.** El grupo tenía un campo llamado `colegio`
+que en realidad es el renglón de abajo del nombre: el colegio en egresados, el
+tipo de evento en un particular. Ahora que el colegio es una fila propia, dos
+cosas distintas no podían llamarse igual: ese campo pasó a llamarse
+`subtitulo`. La columna de la base no se movió, así que no hubo migración, y el
+compilador marcó los veinticinco lugares que había que tocar.
+
+**Verificación.** Contra el panel real, agrupando los tres cursos de Jesús
+María y deshaciéndolo al terminar. La tarjeta del colegio mostró 3 cursos y 103
+alumnos, y cada número coincidió exactamente con la suma de los tres cursos por
+separado: recaudado, plan total, al día y con vencidas. El desplegable los
+mostró de vuelta con sus números individuales, y al borrar el colegio los tres
+volvieron sueltos a la lista.
+
+**Algo que apareció mirando los números.** Cuatro alumnos tienen precio propio
+de un peso por cuota: dos en Sociales y uno en Arte, más otros con precios
+reales negociados. Los de un peso parecen una prueba que quedó: uno de ellos
+pagó ciento ochenta mil pesos contra un plan de seis, así que tiene ese dinero
+a favor y el recaudado del curso no lo cuenta, que es lo correcto. No es un
+error del sistema, pero conviene revisarlos.
+
+**Rollback:** fila T de la tabla.

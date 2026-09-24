@@ -5,11 +5,15 @@ import { useState } from "react";
 
 import { CampoFecha } from "~/app/_components/campo-fecha";
 import {
+  IconoAlerta,
+  IconoBajar,
   IconoGrupos,
   IconoMas,
+  IconoPapelera,
   IconoPerfil,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
+import { Modal } from "~/app/_components/modal";
 import {
   Boton,
   BotonTexto,
@@ -22,7 +26,7 @@ import {
 } from "~/app/_components/ui";
 import { pesos } from "~/lib/format";
 import { Desplegable } from "~/app/_components/desplegable";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { EsqueletoGrupos } from "./esqueletos";
 
 /** Tira de marcas al estilo hoja de contacto: un cuadro por alumno. */
@@ -345,21 +349,112 @@ function FormularioParticular({ alCerrar }: { alCerrar: () => void }) {
   );
 }
 
+type GrupoLista = RouterOutputs["grupo"]["listar"][number];
+
+/** Los ceros de un resumen, para arrancar la suma. */
+const SIN_NADA = {
+  alumnos: 0,
+  alDia: 0,
+  conDeuda: 0,
+  vencidos: 0,
+  esperado: 0,
+  recaudado: 0,
+};
+
+/**
+ * Los números de varios cursos, sumados.
+ *
+ * Se suman los resúmenes ya calculados y no se recalcula nada: cada grupo trae
+ * el suyo resuelto contra su propio plan, que es lo que permite que dos cursos
+ * con planes distintos se puedan sumar sin que la cuenta deje de cerrar.
+ */
+function sumar(cursos: GrupoLista[]) {
+  return cursos.reduce(
+    (t, g) => ({
+      alumnos: t.alumnos + g.resumen.alumnos,
+      alDia: t.alDia + g.resumen.alDia,
+      conDeuda: t.conDeuda + g.resumen.conDeuda,
+      vencidos: t.vencidos + g.resumen.vencidos,
+      esperado: t.esperado + g.resumen.esperado,
+      recaudado: t.recaudado + g.resumen.recaudado,
+    }),
+    { ...SIN_NADA },
+  );
+}
+
 export function Grupos() {
   const [modo, setModo] = useState<"" | "grupo" | "particular">("");
   const utils = api.useUtils();
   const { data: grupos, isLoading } = api.grupo.listar.useQuery();
+  const { data: colegios } = api.colegio.listar.useQuery();
 
-  const sembrar = api.demo.sembrar.useMutation({
-    onSuccess: () => utils.grupo.listar.invalidate(),
+  /** Qué colegios están desplegados, para ver sus cursos por separado. */
+  const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
+  /** El grupo al que se le está eligiendo colegio. */
+  const [asignando, setAsignando] = useState<{
+    id: string;
+    nombre: string;
+    colegioId: string | null;
+  } | null>(null);
+  /** El colegio que se está creando o renombrando. `id` nulo es uno nuevo. */
+  const [editandoColegio, setEditandoColegio] = useState<{
+    id: string | null;
+    nombre: string;
+  } | null>(null);
+  const [borrandoColegio, setBorrandoColegio] = useState<{
+    id: string;
+    nombre: string;
+    cursos: number;
+  } | null>(null);
+
+  const refrescar = async () => {
+    await utils.colegio.listar.invalidate();
+    await utils.grupo.listar.invalidate();
+  };
+
+  const sembrar = api.demo.sembrar.useMutation({ onSuccess: refrescar });
+  const crearColegio = api.colegio.crear.useMutation({
+    onSuccess: async () => {
+      setEditandoColegio(null);
+      await refrescar();
+    },
   });
+  const renombrarColegio = api.colegio.renombrar.useMutation({
+    onSuccess: async () => {
+      setEditandoColegio(null);
+      await refrescar();
+    },
+  });
+  const borrarColegio = api.colegio.eliminar.useMutation({
+    onSuccess: async () => {
+      setBorrandoColegio(null);
+      await refrescar();
+    },
+  });
+  const asignarColegio = api.colegio.asignar.useMutation({
+    onSuccess: async () => {
+      setAsignando(null);
+      await refrescar();
+    },
+  });
+
+  const prefetch = (id: string) => void utils.grupo.detalle.prefetch({ id });
+
+  // Los cursos de cada colegio, y los que todavía no están en ninguno. Un
+  // colegio recién creado se muestra igual aunque esté vacío: si desapareciera,
+  // el que lo acaba de crear pensaría que no se guardó.
+  const sueltos = (grupos ?? []).filter((g) => !g.agrupadoEn);
+  const items = (colegios ?? []).map((c) => ({
+    colegio: c,
+    cursos: (grupos ?? []).filter((g) => g.agrupadoEn?.id === c.id),
+  }));
 
   return (
     <>
       <Encabezado
         eyebrow="Cobros"
         titulo="Estado por cliente"
-        bajada="Cada grupo es un rollo: círculo con tilde es al día, punteado con saldo, tachado con cuotas vencidas. Los particulares —bodas, 15— son un cliente único con su propio plan."
+        bajada="Cada grupo es un rollo: círculo con tilde es al día, punteado con saldo, tachado con cuotas vencidas. Los colegios juntan varios cursos y muestran sus números sumados."
         acciones={
           modo === "" ? (
             <>
@@ -389,7 +484,7 @@ export function Grupos() {
 
       {!isLoading && grupos?.length === 0 && (
         <div className="grid gap-5 border border-dashed border-gray-20 px-6 py-12 text-center">
-          <p className="font-rotulo text-[12px] uppercase tracking-[0.08em] text-gray-45">
+          <p className="font-rotulo text-[12px] tracking-[0.08em] text-gray-45 uppercase">
             Todavía no hay grupos
           </p>
           <div className="flex justify-center">
@@ -404,53 +499,385 @@ export function Grupos() {
         </div>
       )}
 
-      <div className="grid gap-4">
-        {grupos?.map((g) => (
-          <Link
-            key={g.id}
-            href={`/admin/grupos/${g.id}`}
-            // Next ya prefetchea la pantalla al acercarse; esto prefetchea los
-            // datos. Entre que el puntero entra a la tarjeta y el clic pasan
-            // unos cientos de milisegundos, que suele ser todo lo que tarda la
-            // consulta: cuando la pantalla abre, muchas veces ya están.
-            onMouseEnter={() => void utils.grupo.detalle.prefetch({ id: g.id })}
-            onFocus={() => void utils.grupo.detalle.prefetch({ id: g.id })}
-            className="block border border-ink transition-colors hover:bg-paper-dim"
+      {/* El colegio junta varios cursos en un solo renglón. Va acá arriba de la
+          lista y no entre las acciones del encabezado porque es una forma de
+          mirar lo que ya hay, no una alta más. */}
+      {!isLoading && (grupos?.length ?? 0) > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <BotonTexto
+            onClick={() => setEditandoColegio({ id: null, nombre: "" })}
           >
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">
-              <div>
-                <div className="mb-1 flex items-center gap-2">
-                  <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
-                  {g.tipo === "PARTICULAR" && <Tag>Particular</Tag>}
-                  {g.modoPrueba && <Tag>Modo prueba</Tag>}
-                </div>
-                <div className="font-rotulo text-[12px] uppercase tracking-[0.06em] text-gray-70">
-                  {g.tipo === "PARTICULAR"
-                    ? `${g.colegio} · ${g.resumen.cuotas} cuotas`
-                    : `${g.colegio} · ${g.resumen.cuotas} cuotas · ${g.resumen.alumnos} alumnos`}
-                </div>
-              </div>
-              <div className="max-w-[260px]">
-                <Tira
-                  alDia={g.resumen.alDia}
-                  conDeuda={g.resumen.conDeuda}
-                  vencidos={g.resumen.vencidos}
-                />
-              </div>
-            </div>
+            <IconoMas />
+            Nuevo colegio
+          </BotonTexto>
+          <span className="nota text-[11.5px]">
+            Junta varios cursos y suma sus números. Cada curso sigue con su plan
+            y su cobro.
+          </span>
+        </div>
+      )}
 
-            <div className="flex flex-wrap">
-              <Dato rotulo="Recaudado" valor={pesos(g.resumen.recaudado)} />
-              <Dato rotulo="Plan total" valor={pesos(g.resumen.esperado)} />
-              <Dato
-                rotulo="Al día"
-                valor={`${g.resumen.alDia}/${g.resumen.alumnos}`}
-              />
-              <Dato rotulo="Con vencidas" valor={g.resumen.vencidos} />
+      <div className="grid gap-4">
+        {items.map(({ colegio, cursos }) => {
+          const suma = sumar(cursos);
+          const abierto = abiertos.has(colegio.id);
+          return (
+            <div key={colegio.id} className="border border-ink">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">
+                <div className="min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <IconoGrupos className="text-gray-45" />
+                    <h3 className="text-[19px] leading-snug">
+                      {colegio.nombre}
+                    </h3>
+                  </div>
+                  <div className="font-rotulo text-[12px] tracking-[0.06em] text-gray-70 uppercase">
+                    {cursos.length} {cursos.length === 1 ? "curso" : "cursos"} ·{" "}
+                    {suma.alumnos} alumnos
+                  </div>
+                </div>
+                <div className="max-w-[260px]">
+                  <Tira
+                    alDia={suma.alDia}
+                    conDeuda={suma.conDeuda}
+                    vencidos={suma.vencidos}
+                  />
+                </div>
+              </div>
+
+              {/* Los mismos cuatro números que un curso, pero sumados. */}
+              <div className="flex flex-wrap">
+                <Dato rotulo="Recaudado" valor={pesos(suma.recaudado)} />
+                <Dato rotulo="Plan total" valor={pesos(suma.esperado)} />
+                <Dato rotulo="Al día" valor={`${suma.alDia}/${suma.alumnos}`} />
+                <Dato rotulo="Con vencidas" valor={suma.vencidos} />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 border-t border-gray-20 px-6 py-3">
+                <BotonTexto
+                  onClick={() =>
+                    setAbiertos((s) => {
+                      const n = new Set(s);
+                      if (n.has(colegio.id)) n.delete(colegio.id);
+                      else n.add(colegio.id);
+                      return n;
+                    })
+                  }
+                >
+                  <IconoBajar
+                    className={`h-3 w-3 transition-transform ${
+                      abierto ? "rotate-180" : ""
+                    }`}
+                  />
+                  {abierto
+                    ? "Ocultar los cursos"
+                    : cursos.length === 1
+                      ? "Ver el curso"
+                      : `Ver los ${cursos.length} cursos`}
+                </BotonTexto>
+                <span className="ml-auto flex flex-wrap gap-3">
+                  <BotonTexto
+                    onClick={() =>
+                      setEditandoColegio({
+                        id: colegio.id,
+                        nombre: colegio.nombre,
+                      })
+                    }
+                  >
+                    Renombrar
+                  </BotonTexto>
+                  <BotonTexto
+                    onClick={() =>
+                      setBorrandoColegio({
+                        id: colegio.id,
+                        nombre: colegio.nombre,
+                        cursos: cursos.length,
+                      })
+                    }
+                  >
+                    Borrar
+                  </BotonTexto>
+                </span>
+              </div>
+
+              {abierto && (
+                <div className="grid gap-3 border-t border-gray-20 bg-paper-dim p-4">
+                  {cursos.length === 0 ? (
+                    <p className="nota text-center text-[12.5px]">
+                      Todavía no hay cursos acá. Se eligen desde el botón
+                      Colegio de cualquier grupo.
+                    </p>
+                  ) : (
+                    cursos.map((g) => (
+                      <TarjetaGrupo
+                        key={g.id}
+                        g={g}
+                        alPrefetch={prefetch}
+                        alElegirColegio={() =>
+                          setAsignando({
+                            id: g.id,
+                            nombre: g.nombre,
+                            colegioId: g.agrupadoEn?.id ?? null,
+                          })
+                        }
+                      />
+                    ))
+                  )}
+                </div>
+              )}
             </div>
-          </Link>
+          );
+        })}
+
+        {items.length > 0 && sueltos.length > 0 && (
+          <p className="mt-2 font-rotulo text-[11.5px] tracking-[0.08em] text-gray-45 uppercase">
+            Sin colegio
+          </p>
+        )}
+
+        {sueltos.map((g) => (
+          <TarjetaGrupo
+            key={g.id}
+            g={g}
+            alPrefetch={prefetch}
+            alElegirColegio={() =>
+              setAsignando({
+                id: g.id,
+                nombre: g.nombre,
+                colegioId: g.agrupadoEn?.id ?? null,
+              })
+            }
+          />
         ))}
       </div>
+
+      {/* ------------------------------------------------- elegir el colegio */}
+      <Modal
+        abierto={asignando !== null}
+        alCerrar={() => setAsignando(null)}
+        eyebrow={asignando?.nombre}
+        titulo="En qué colegio va"
+      >
+        <p className="nota max-w-[60ch] text-[13px]">
+          Es sólo para verlo junto a los demás cursos del mismo lugar. No cambia
+          su plan de cuotas, ni su link de registro, ni la cuenta que cobra.
+        </p>
+
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          {[
+            { id: null as string | null, nombre: "Sin colegio" },
+            ...(colegios ?? []),
+          ].map((c) => {
+            const puesto = (asignando?.colegioId ?? null) === c.id;
+            return (
+              <button
+                key={c.id ?? "ninguno"}
+                type="button"
+                onClick={() =>
+                  asignando &&
+                  asignarColegio.mutate({
+                    grupoIds: [asignando.id],
+                    colegioId: c.id,
+                  })
+                }
+                disabled={asignarColegio.isPending}
+                className={`cursor-pointer border px-3 py-2 font-rotulo text-[11.5px] tracking-[0.06em] uppercase transition-colors ${
+                  puesto
+                    ? "border-ink bg-ink text-paper"
+                    : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+                }`}
+              >
+                {c.nombre}
+              </button>
+            );
+          })}
+        </div>
+
+        {(colegios?.length ?? 0) === 0 && (
+          <p className="nota mt-3 text-[12px]">
+            Todavía no hay colegios. Creá uno con el botón de arriba de la
+            lista.
+          </p>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <Boton variante="fantasma" onClick={() => setAsignando(null)}>
+            Cerrar
+          </Boton>
+        </div>
+      </Modal>
+
+      {/* --------------------------------------------- crear o renombrar uno */}
+      <Modal
+        abierto={editandoColegio !== null}
+        alCerrar={() => setEditandoColegio(null)}
+        eyebrow="Colegios"
+        titulo={editandoColegio?.id ? "Renombrar el colegio" : "Nuevo colegio"}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const nombre = editandoColegio?.nombre.trim() ?? "";
+            if (nombre.length < 2) return;
+            if (editandoColegio?.id) {
+              renombrarColegio.mutate({ id: editandoColegio.id, nombre });
+            } else {
+              crearColegio.mutate({ nombre });
+            }
+          }}
+        >
+          <Campo
+            label="Nombre del colegio"
+            placeholder="Jesús María"
+            value={editandoColegio?.nombre ?? ""}
+            onChange={(e) =>
+              setEditandoColegio((c) =>
+                c ? { ...c, nombre: e.target.value } : c,
+              )
+            }
+            hint="Sin el año: el año va en el nombre de cada curso."
+            maxLength={80}
+            autoFocus
+          />
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <Boton
+              variante="fantasma"
+              type="button"
+              onClick={() => setEditandoColegio(null)}
+            >
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              disabled={
+                (editandoColegio?.nombre.trim().length ?? 0) < 2 ||
+                crearColegio.isPending ||
+                renombrarColegio.isPending
+              }
+            >
+              {crearColegio.isPending || renombrarColegio.isPending
+                ? "Guardando…"
+                : editandoColegio?.id
+                  ? "Renombrar"
+                  : "Crear colegio"}
+            </Boton>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ------------------------------------------------------------ borrar */}
+      <Modal
+        abierto={borrandoColegio !== null}
+        alCerrar={() => setBorrandoColegio(null)}
+        eyebrow={borrandoColegio?.nombre}
+        titulo="Borrar el colegio"
+      >
+        <p className="flex items-start gap-2.5 text-[14px] leading-relaxed text-gray-70">
+          <IconoAlerta className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {borrandoColegio?.cursos === 0
+              ? "No tiene cursos adentro, así que no se pierde nada."
+              : `No se borra ningún grupo ni se toca un peso. ${
+                  borrandoColegio?.cursos === 1
+                    ? "El curso que tenía adentro vuelve"
+                    : `Los ${borrandoColegio?.cursos} cursos que tenía adentro vuelven`
+                } a la lista, sin colegio.`}
+          </span>
+        </p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Boton variante="fantasma" onClick={() => setBorrandoColegio(null)}>
+            Cancelar
+          </Boton>
+          <Boton
+            onClick={() =>
+              borrandoColegio &&
+              borrarColegio.mutate({ id: borrandoColegio.id })
+            }
+            disabled={borrarColegio.isPending}
+          >
+            <IconoPapelera />
+            {borrarColegio.isPending ? "Borrando…" : "Borrar"}
+          </Boton>
+        </div>
+      </Modal>
     </>
+  );
+}
+
+/**
+ * La tarjeta de un curso.
+ *
+ * Es la misma esté suelta o adentro de un colegio: lo único que cambia es dónde
+ * se dibuja. El botón de colegio va adentro del link, así que frena el clic
+ * para que elegir carpeta no abra el grupo.
+ */
+function TarjetaGrupo({
+  g,
+  alPrefetch,
+  alElegirColegio,
+}: {
+  g: GrupoLista;
+  alPrefetch: (id: string) => void;
+  alElegirColegio: () => void;
+}) {
+  return (
+    <Link
+      href={`/admin/grupos/${g.id}`}
+      // Next ya prefetchea la pantalla al acercarse; esto prefetchea los datos.
+      // Entre que el puntero entra a la tarjeta y el clic pasan unos cientos de
+      // milisegundos, que suele ser todo lo que tarda la consulta: cuando la
+      // pantalla abre, muchas veces ya están.
+      onMouseEnter={() => alPrefetch(g.id)}
+      onFocus={() => alPrefetch(g.id)}
+      className="block border border-ink bg-paper transition-colors hover:bg-paper-dim"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-20 px-6 py-5">
+        <div className="min-w-0">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
+            {g.tipo === "PARTICULAR" && <Tag>Particular</Tag>}
+            {g.modoPrueba && <Tag>Modo prueba</Tag>}
+          </div>
+          <div className="font-rotulo text-[12px] tracking-[0.06em] text-gray-70 uppercase">
+            {g.tipo === "PARTICULAR"
+              ? `${g.colegio} · ${g.resumen.cuotas} cuotas`
+              : `${g.colegio} · ${g.resumen.cuotas} cuotas · ${g.resumen.alumnos} alumnos`}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="max-w-[260px]">
+            <Tira
+              alDia={g.resumen.alDia}
+              conDeuda={g.resumen.conDeuda}
+              vencidos={g.resumen.vencidos}
+            />
+          </div>
+          {g.tipo !== "PARTICULAR" && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                alElegirColegio();
+              }}
+              title="Elegir el colegio que lo agrupa"
+              className="cursor-pointer border border-gray-20 px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] text-gray-70 uppercase transition-colors hover:border-ink hover:text-ink"
+            >
+              {g.agrupadoEn ? g.agrupadoEn.nombre : "Sin colegio"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap">
+        <Dato rotulo="Recaudado" valor={pesos(g.resumen.recaudado)} />
+        <Dato rotulo="Plan total" valor={pesos(g.resumen.esperado)} />
+        <Dato
+          rotulo="Al día"
+          valor={`${g.resumen.alDia}/${g.resumen.alumnos}`}
+        />
+        <Dato rotulo="Con vencidas" valor={g.resumen.vencidos} />
+      </div>
+    </Link>
   );
 }

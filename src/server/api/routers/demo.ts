@@ -20,7 +20,7 @@ const EN_MESES = (meses: number) => {
 const GRUPOS = [
   {
     nombre: "Egresados 2027 – Colegio San Martín",
-    colegio: "Colegio San Martín",
+    subtitulo: "Colegio San Martín",
     montoCuota: 45000,
     cuotas: 6,
     // Arrancó hace dos meses: quedan cuotas pagadas atrás y otras por venir.
@@ -51,7 +51,7 @@ const GRUPOS = [
   },
   {
     nombre: "Egresados 2026 – Instituto Belgrano",
-    colegio: "Instituto Belgrano",
+    subtitulo: "Instituto Belgrano",
     montoCuota: 38000,
     cuotas: 3,
     primerVencimiento: EN_MESES(-4), // plan terminado: se ven los vencidos
@@ -76,7 +76,7 @@ export const demoRouter = createTRPCRouter({
       const grupo = await ctx.db.grupo.create({
         data: {
           nombre: plantilla.nombre,
-          colegio: plantilla.colegio,
+          subtitulo: plantilla.subtitulo,
           slug,
           cuotas: {
             create: Array.from({ length: plantilla.cuotas }, (_, i) => {

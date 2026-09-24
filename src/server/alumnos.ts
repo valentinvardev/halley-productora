@@ -86,7 +86,7 @@ export async function crearAlumno(input: {
     customerId: id,
     nombre,
     email: input.emailContacto ?? env.ADMIN_EMAIL,
-    aliasSugerido: armarAlias(grupo.colegio, nombre),
+    aliasSugerido: armarAlias(grupo.subtitulo, nombre),
     webhookUrl: `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/talo`,
   });
 

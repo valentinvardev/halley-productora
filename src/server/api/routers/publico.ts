@@ -60,7 +60,7 @@ export const publicoRouter = createTRPCRouter({
         modoPrueba: alumno.grupo.modoPrueba,
         grupo: {
           nombre: alumno.grupo.nombre,
-          colegio: alumno.grupo.colegio,
+          colegio: alumno.grupo.subtitulo,
           slug: alumno.grupo.slug,
         },
         plan: {
