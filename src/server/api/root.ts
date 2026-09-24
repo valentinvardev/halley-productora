@@ -2,6 +2,7 @@ import { avisoRouter } from "~/server/api/routers/aviso";
 import { transaccionRouter } from "~/server/api/routers/transaccion";
 import { ajusteRouter } from "~/server/api/routers/ajuste";
 import { alumnoRouter } from "~/server/api/routers/alumno";
+import { subgrupoRouter } from "~/server/api/routers/subgrupo";
 import { catalogoRouter } from "~/server/api/routers/catalogo";
 import { contenidoRouter } from "~/server/api/routers/contenido";
 import { cuentaPagoRouter } from "~/server/api/routers/cuenta-pago";
@@ -25,6 +26,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 export const appRouter = createTRPCRouter({
   grupo: grupoRouter,
   alumno: alumnoRouter,
+  subgrupo: subgrupoRouter,
   cuenta: cuentaRouter,
   publico: publicoRouter,
   pago: pagoRouter,

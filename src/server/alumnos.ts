@@ -49,6 +49,8 @@ export async function crearAlumno(input: {
   grupoId: string;
   nombre: string;
   emailContacto?: string | null;
+  /** En qué carpeta del grupo entra. Sin carpeta queda sin asignar. */
+  subgrupoId?: string | null;
 }) {
   const grupo = await db.grupo.findUniqueOrThrow({
     where: { id: input.grupoId },
@@ -94,6 +96,7 @@ export async function crearAlumno(input: {
       grupoId: grupo.id,
       nombre,
       emailContacto: input.emailContacto?.trim().toLowerCase() || null,
+      subgrupoId: input.subgrupoId ?? null,
       token: randomUUID(),
       taloCustomerId: cliente.customerId,
       cvu: cliente.cvu,

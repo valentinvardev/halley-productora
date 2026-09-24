@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
 import {
   IconoAlerta,
   IconoBillete,
   IconoCalendario,
+  IconoCarpeta,
   IconoLista,
   IconoMas,
   IconoObjetivo,
@@ -63,6 +64,29 @@ export function DetalleGrupo({ id }: { id: string }) {
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   /** El alumno al que se le están marcando cuotas, cuando se entra por su ficha. */
   const [cuotasDe, setCuotasDe] = useState<string | null>(null);
+  /** La carpeta que se está creando o renombrando. `id` nulo es una nueva. */
+  const [editandoCarpeta, setEditandoCarpeta] = useState<{
+    id: string | null;
+    nombre: string;
+  } | null>(null);
+  /** La carpeta que está por borrarse, con cuántos alumnos quedarían sueltos. */
+  const [borrandoCarpeta, setBorrandoCarpeta] = useState<{
+    id: string;
+    nombre: string;
+    cuantos: number;
+  } | null>(null);
+  /**
+   * El arrastre de un alumno a otra carpeta.
+   *
+   * `id` es el alumno que se lleva y `sobre` la sección donde caería, con
+   * `"sueltos"` para los que no están en ninguna. Va por eventos de puntero y
+   * no por el arrastre nativo, igual que el de la vitrina: el nativo lo usa la
+   * zona de subida de archivos y los dos se pisarían.
+   */
+  const [arrastre, setArrastre] = useState<{
+    id: string;
+    sobre: string | null;
+  } | null>(null);
   const refrescar = async (mensaje?: string) => {
     await utils.grupo.detalle.invalidate({ id });
     await utils.grupo.listar.invalidate();
@@ -88,6 +112,59 @@ export function DetalleGrupo({ id }: { id: string }) {
     },
   });
 
+  const guardarCarpeta = api.subgrupo.crear.useMutation({
+    onSuccess: () => {
+      setEditandoCarpeta(null);
+      void refrescar();
+    },
+  });
+  const renombrarCarpeta = api.subgrupo.renombrar.useMutation({
+    onSuccess: () => {
+      setEditandoCarpeta(null);
+      void refrescar();
+    },
+  });
+  const borrarCarpeta = api.subgrupo.eliminar.useMutation({
+    onSuccess: (r) => {
+      setBorrandoCarpeta(null);
+      void refrescar(
+        r.sueltos === 0
+          ? "Carpeta borrada"
+          : `Carpeta borrada · ${r.sueltos} alumno${r.sueltos === 1 ? "" : "s"} sin asignar`,
+      );
+    },
+  });
+
+  /**
+   * Mover un alumno de carpeta.
+   *
+   * La lista se acomoda en el cliente apenas se suelta, antes de que el
+   * servidor conteste: esperar la respuesta para ver al alumno en su lugar
+   * nuevo hace que el arrastre se sienta como si no hubiera entrado.
+   */
+  const asignarCarpeta = api.subgrupo.asignar.useMutation({
+    onMutate: async ({ alumnoIds, subgrupoId }) => {
+      await utils.grupo.detalle.cancel({ id });
+      const previo = utils.grupo.detalle.getData({ id });
+      if (previo) {
+        utils.grupo.detalle.setData(
+          { id },
+          {
+            ...previo,
+            alumnos: previo.alumnos.map((a) =>
+              alumnoIds.includes(a.id) ? { ...a, subgrupoId } : a,
+            ),
+          },
+        );
+      }
+      return { previo };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previo) utils.grupo.detalle.setData({ id }, ctx.previo);
+    },
+    onSettled: () => utils.grupo.detalle.invalidate({ id }),
+  });
+
   const invitarTodos = api.alumno.invitarTodos.useMutation({
     onSuccess: (r) =>
       refrescar(
@@ -111,6 +188,85 @@ export function DetalleGrupo({ id }: { id: string }) {
     grupo.alumnos.find((a) => a.id === gestionandoId) ?? null;
 
   const faltanInvitar = grupo.alumnos.filter((a) => !a.invitadaEl).length;
+
+  /**
+   * Los alumnos repartidos en secciones: primero los sueltos, después cada
+   * carpeta en su orden.
+   *
+   * Adentro de cada una van alfabéticos y no por fecha de carga: con sesenta
+   * alumnos lo que uno hace es buscar a alguien por su nombre. Los sueltos
+   * sólo aparecen si hay alguno, así que un grupo con todo ordenado no muestra
+   * una sección vacía arriba.
+   */
+  const porNombre = (a: { nombre: string }, b: { nombre: string }) =>
+    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+
+  const secciones = [
+    {
+      id: null as string | null,
+      nombre: "Sin asignar",
+      alumnos: grupo.alumnos.filter((a) => !a.subgrupoId).sort(porNombre),
+    },
+    ...grupo.subgrupos.map((c) => ({
+      id: c.id as string | null,
+      nombre: c.nombre,
+      alumnos: grupo.alumnos
+        .filter((a) => a.subgrupoId === c.id)
+        .sort(porNombre),
+    })),
+  ].filter((sec) => sec.id !== null || sec.alumnos.length > 0);
+
+  /** La clave con la que viaja cada sección en el arrastre. */
+  const claveDe = (id: string | null) => id ?? "sueltos";
+
+  /**
+   * El número de cuadro de un alumno.
+   *
+   * Sale de su lugar en el orden de carga del grupo y no de su posición en la
+   * pantalla, así mover a alguien de carpeta no le cambia la etiqueta ni se la
+   * corre a todos los de abajo.
+   */
+  const indiceDe = (alumnoId: string) =>
+    grupo.alumnos.findIndex((a) => a.id === alumnoId);
+
+  /** Dónde caería el puntero: la sección que tiene debajo. */
+  function seccionBajo(x: number, y: number) {
+    const el = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>("[data-destino]");
+    return el?.dataset.destino ?? null;
+  }
+
+  function empezarArrastre(e: React.PointerEvent, alumnoId: string) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const tirador = e.currentTarget as HTMLElement;
+    tirador.setPointerCapture(e.pointerId);
+    setArrastre({ id: alumnoId, sobre: null });
+
+    const mover = (ev: PointerEvent) => {
+      setArrastre({ id: alumnoId, sobre: seccionBajo(ev.clientX, ev.clientY) });
+    };
+    const soltar = (ev: PointerEvent) => {
+      tirador.removeEventListener("pointermove", mover);
+      tirador.removeEventListener("pointerup", soltar);
+      tirador.removeEventListener("pointercancel", soltar);
+      setArrastre(null);
+
+      const destino = seccionBajo(ev.clientX, ev.clientY);
+      if (destino === null) return;
+      const alumno = grupo!.alumnos.find((a) => a.id === alumnoId);
+      if (!alumno || claveDe(alumno.subgrupoId) === destino) return;
+      asignarCarpeta.mutate({
+        alumnoIds: [alumnoId],
+        subgrupoId: destino === "sueltos" ? null : destino,
+      });
+    };
+
+    tirador.addEventListener("pointermove", mover);
+    tirador.addEventListener("pointerup", soltar);
+    tirador.addEventListener("pointercancel", soltar);
+  }
 
   return (
     <>
@@ -245,8 +401,31 @@ export function DetalleGrupo({ id }: { id: string }) {
             numero: c.numero,
             vencida: new Date(c.venceEl) < new Date(),
           }))}
+          // A qué carpeta entran los que se carguen ahora. Es la forma en que
+          // las carpetas se llenan de verdad: pegar la lista de un curso ya
+          // adentro, en vez de cargarla y arrastrar de a uno.
+          subgrupos={grupo.subgrupos}
           alTerminar={refrescar}
         />
+      )}
+
+      {/* Las carpetas son sólo para ordenar: no cobran distinto ni tienen
+          plan propio. Por eso el botón vive acá arriba de la lista y no
+          entre las acciones del grupo, que son las que mueven plata. */}
+      {grupo.tipo !== "PARTICULAR" && grupo.alumnos.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <BotonTexto
+            onClick={() => setEditandoCarpeta({ id: null, nombre: "" })}
+          >
+            <IconoCarpeta />
+            Nueva carpeta
+          </BotonTexto>
+          {grupo.subgrupos.length > 0 && (
+            <span className="nota text-[11.5px]">
+              Arrastrá un alumno de una carpeta a otra desde su cuadro.
+            </span>
+          )}
+        </div>
       )}
 
       {grupo.alumnos.length === 0 ? (
@@ -269,127 +448,313 @@ export function DetalleGrupo({ id }: { id: string }) {
               </tr>
             </thead>
             <tbody>
-              {grupo.alumnos.map((a, i) => (
-                <tr
-                  key={a.id}
-                  className="border-b border-gray-20 last:border-b-0"
-                >
-                  <td className="px-3.5 py-3 font-mono text-[12px] text-gray-45">
-                    {cuadro(i)}
-                  </td>
-
-                  <td className="px-3.5 py-3">
-                    <div className="text-[13.5px]">{a.nombre}</div>
-                    {/* Los responsables registrados; si no hay ninguno, el
-                        contacto que cargó el admin. */}
-                    {a.responsables.length > 0 ? (
-                      a.responsables.map((r) => (
-                        <div
-                          key={r.id}
-                          className="nota text-[11.5px] text-gray-45"
-                        >
-                          {r.email}
+              {secciones.map((sec) => {
+                const clave = claveDe(sec.id);
+                const apuntada = arrastre?.sobre === clave;
+                const deben = sec.alumnos.reduce((t, a) => t + a.plan.deuda, 0);
+                return (
+                  <Fragment key={clave}>
+                    {/* La cabecera de la sección es también su blanco: soltar
+                        en cualquier fila de la carpeta mueve al alumno ahí,
+                        que es más fácil que apuntarle a una línea fina. */}
+                    <tr data-destino={clave}>
+                      <td
+                        colSpan={6}
+                        className={`border-y border-gray-20 px-3.5 py-2 transition-colors ${
+                          apuntada ? "bg-ink text-paper" : "bg-paper-dim"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="flex items-center gap-2 font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
+                            {sec.id && <IconoCarpeta />}
+                            {sec.nombre}
+                          </span>
+                          <span
+                            className={`text-[11.5px] ${
+                              apuntada ? "text-paper/70" : "text-gray-45"
+                            }`}
+                          >
+                            {sec.alumnos.length}{" "}
+                            {sec.alumnos.length === 1 ? "alumno" : "alumnos"}
+                            {deben > 0
+                              ? ` · deben ${pesos(deben)}`
+                              : sec.alumnos.length > 0
+                                ? " · al día"
+                                : ""}
+                          </span>
+                          {sec.id && !apuntada && (
+                            <span className="ml-auto flex flex-wrap gap-3">
+                              <BotonTexto
+                                onClick={() =>
+                                  setEditandoCarpeta({
+                                    id: sec.id!,
+                                    nombre: sec.nombre,
+                                  })
+                                }
+                              >
+                                Renombrar
+                              </BotonTexto>
+                              <BotonTexto
+                                onClick={() =>
+                                  setBorrandoCarpeta({
+                                    id: sec.id!,
+                                    nombre: sec.nombre,
+                                    cuantos: sec.alumnos.length,
+                                  })
+                                }
+                              >
+                                Borrar
+                              </BotonTexto>
+                            </span>
+                          )}
                         </div>
-                      ))
-                    ) : (
-                      <div className="nota text-[11.5px] text-gray-45">
-                        {a.emailContacto ?? "sin email"}
-                      </div>
+                      </td>
+                    </tr>
+
+                    {sec.alumnos.length === 0 && (
+                      <tr data-destino={clave}>
+                        <td
+                          colSpan={6}
+                          className="border-b border-gray-20 px-3.5 py-4 text-center"
+                        >
+                          <span className="nota text-[12px]">
+                            Carpeta vacía. Arrastrá alumnos acá.
+                          </span>
+                        </td>
+                      </tr>
                     )}
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {a.responsables.length > 0 ? (
-                        <Tag activo>
-                          {a.responsables.length} responsable
-                          {a.responsables.length > 1 ? "s" : ""}
-                        </Tag>
-                      ) : (
-                        <Tag>Sin cuenta</Tag>
-                      )}
-                      {/* Cargado y todavía sin avisarle a nadie. Es un estado
+
+                    {sec.alumnos.map((a) => (
+                      <tr
+                        key={a.id}
+                        data-destino={clave}
+                        className={`border-b border-gray-20 transition-opacity ${
+                          arrastre?.id === a.id ? "opacity-40" : ""
+                        }`}
+                      >
+                        <td className="px-3.5 py-3">
+                          {/* El cuadro es también el tirador: es la única
+                              columna sin nada que tocar, así que agarrarla
+                              no compite con ningún otro gesto. */}
+                          <button
+                            type="button"
+                            title="Arrastrar a otra carpeta"
+                            aria-label={`Mover a ${a.nombre} de carpeta`}
+                            onPointerDown={(e) => empezarArrastre(e, a.id)}
+                            className="cursor-grab font-mono text-[12px] text-gray-45 hover:text-ink active:cursor-grabbing"
+                          >
+                            {cuadro(indiceDe(a.id))}
+                          </button>
+                        </td>
+
+                        <td className="px-3.5 py-3">
+                          <div className="text-[13.5px]">{a.nombre}</div>
+                          {/* Los responsables registrados; si no hay ninguno, el
+                        contacto que cargó el admin. */}
+                          {a.responsables.length > 0 ? (
+                            a.responsables.map((r) => (
+                              <div
+                                key={r.id}
+                                className="nota text-[11.5px] text-gray-45"
+                              >
+                                {r.email}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="nota text-[11.5px] text-gray-45">
+                              {a.emailContacto ?? "sin email"}
+                            </div>
+                          )}
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {a.responsables.length > 0 ? (
+                              <Tag activo>
+                                {a.responsables.length} responsable
+                                {a.responsables.length > 1 ? "s" : ""}
+                              </Tag>
+                            ) : (
+                              <Tag>Sin cuenta</Tag>
+                            )}
+                            {/* Cargado y todavía sin avisarle a nadie. Es un estado
                           buscado, no un error: por eso dice "sin invitar" y no
                           algo que suene a que falta arreglarlo. */}
-                      {!a.invitadaEl && <Tag>Sin invitar</Tag>}
-                    </div>
-                  </td>
+                            {!a.invitadaEl && <Tag>Sin invitar</Tag>}
+                          </div>
+                        </td>
 
-                  <td className="px-3.5 py-3">
-                    <div className="font-mono text-[11.5px]">{a.alias}</div>
-                    <div className="font-mono text-[10px] text-gray-45">
-                      CVU {a.cvu}
-                    </div>
-                  </td>
+                        <td className="px-3.5 py-3">
+                          <div className="font-mono text-[11.5px]">
+                            {a.alias}
+                          </div>
+                          <div className="font-mono text-[10px] text-gray-45">
+                            CVU {a.cvu}
+                          </div>
+                        </td>
 
-                  <td className="px-3.5 py-3 font-mono text-[12.5px] whitespace-nowrap">
-                    {pesos(a.plan.pagado)}
-                    <span className="text-gray-45">
-                      {" "}
-                      / {pesos(a.plan.total)}
-                    </span>
-                    {a.plan.deuda > 0 && (
-                      <div className="text-[10.5px] text-gray-45">
-                        debe {pesos(a.plan.deuda)}
-                      </div>
-                    )}
-                    {a.plan.aFavor > 0 && (
-                      <div className="text-[10.5px] text-gray-45">
-                        a favor {pesos(a.plan.aFavor)}
-                      </div>
-                    )}
-                  </td>
+                        <td className="px-3.5 py-3 font-mono text-[12.5px] whitespace-nowrap">
+                          {pesos(a.plan.pagado)}
+                          <span className="text-gray-45">
+                            {" "}
+                            / {pesos(a.plan.total)}
+                          </span>
+                          {a.plan.deuda > 0 && (
+                            <div className="text-[10.5px] text-gray-45">
+                              debe {pesos(a.plan.deuda)}
+                            </div>
+                          )}
+                          {a.plan.aFavor > 0 && (
+                            <div className="text-[10.5px] text-gray-45">
+                              a favor {pesos(a.plan.aFavor)}
+                            </div>
+                          )}
+                        </td>
 
-                  {/* Una marca por cuota: el plan entero de un vistazo. */}
-                  <td className="px-3.5 py-3">
-                    <div className="flex gap-1">
-                      {a.plan.cuotas.map((c) => (
-                        <Marca
-                          key={c.id}
-                          tipo={
-                            c.estado === "PAGADA"
-                              ? "confirmado"
-                              : c.estado === "VENCIDA"
-                                ? "tachado"
-                                : "punteado"
-                          }
-                          className="h-4 w-4"
-                          grosor={c.estado === "PAGADA" ? 4 : 5}
-                          color={
-                            c.estado === "PENDIENTE"
-                              ? "var(--color-gray-45)"
-                              : "var(--color-ink)"
-                          }
-                        />
-                      ))}
-                    </div>
-                    {a.plan.proxima && (
-                      <div className="mt-1 font-mono text-[10px] text-gray-45">
-                        próxima: {a.plan.proxima.numero} ·{" "}
-                        {fecha(a.plan.proxima.venceEl)}
-                      </div>
-                    )}
-                    {a.pagos[0] && (
-                      <div className="font-mono text-[10px] text-gray-45">
-                        último pago {fechaHora(a.pagos[0].recibidoEn)}
-                      </div>
-                    )}
-                  </td>
+                        {/* Una marca por cuota: el plan entero de un vistazo. */}
+                        <td className="px-3.5 py-3">
+                          <div className="flex gap-1">
+                            {a.plan.cuotas.map((c) => (
+                              <Marca
+                                key={c.id}
+                                tipo={
+                                  c.estado === "PAGADA"
+                                    ? "confirmado"
+                                    : c.estado === "VENCIDA"
+                                      ? "tachado"
+                                      : "punteado"
+                                }
+                                className="h-4 w-4"
+                                grosor={c.estado === "PAGADA" ? 4 : 5}
+                                color={
+                                  c.estado === "PENDIENTE"
+                                    ? "var(--color-gray-45)"
+                                    : "var(--color-ink)"
+                                }
+                              />
+                            ))}
+                          </div>
+                          {a.plan.proxima && (
+                            <div className="mt-1 font-mono text-[10px] text-gray-45">
+                              próxima: {a.plan.proxima.numero} ·{" "}
+                              {fecha(a.plan.proxima.venceEl)}
+                            </div>
+                          )}
+                          {a.pagos[0] && (
+                            <div className="font-mono text-[10px] text-gray-45">
+                              último pago {fechaHora(a.pagos[0].recibidoEn)}
+                            </div>
+                          )}
+                        </td>
 
-                  {/* Una sola puerta: todo lo que se puede hacer con este
+                        {/* Una sola puerta: todo lo que se puede hacer con este
                       alumno vive en el modal, no desparramado en la fila. */}
-                  <td className="px-3.5 py-3 text-right">
-                    <button
-                      onClick={() => setGestionandoId(a.id)}
-                      className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper"
-                    >
-                      <IconoPuntos />
-                      Acciones
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                        <td className="px-3.5 py-3 text-right">
+                          <button
+                            onClick={() => setGestionandoId(a.id)}
+                            className="inline-flex cursor-pointer items-center gap-2 border border-ink px-3 py-2 font-rotulo text-[11.5px] uppercase tracking-[0.05em] hover:bg-ink hover:text-paper"
+                          >
+                            <IconoPuntos />
+                            Acciones
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Crear y renombrar son el mismo formulario: lo único que cambia es si
+          ya había un nombre adentro. */}
+      <Modal
+        abierto={editandoCarpeta !== null}
+        alCerrar={() => setEditandoCarpeta(null)}
+        eyebrow={grupo.nombre}
+        titulo={editandoCarpeta?.id ? "Renombrar la carpeta" : "Nueva carpeta"}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const nombre = editandoCarpeta?.nombre.trim() ?? "";
+            if (nombre.length === 0) return;
+            if (editandoCarpeta?.id) {
+              renombrarCarpeta.mutate({ id: editandoCarpeta.id, nombre });
+            } else {
+              guardarCarpeta.mutate({ grupoId: id, nombre });
+            }
+          }}
+        >
+          <Campo
+            label="Nombre de la carpeta"
+            placeholder="6to B"
+            value={editandoCarpeta?.nombre ?? ""}
+            onChange={(e) =>
+              setEditandoCarpeta((c) =>
+                c ? { ...c, nombre: e.target.value } : c,
+              )
+            }
+            hint="Es sólo para ordenar: no cambia el plan ni lo que paga nadie."
+            maxLength={60}
+            autoFocus
+          />
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <Boton
+              variante="fantasma"
+              type="button"
+              onClick={() => setEditandoCarpeta(null)}
+            >
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              disabled={
+                (editandoCarpeta?.nombre.trim().length ?? 0) === 0 ||
+                guardarCarpeta.isPending ||
+                renombrarCarpeta.isPending
+              }
+            >
+              <IconoCarpeta />
+              {guardarCarpeta.isPending || renombrarCarpeta.isPending
+                ? "Guardando…"
+                : editandoCarpeta?.id
+                  ? "Renombrar"
+                  : "Crear carpeta"}
+            </Boton>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        abierto={borrandoCarpeta !== null}
+        alCerrar={() => setBorrandoCarpeta(null)}
+        eyebrow={borrandoCarpeta?.nombre}
+        titulo="Borrar la carpeta"
+      >
+        <p className="flex items-start gap-2.5 text-[14px] leading-relaxed text-gray-70">
+          <IconoAlerta className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {borrandoCarpeta?.cuantos === 0
+              ? "Está vacía, así que no se pierde nada."
+              : `No se borra ningún alumno. ${borrandoCarpeta?.cuantos === 1 ? "El que estaba adentro vuelve" : `Los ${borrandoCarpeta?.cuantos} que estaban adentro vuelven`} a Sin asignar.`}
+          </span>
+        </p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Boton variante="fantasma" onClick={() => setBorrandoCarpeta(null)}>
+            Cancelar
+          </Boton>
+          <Boton
+            onClick={() =>
+              borrandoCarpeta &&
+              borrarCarpeta.mutate({ id: borrandoCarpeta.id })
+            }
+            disabled={borrarCarpeta.isPending}
+          >
+            <IconoPapelera />
+            {borrarCarpeta.isPending ? "Borrando…" : "Borrar"}
+          </Boton>
+        </div>
+      </Modal>
 
       <MontosDelGrupo
         abierto={editandoMontos}
@@ -825,6 +1190,7 @@ function AltaAlumnos({
   grupoId,
   habilitado,
   cuotas,
+  subgrupos,
   alTerminar,
 }: {
   grupoId: string;
@@ -832,6 +1198,8 @@ function AltaAlumnos({
   habilitado: boolean;
   /** El plan del grupo, con cuáles ya vencieron. */
   cuotas: { numero: number; vencida: boolean }[];
+  /** Las carpetas del grupo, para elegir a cuál entran. */
+  subgrupos: { id: string; nombre: string }[];
   alTerminar: (mensaje?: string) => Promise<void>;
 }) {
   const [modo, setModo] = useState<"cerrado" | "uno" | "bloque">("cerrado");
@@ -856,6 +1224,8 @@ function AltaAlumnos({
    * año puede haber arreglado algunas de las que ya vencieron y deber el resto.
    */
   const [sinMoraCuotas, setSinMoraCuotas] = useState<number[]>([]);
+  /** A qué carpeta entran. `null` es sin asignar, que es lo de siempre. */
+  const [subgrupoId, setSubgrupoId] = useState<string | null>(null);
 
   const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
@@ -958,6 +1328,7 @@ function AltaAlumnos({
               emailContacto: email,
               invitar,
               sinMoraCuotas,
+              subgrupoId,
             });
           }}
           className="grid gap-4"
@@ -979,6 +1350,11 @@ function AltaAlumnos({
               hint="Se usa para mandarle la invitación a registrarse."
             />
           </div>
+          <SelectorCarpeta
+            subgrupos={subgrupos}
+            elegida={subgrupoId}
+            alCambiar={setSubgrupoId}
+          />
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
           <CuotasSinMora
             cuotas={cuotas}
@@ -1006,7 +1382,13 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            enBloque.mutate({ grupoId, texto, invitar, sinMoraCuotas });
+            enBloque.mutate({
+              grupoId,
+              texto,
+              invitar,
+              sinMoraCuotas,
+              subgrupoId,
+            });
           }}
           className="grid gap-4"
         >
@@ -1018,6 +1400,11 @@ function AltaAlumnos({
             onChange={(e) => setTexto(e.target.value)}
             placeholder={"Fernando Ríos, familia.rios@mail.com\nCarla Pérez"}
             required
+          />
+          <SelectorCarpeta
+            subgrupos={subgrupos}
+            elegida={subgrupoId}
+            alCambiar={setSubgrupoId}
           />
           <CasillaInvitar puesta={invitar} alCambiar={setInvitar} />
           <CuotasSinMora
@@ -1182,4 +1569,55 @@ function CuotasSinMora({
 function listarNumeros(numeros: number[]) {
   if (numeros.length <= 1) return numeros.join("");
   return `${numeros.slice(0, -1).join(", ")} y ${numeros.at(-1)}`;
+}
+
+/**
+ * A qué carpeta entran los alumnos que se carguen ahora.
+ *
+ * Aparece sólo si el grupo tiene carpetas. Es lo que evita el paso tonto de
+ * cargar treinta alumnos y después arrastrarlos de a uno: se pega la lista de un
+ * curso con su carpeta ya elegida y entran ahí.
+ */
+function SelectorCarpeta({
+  subgrupos,
+  elegida,
+  alCambiar,
+}: {
+  subgrupos: { id: string; nombre: string }[];
+  elegida: string | null;
+  alCambiar: (v: string | null) => void;
+}) {
+  if (subgrupos.length === 0) return null;
+
+  const chip = (activo: boolean) =>
+    `cursor-pointer border px-2.5 py-1.5 font-rotulo text-[11px] tracking-[0.06em] uppercase transition-colors ${
+      activo
+        ? "border-ink bg-ink text-paper"
+        : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+    }`;
+
+  return (
+    <div>
+      <Etiqueta>En qué carpeta entran</Etiqueta>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => alCambiar(null)}
+          className={chip(elegida === null)}
+        >
+          Sin asignar
+        </button>
+        {subgrupos.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => alCambiar(c.id)}
+            className={chip(elegida === c.id)}
+          >
+            {c.nombre}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

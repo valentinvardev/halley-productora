@@ -1760,3 +1760,52 @@ crear el alumno, en la base quedaron perdonadas exactamente las cuotas 1, 3 y
 5.
 
 **Rollback:** fila R de la tabla.
+
+### S. Carpetas de alumnos dentro de un grupo
+
+**Pedido:** poder organizar los alumnos de un grupo en carpetas, arrastrando,
+sin que eso toque la estructura ni los números de hoy.
+
+**Por qué.** Los grupos grandes ya no se manejan en una lista plana: Obispo
+Caixal tiene 59 alumnos y Nuevo Milenio 64, y son varios cursos mezclados.
+Partirlos en grupos de verdad obligaría a repetir el plan de cuotas, el link de
+registro y la cuenta que cobra, que es justo lo que no hay que tocar.
+
+**Qué son.** Sólo organización. No cobran distinto, no tienen plan propio y no
+cambian ninguna cuenta. El plan sigue viviendo en el grupo y los totales se
+calculan igual que antes, sobre todos los alumnos. Un alumno está en una
+carpeta o en ninguna; los que no están en ninguna quedan arriba, en "Sin
+asignar", y eso es un estado válido y no un pendiente: un grupo puede no usar
+carpetas nunca y funciona como siempre.
+
+**En la pantalla.** La tabla se parte en secciones, cada una con su nombre, su
+cuenta de alumnos y cuánto deben entre todos. Adentro van alfabéticos y no por
+fecha de carga, porque con sesenta alumnos lo que uno hace es buscar a alguien.
+Se arrastra desde el cuadro del alumno, que es la única columna sin nada que
+tocar, y se suelta en cualquier fila de la carpeta destino, que es más fácil
+que apuntarle a una línea fina. La lista se acomoda antes de que el servidor
+conteste.
+
+**Cómo se llenan.** Además del arrastre, los dos formularios de alta eligen a
+qué carpeta entran los que se carguen. Es la forma en que se van a llenar de
+verdad: se pega la lista de un curso con su carpeta ya elegida, en vez de
+cargarla y arrastrar de a uno.
+
+**Borrar una carpeta no borra a nadie.** Los alumnos vuelven a "Sin asignar" y
+el cartel lo dice con el número antes de confirmar. Vale la pena que esté
+escrito, porque borrar un grupo sí borra a sus alumnos y la cercanía se presta
+a confusión.
+
+**Un detalle que mejoró de paso.** El número de cuadro de cada alumno salía de
+su posición en la pantalla. Ahora sale de su lugar en el orden de carga del
+grupo, así mover a alguien de carpeta no le cambia la etiqueta ni se la corre a
+todos los de abajo.
+
+**Verificación.** Contra el panel real, con una carpeta de prueba borrada al
+terminar. Crearla la mostró vacía con su invitación a arrastrar. Arrastrar a
+una alumna la movió en la base y partió los subtotales: de 20 alumnos que
+debían $ 2.023.314 quedaron 19 debiendo $ 1.918.314 y una debiendo $ 105.000.
+Borrar la carpeta la devolvió a "Sin asignar" sin perder a nadie: el grupo
+terminó con sus 20 alumnos y cero carpetas.
+
+**Rollback:** fila S de la tabla.

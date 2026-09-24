@@ -21,6 +21,8 @@ export const alumnoRouter = createTRPCRouter({
         invitar: z.boolean().default(true),
         /** A qué cuotas no cobrarle mora, por número. Para el que entra tarde. */
         sinMoraCuotas: z.array(z.number().int().positive()).max(60).default([]),
+        /** En qué carpeta del grupo entra. `null` es sin asignar. */
+        subgrupoId: z.string().nullish(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -28,6 +30,7 @@ export const alumnoRouter = createTRPCRouter({
         grupoId: input.grupoId,
         nombre: input.nombre,
         emailContacto: input.emailContacto || null,
+        subgrupoId: input.subgrupoId ?? null,
       });
 
       if (!yaExistia) {
@@ -45,6 +48,8 @@ export const alumnoRouter = createTRPCRouter({
         invitar: z.boolean().default(true),
         /** A qué cuotas no cobrarles mora, por número. Para los que entran tarde. */
         sinMoraCuotas: z.array(z.number().int().positive()).max(60).default([]),
+        /** En qué carpeta del grupo entran todos. `null` es sin asignar. */
+        subgrupoId: z.string().nullish(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -57,6 +62,7 @@ export const alumnoRouter = createTRPCRouter({
           grupoId: input.grupoId,
           nombre: fila.nombre,
           emailContacto: fila.emailContacto ?? null,
+          subgrupoId: input.subgrupoId ?? null,
         });
 
         if (yaExistia) {

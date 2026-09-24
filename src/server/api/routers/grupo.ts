@@ -100,6 +100,7 @@ export const grupoRouter = createTRPCRouter({
           cuentaPago: true,
           cuotas: { orderBy: { numero: "asc" } },
           galerias: { orderBy: { creadoEn: "desc" } },
+          subgrupos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] },
           alumnos: {
             orderBy: { creadoEn: "asc" },
             include: {
@@ -151,6 +152,11 @@ export const grupoRouter = createTRPCRouter({
           monto: Number(c.monto),
           venceEl: c.venceEl,
         })),
+        /** Las carpetas del grupo, en su orden. Sólo organizan alumnos. */
+        subgrupos: grupo.subgrupos.map((s) => ({
+          id: s.id,
+          nombre: s.nombre,
+        })),
         galerias: grupo.galerias.map((g) => ({
           id: g.id,
           titulo: g.titulo,
@@ -167,6 +173,8 @@ export const grupoRouter = createTRPCRouter({
             id: a.id,
             nombre: a.nombre,
             emailContacto: a.emailContacto,
+            /** En qué carpeta está, o `null` si quedó sin asignar. */
+            subgrupoId: a.subgrupoId,
             /** Null si la familia todavía no recibió la invitación. */
             invitadaEl: a.invitadaEl,
             alias: a.alias,

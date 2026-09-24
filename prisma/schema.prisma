@@ -58,6 +58,7 @@ model Grupo {
 
   cuotas         Cuota[]
   alumnos        Alumno[]
+  subgrupos      Subgrupo[]
   galerias       Galeria[]
   avisos         AvisoGrupo[]
   notificaciones Notificacion[]
@@ -145,12 +146,43 @@ model CuotaAlumno {
  * --------------------------------------------------------------------------
  */
 
+/// Una carpeta de alumnos dentro de un grupo.
+///
+/// Es sólo organización: un curso dentro de un colegio, o como quieran
+/// agruparlos. No cobra distinto ni tiene plan propio, porque el plan vive en el
+/// grupo y ahí se queda. Existe porque un grupo de sesenta alumnos en una lista
+/// plana no se maneja, y partirlo en grupos de verdad obligaría a repetir el
+/// plan, el link de registro y la cuenta que cobra.
+model Subgrupo {
+  id String @id @default(cuid())
+
+  grupoId String
+  grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  nombre String
+  /// En qué orden se muestran las carpetas. Los alumnos de adentro van
+  /// alfabéticos: con sesenta, lo que uno hace es buscar a alguien.
+  orden  Int    @default(0)
+
+  alumnos Alumno[]
+
+  creadoEn DateTime @default(now())
+
+  @@index([grupoId, orden])
+}
+
 model Alumno {
   id     String @id @default(cuid())
   nombre String
 
   grupoId String
   grupo   Grupo  @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  /// En qué carpeta del grupo está, si está en alguna. En nulo queda arriba de
+  /// todo, sin asignar, que es donde caen los que nadie ordenó todavía. Borrar
+  /// la carpeta no borra a nadie: los devuelve acá.
+  subgrupoId String?
+  subgrupo   Subgrupo? @relation(fields: [subgrupoId], references: [id], onDelete: SetNull)
 
   /// Email al que el admin manda la invitación inicial, antes de que exista
   /// la cuenta. Opcional: el alumno puede cargarse sin conocerlo.
@@ -191,6 +223,7 @@ model Alumno {
   creadoEn DateTime @default(now())
 
   @@index([grupoId])
+  @@index([subgrupoId])
 }
 
 /// Vínculo entre una cuenta y un alumno. Los responsables son todos iguales:

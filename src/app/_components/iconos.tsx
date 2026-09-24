@@ -396,6 +396,15 @@ export function IconoLista(props: Props) {
   );
 }
 
+/** Una carpeta, para agrupar alumnos dentro de un grupo. */
+export function IconoCarpeta(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M1.5 12.5 L1.5 3.5 L6 3.5 L7.5 5.5 L14.5 5.5 L14.5 12.5 Z" />
+    </Svg>
+  );
+}
+
 /** La Halley Box: una caja con su moño. */
 export function IconoRegalo(props: Props) {
   return (
