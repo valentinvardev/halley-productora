@@ -300,6 +300,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | R | `4698083` | Vuelve la casilla de todo o nada en el alta; los perdones ya dados quedan donde están |
 | S | `6a1ace5` | Vuelve la lista plana de alumnos; la tabla Subgrupo y la columna quedan en la base y las carpetas armadas se pierden |
 | T | `de03f90` | Vuelve la lista plana de grupos; la tabla Colegio queda en la base, el campo vuelve a llamarse colegio y los agrupamientos se pierden |
+| U | `e971d28` | Se va el envío en masa; vuelve a invitar o recordar de a un grupo por vez |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
