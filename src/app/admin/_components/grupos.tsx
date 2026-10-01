@@ -11,6 +11,7 @@ import {
   IconoMas,
   IconoPapelera,
   IconoPerfil,
+  IconoSobre,
 } from "~/app/_components/iconos";
 import { Marca } from "~/app/_components/marca";
 import { Modal } from "~/app/_components/modal";
@@ -27,6 +28,7 @@ import {
 import { pesos } from "~/lib/format";
 import { Desplegable } from "~/app/_components/desplegable";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { EnvioMasivo } from "./envio-masivo";
 import { EsqueletoGrupos } from "./esqueletos";
 
 /** Tira de marcas al estilo hoja de contacto: un cuadro por alumno. */
@@ -406,6 +408,19 @@ export function Grupos() {
     nombre: string;
     cursos: number;
   } | null>(null);
+  /**
+   * Desde qué colegio se abrió el envío en masa.
+   *
+   * Guarda el id y no un booleano porque ese colegio entra tildado: se abre
+   * desde una tarjeta y lo más probable es que sea a ese al que se le quiere
+   * escribir, aunque adentro se puedan sumar los demás.
+   */
+  const [enviandoDesde, setEnviandoDesde] = useState<{
+    abierto: boolean;
+    id: string | null;
+  }>({ abierto: false, id: null });
+  /** El resultado del último envío, arriba de la lista y por un rato. */
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const refrescar = async () => {
     await utils.colegio.listar.invalidate();
@@ -478,6 +493,12 @@ export function Grupos() {
       {modo === "grupo" && <FormularioGrupo alCerrar={() => setModo("")} />}
       {modo === "particular" && (
         <FormularioParticular alCerrar={() => setModo("")} />
+      )}
+
+      {aviso && (
+        <p className="nota mb-4 border border-ink bg-paper-dim px-3.5 py-2.5 text-ink">
+          {aviso}
+        </p>
       )}
 
       {isLoading && <EsqueletoGrupos soloTarjetas />}
@@ -576,6 +597,17 @@ export function Grupos() {
                       : `Ver los ${cursos.length} cursos`}
                 </BotonTexto>
                 <span className="ml-auto flex flex-wrap gap-3">
+                  {/* El envío en masa vive acá, en el colegio, porque es el
+                      alcance en el que uno piensa: escribirle a un colegio
+                      entero. Adentro se pueden sumar los demás. */}
+                  <BotonTexto
+                    onClick={() =>
+                      setEnviandoDesde({ abierto: true, id: colegio.id })
+                    }
+                  >
+                    <IconoSobre />
+                    Enviar notificación
+                  </BotonTexto>
                   <BotonTexto
                     onClick={() =>
                       setEditandoColegio({
@@ -650,6 +682,29 @@ export function Grupos() {
           />
         ))}
       </div>
+
+      <EnvioMasivo
+        abierto={enviandoDesde.abierto}
+        alCerrar={() => setEnviandoDesde({ abierto: false, id: null })}
+        inicial={enviandoDesde.id}
+        // Los colegios, y al final los cursos que no están en ninguno, para que
+        // "todos" quiera decir todos de verdad.
+        opciones={[
+          ...items.map(({ colegio, cursos }) => ({
+            id: colegio.id as string | null,
+            nombre: colegio.nombre,
+            cursos: cursos.length,
+          })),
+          ...(sueltos.length
+            ? [{ id: null, nombre: "Sin colegio", cursos: sueltos.length }]
+            : []),
+        ]}
+        alTerminar={async (mensaje) => {
+          await refrescar();
+          setAviso(mensaje);
+          setTimeout(() => setAviso(null), 8000);
+        }}
+      />
 
       {/* ------------------------------------------------- elegir el colegio */}
       <Modal

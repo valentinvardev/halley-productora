@@ -1857,3 +1857,47 @@ a favor y el recaudado del curso no lo cuenta, que es lo correcto. No es un
 error del sistema, pero conviene revisarlos.
 
 **Rollback:** fila T de la tabla.
+
+### U. Enviar notificaciones a varios colegios de una
+
+**Pedido:** un botón de enviar notificación en el colegio, que abra un modal
+para elegir si se le manda a un colegio, a dos o a todos, y mandar los mails en
+masa.
+
+**Por qué importa el cómo.** El 24 y el 25 de septiembre una carga grande mandó
+doscientos mails de golpe, se agotó la cuota diaria del proveedor y 251 avisos
+nunca salieron, para 170 familias. Nadie se enteró hasta días después. Así que
+esta pantalla es exactamente la que causó ese problema, y se construyó para que
+no se repita.
+
+**Qué hace.** Cada tarjeta de colegio tiene "Enviar notificación". Abre un modal
+con el colegio desde el que se entró ya tildado, y adentro se pueden sumar los
+demás, incluidos los cursos que no están en ningún colegio, con atajos para
+todos y para ninguno. Se elige qué mandar, invitación o recordatorio, y en las
+invitaciones si va sólo a los que falta invitar o a todos.
+
+**Lo que se ve antes de apretar.** A cuántas familias se le va a escribir, de
+cuántos cursos, y a cuántas no y por qué: sin email, ya invitadas, todavía sin
+invitar, al día. Decir "a 540 de 652" sin el resto es un número que no se puede
+auditar. Arriba de cien destinatarios avisa que conviene partirlo en dos días.
+
+**Cómo manda.** De a veinticinco, con pausa de un segundo y medio entre tandas,
+con barra de avance y el detalle de lo que no salió. El bucle lo lleva la
+pantalla y no el servidor a propósito: una sola llamada con cuatrocientos
+destinatarios se pasa del tiempo de respuesta y queda a medias sin que nadie
+sepa dónde. De a tandas, lo que se cortó se ve. Mientras manda, el modal no se
+puede cerrar.
+
+**Verificación.** Contra el panel real, con un colegio de prueba borrado al
+terminar y sin mandar nada masivo. El botón aparece en la tarjeta, el modal abre
+con ese colegio tildado, y con todos tildados mostró 0 familias de 21 cursos,
+112 sin email y 540 ya invitadas, que son exactamente los números de la base. El
+envío de verdad se probó con un solo alumno: devolvió un enviado y cero
+fallados, creó una notificación y no salió por el proveedor porque el modo local
+es bandeja. Después se restauró al alumno y se borró esa notificación.
+
+**Una medición que conviene saber.** La vista previa tarda entre tres y cuatro
+segundos con 652 alumnos, porque calcula el plan de cada uno para saber quién
+debe algo. Mientras tanto dice "Contando…".
+
+**Rollback:** fila U de la tabla.
