@@ -301,6 +301,8 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | S | `6a1ace5` | Vuelve la lista plana de alumnos; la tabla Subgrupo y la columna quedan en la base y las carpetas armadas se pierden |
 | T | `de03f90` | Vuelve la lista plana de grupos; la tabla Colegio queda en la base, el campo vuelve a llamarse colegio y los agrupamientos se pierden |
 | U | `e971d28` | Se va el envío en masa; vuelve a invitar o recordar de a un grupo por vez |
+| V | `7f850b8` | Marcar a mano vuelve a no avisarle a nadie; el comprobante vuelve a nombrar sólo la primera cuota saldada |
+| W | `6ed6d5a` | Se va el correo de cierre; terminar de pagar vuelve a no avisar nada; la columna cierreAvisadoEl queda en la base sin uso |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -1902,3 +1904,120 @@ segundos con 652 alumnos, porque calcula el plan de cada uno para saber quién
 debe algo. Mientras tanto dice "Contando…".
 
 **Rollback:** fila U de la tabla.
+
+### V. El comprobante también sale cuando el pago se carga a mano
+
+**Pregunta de la que salió:** cuando una persona completa sus cuotas, sea por la
+plataforma o por confirmación manual del administrador, ¿siempre le llega un
+correo?
+
+**Lo que había.** No. Marcar cuotas a mano creaba el pago y ahí terminaba: la
+familia no recibía constancia de nada. Y no es un caso de borde. De los 692
+pagos registrados en el sistema, 534 se cargaron a mano, o sea tres de cada
+cuatro. Los 160 comprobantes que salieron alguna vez corresponden casi uno a uno
+con los 158 pagos que entraron por Talo o Mercado Pago. El padre que iba a la
+oficina y pagaba en efectivo no recibía ni el aviso de que su plata había
+entrado.
+
+**Lo que hace ahora.** La gestión de cuotas tiene una casilla "Mandar el
+comprobante". Viene tildada cuando se está marcando a un alumno solo, que es el
+caso del pago en efectivo, y apagada cuando se marcan varios, que es el otro uso
+de esa pantalla: cargar de golpe un colegio que adelantó cuotas, donde avisar
+sería mandar cien mails que nadie pidió. La casilla dice en los dos estados qué
+va a pasar, y la confirmación lo repite: "le llega el comprobante por mail" o
+"no sale ningún mail".
+
+**El tope.** Pasadas 25 familias la casilla se apaga sola y explica por qué.
+No es un límite de la base: cada aviso es un mail que sale uno atrás del otro, y
+doscientos no entran en el tiempo de una respuesta. Para alcances grandes está
+el envío en masa del punto U, que manda de a tandas y muestra el avance. El
+router rechaza el pedido si le llega tildado con más de 25, así que la pantalla
+lo apaga antes para que lo importante, que es registrar el pago, no se caiga por
+el aviso.
+
+**El aviso a Halley no sale.** El pago lo acaba de cargar el administrador;
+mandarle un mail contándole lo que escribió él no le informa nada y le llena la
+casilla.
+
+**El comprobante nombra todas las cuotas que el pago saldó.** Un pago puede
+cerrar tres de una, y decir "cuota 4" por una plata que cerró la 4, la 5 y la 6
+es un comprobante que no coincide con lo que se pagó, justo en el papel al que
+la familia vuelve si algo no le cierra. La plantilla tiene ahora dos variables:
+`{cuotas}` trae la frase ya armada, "la cuota 4" o "las cuotas 4, 5 y 6", y
+`{cuota}` sigue siendo los números pelados para quien quiera redactarlo distinto.
+
+**Un arreglo de datos que vino con esto.** El texto guardado del comprobante
+usaba `{cuota}` adentro de la frase "del pago de la cuota {cuota}", que con
+varias cuotas salía como "de la cuota 4, 5, 6". Ese campo era idéntico al valor
+de fábrica viejo, o sea que nadie lo había escrito, así que pasó a `{cuotas}`.
+La nota de abajo sí está escrita por Halley y se conservó, con dos palabras
+corregidas: decía "eleguir" y "Audiovial".
+
+**Verificado** contra el panel real, con un grupo de prueba de tres cuotas
+vencidas y dos alumnos, borrado al terminar. Entrando por un alumno la casilla
+viene tildada; eligiendo hasta la cuota 3 la confirmación dice "Marcar las
+cuotas 1, 2 y 3" y avisa que sale el mail. Al registrar quedó una sola
+notificación, de tipo confirmación, dirigida al email del alumno, con el cuerpo
+diciendo "las cuotas 1, 2 y 3" y "quedás al día con todo el plan". No salió
+aviso al administrador, y al alumno sin email no le salió nada. Abriendo la
+misma pantalla para el grupo entero, la casilla viene apagada.
+
+**Rollback:** fila V de la tabla.
+
+### W. El correo de cierre cuando una familia termina de pagar
+
+**Qué faltaba.** Terminar de pagar no era un evento para el sistema. La familia
+pagaba la última cuota y, con suerte, recibía el comprobante de ese pago como si
+fuera uno más, con una línea que decía que quedaba al día. El que había pagado en
+efectivo no recibía ni eso. De las 22 familias que ya terminaron su plan, 16
+cerraron con un pago cargado a mano, así que nunca les llegó nada. Una relación
+de ocho o doce meses terminaba en silencio.
+
+**Qué hace ahora.** Cuando un pago deja el plan en cero sale un correo propio,
+"Terminaste de pagar", con el agradecimiento, el monto del pago que lo cerró, el
+total pagado, la cantidad de cuotas y el link al panel. El texto es editable
+desde el panel como el resto, y menciona la galería sin prometerla: dice que
+cuando esté publicada se entra desde ahí.
+
+**Sale en lugar del comprobante de ese pago, no además.** Dos mails al mismo
+tiempo sobre la misma plata son uno de más, y éste dice todo lo que decía el
+otro. Por eso lleva adentro el monto del último pago.
+
+**Sale por los dos caminos.** El webhook del proveedor y el marcado a mano
+comparten la misma función, porque un plan se cierra igual venga la plata de
+donde venga. En el marcado a mano lo gobierna la misma casilla del punto V: si
+se eligió no avisar, no sale nada, y queda para la próxima vez.
+
+**Sale una sola vez por alumno, y eso hubo que guardarlo.** Acá el estado de
+pago no está guardado en ningún lado: la deuda se deriva repartiendo lo pagado
+sobre las cuotas, así que "ya no debe nada" vuelve a ser verdad cada vez que
+alguien lo pregunta. Sin una marca, el mismo mail de felicitación saldría otra
+vez con cualquier movimiento posterior. La columna nueva es `cierreAvisadoEl`, y
+guarda cuándo se avisó, no cuándo se terminó de pagar. En null no quiere decir
+que la familia deba algo: quiere decir que nadie se lo dijo.
+
+**Cómo se evita el mail doble.** El sello no se lee y después se escribe, se
+escribe condicionado a que siga vacío, en una sola sentencia. Los proveedores
+reintentan sus avisos y a veces llegan a la par: dos entradas simultáneas que
+leyeran primero verían las dos que está vacío y mandarían las dos. Con la
+escritura condicionada, la base resuelve el empate y la que pierde no manda nada.
+El sello se pone antes de mandar y no después, porque si el envío falla queda
+registrado como fallido en la bandeja y se puede reintentar a mano, mientras que
+un corte entre el envío y el sello haría que el mail salga dos veces, y de los
+dos errores ése es el que la familia ve.
+
+**Las 22 familias que ya terminaron no reciben nada retroactivo.** Su columna
+queda vacía, que es la verdad: nadie les avisó. Si alguna vuelve a tener
+movimiento, ahí recibirá el correo.
+
+**Verificado** contra el panel real, con un grupo de prueba de dos cuotas y tres
+alumnos, borrado al terminar. Marcando a mano las dos cuotas de una salió el
+correo de cierre y el aviso a Halley, sin comprobante además, con el sello
+escrito en la base. Deshaciendo y volviendo a marcar siguió habiendo un solo
+correo de cierre, y esa segunda vez salió el comprobante normal, que es lo
+esperado. Marcando sólo la cuota 1 de 2 salió el comprobante normal, y al marcar
+la segunda salió el de cierre. Por transferencia, disparando el webhook contra el
+servidor local, pasó lo mismo. En el panel la bandeja muestra el rótulo "Plan
+terminado" y la plantilla aparece en el desplegable de textos.
+
+**Rollback:** fila W de la tabla.
