@@ -223,6 +223,18 @@ model Alumno {
   /// recordatorio de cuota sea el primer mail que esa familia recibe.
   invitadaEl DateTime?
 
+  /// Cuándo salió el aviso de que terminó de pagar todo el plan.
+  ///
+  /// Hace falta guardarlo porque acá nada del estado de pago está guardado: la
+  /// deuda se deriva repartiendo lo pagado sobre las cuotas, así que "ya no
+  /// debe nada" es verdad cada vez que alguien lo pregunta. Sin esta marca el
+  /// mismo mail de felicitación saldría otra vez con cualquier movimiento
+  /// posterior.
+  ///
+  /// Es el momento en que se avisó y no el momento en que se terminó de pagar.
+  /// En null no quiere decir que deba: quiere decir que nadie se lo dijo.
+  cierreAvisadoEl DateTime?
+
   /// Quiénes gestionan la cuota de este alumno. Un chico puede tener dos
   /// papás —o un tutor más—, así que son varios y no uno; el tope está en
   /// MAX_RESPONSABLES.
@@ -875,6 +887,10 @@ enum TipoNotificacion {
   /// El pedido de valoración después del servicio, con el link para
   /// dejarla.
   VALORACION
+  /// La familia terminó de pagar el plan entero. Sale una sola vez por alumno,
+  /// y en lugar del comprobante de ese pago, no además: dos mails al mismo
+  /// tiempo sobre la misma plata son uno de más.
+  PLAN_TERMINADO
 }
 
 /**

@@ -19,6 +19,7 @@ const ROTULO = {
   AVISO_ADMIN: "Aviso a Halley",
   RECORDATORIO: "Recordatorio",
   PAGO_PARCIAL: "Pago incompleto",
+  PLAN_TERMINADO: "Plan terminado",
   PRESUPUESTO: "Presupuesto",
   VALORACION: "Pedido de valoración",
 } as const;

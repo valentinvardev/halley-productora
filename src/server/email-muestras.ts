@@ -16,6 +16,7 @@ export const TIPOS_MUESTRA = [
   { valor: "INVITACION", etiqueta: "Invitación" },
   { valor: "ACCESO", etiqueta: "Link de acceso" },
   { valor: "CONFIRMACION_PADRE", etiqueta: "Confirmación de pago" },
+  { valor: "PLAN_TERMINADO", etiqueta: "Plan terminado" },
   { valor: "RECORDATORIO", etiqueta: "Recordatorio" },
   { valor: "AVISO_ADMIN", etiqueta: "Aviso a Halley" },
   { valor: "PRESUPUESTO", etiqueta: "Copia de presupuesto" },
@@ -85,6 +86,27 @@ export function muestraEmail(tipo: TipoMuestra): {
             pie: "Saldo pendiente del plan: $ 225.000",
           },
           boton: { texto: "Ver el estado", url: `${APP}` },
+        }),
+      };
+
+    case "PLAN_TERMINADO":
+      return {
+        asunto: `[PRUEBA] Terminaste de pagar — ${GRUPO}`,
+        texto: `Con este pago queda saldado el plan completo de ${ALUMNO}: las 6 cuotas, todas pagas.\n\n${APP}`,
+        html: plantillaEmail({
+          preheader: `${ALUMNO} terminó de pagar las 6 cuotas.`,
+          titulo: "Terminaste de pagar",
+          saludo: "Hola,",
+          parrafos: [
+            `Con este pago queda saldado el plan completo de ${ALUMNO}: las 6 cuotas, todas pagas. Gracias por la confianza. Desde tu panel podés ver el detalle de lo que pagaste y, cuando la galería del grupo esté publicada, entrar a verla desde ahí.`,
+          ],
+          destacado: {
+            rotulo: "Plan completo",
+            valor: "$ 270.000",
+            pie: "6 cuotas, todas pagas · último pago $ 45.000",
+          },
+          boton: { texto: "Ver el detalle", url: `${APP}` },
+          nota: "Guardá este mail: es la constancia de que no queda nada pendiente.",
         }),
       };
 

@@ -334,6 +334,104 @@ export async function notificarPagoRecibido(
 }
 
 /**
+ * La familia terminó de pagar todo el plan.
+ *
+ * Es el único momento del circuito que se cerraba sin decir nada. La familia
+ * pagaba la última cuota y, con suerte, recibía el comprobante de ese pago como
+ * si fuera uno más; el que había pagado en efectivo en la oficina no recibía ni
+ * eso. El final de una relación de ocho o doce meses terminaba en silencio.
+ *
+ * Sale en lugar del comprobante de ese pago y no además: dos mails al mismo
+ * tiempo sobre la misma plata son uno de más, y éste dice todo lo que decía el
+ * otro. Por eso lleva adentro el monto del pago que cerró el plan.
+ *
+ * Sale una sola vez por alumno. Quién decide eso es `cierreAvisadoEl`, no esta
+ * función: acá el estado de pago no está guardado y "ya no debe nada" vuelve a
+ * ser verdad cada vez que alguien lo pregunta.
+ */
+export async function notificarPlanTerminado(
+  { alumno, grupo, emails }: { alumno: Alumno; grupo: Grupo; emails: string[] },
+  plan: { cuotas: number; pagado: number; ultimoPago: number },
+) {
+  const t = await textosDe("planTerminado");
+  const vars = {
+    alumno: alumno.nombre,
+    grupo: grupo.nombre,
+    total: String(plan.cuotas),
+    monto: pesos(plan.pagado),
+  };
+  const con = (texto: string) => render(texto, vars);
+
+  for (const email of emails) {
+    await entregar(
+      {
+        tipo: "PLAN_TERMINADO",
+        destinatario: email,
+        asunto: con(t.asunto),
+        cuerpo: [
+          "Hola,",
+          "",
+          con(t.parrafo),
+          "",
+          `Último pago acreditado: ${pesos(plan.ultimoPago)}.`,
+          `Total pagado: ${pesos(plan.pagado)} en ${plan.cuotas} cuotas.`,
+          "",
+          `Podés ver el detalle acá: ${linkAlumno(alumno.token)}`,
+          ...(t.nota ? ["", con(t.nota)] : []),
+          ...firma,
+        ].join("\n"),
+        alumnoId: alumno.id,
+        grupoId: grupo.id,
+      },
+      plantillaEmail({
+        preheader: `${alumno.nombre} terminó de pagar las ${plan.cuotas} cuotas.`,
+        titulo: con(t.titulo),
+        saludo: "Hola,",
+        parrafos: [con(t.parrafo)],
+        destacado: {
+          rotulo: "Plan completo",
+          valor: pesos(plan.pagado),
+          pie: `${plan.cuotas} cuota${plan.cuotas === 1 ? "" : "s"}, todas pagas · último pago ${pesos(plan.ultimoPago)}`,
+        },
+        boton: { texto: "Ver el detalle", url: linkAlumno(alumno.token) },
+        nota: con(t.nota) || undefined,
+      }),
+    );
+  }
+
+  // Éste sí le sirve a Halley aunque el pago lo haya cargado a mano: que una
+  // familia termine es lo que habilita entregarle el material.
+  return entregar(
+    {
+      tipo: "AVISO_ADMIN",
+      destinatario: await casillaDeAvisos(),
+      asunto: `Plan terminado — ${alumno.nombre} (${grupo.subtitulo})`,
+      cuerpo: [
+        `${alumno.nombre} terminó de pagar el plan: ${pesos(plan.pagado)} en ${plan.cuotas} cuotas.`,
+        "",
+        `Grupo: ${grupo.nombre}`,
+        `Alias: ${alumno.alias}`,
+      ].join("\n"),
+      alumnoId: alumno.id,
+      grupoId: grupo.id,
+    },
+    plantillaEmail({
+      preheader: `${alumno.nombre} no debe nada — ${grupo.subtitulo}.`,
+      titulo: "Plan terminado",
+      parrafos: [
+        `${alumno.nombre} terminó de pagar las ${plan.cuotas} cuotas del plan.`,
+        `Grupo: ${grupo.nombre} · Alias: ${alumno.alias}`,
+      ],
+      destacado: {
+        rotulo: "Total pagado",
+        valor: pesos(plan.pagado),
+        pie: "No queda saldo pendiente",
+      },
+    }),
+  );
+}
+
+/**
  * La transferencia entró pero no alcanzó a completar la cuota.
  *
  * Es el hueco que dejaba el comprobante: sólo sale cuando una cuota se salda,

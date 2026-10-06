@@ -18,7 +18,7 @@ import { mercadoPagoMock } from "~/server/mercadopago/mock";
 import { tokenVigente } from "~/server/mercadopago/oauth";
 import { destinatarios } from "~/server/alumnos";
 import { notificarPagoRecibido } from "~/server/notificaciones";
-import { proveedorDeGrupo } from "~/server/pagos";
+import { avisarCierreDePlan, proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada } from "~/server/talo";
 
 /**
@@ -69,13 +69,18 @@ async function avisarDeLoMarcado(
       alumno.ajustesCuota,
       sumarPagos(alumno.pagos),
     );
-    // Sin aviso al admin: el pago lo cargó él, contárselo por mail no le
-    // informa nada.
-    await notificarPagoRecibido(
-      { alumno, grupo: alumno.grupo, emails },
-      { monto: hecho.monto, cuotas: hecho.cuotas, deuda: plan.deuda },
-      { avisarAdmin: false },
-    );
+    // Si este pago cerró el plan, el aviso de cierre reemplaza al comprobante.
+    // Ese sí lleva aviso al admin aunque lo haya cargado él: que una familia
+    // termine es lo que habilita entregarle el material.
+    if (!(await avisarCierreDePlan(alumno, plan, hecho.monto))) {
+      // Sin aviso al admin: el pago lo cargó él, contárselo por mail no le
+      // informa nada.
+      await notificarPagoRecibido(
+        { alumno, grupo: alumno.grupo, emails },
+        { monto: hecho.monto, cuotas: hecho.cuotas, deuda: plan.deuda },
+        { avisarAdmin: false },
+      );
+    }
     avisados += 1;
   }
 

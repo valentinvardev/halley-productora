@@ -12,6 +12,7 @@ import { tokenVigente } from "./mercadopago/oauth";
 import {
   notificarPagoParcial,
   notificarPagoRecibido,
+  notificarPlanTerminado,
 } from "./notificaciones";
 import { credencialesDeAlumno, talo, taloMock } from "./talo";
 
@@ -26,7 +27,7 @@ import { credencialesDeAlumno, talo, taloMock } from "./talo";
  */
 
 /** El alumno con todo lo que hace falta para imputar y notificar. */
-type AlumnoParaPago = Prisma.AlumnoGetPayload<{
+export type AlumnoParaPago = Prisma.AlumnoGetPayload<{
   include: {
     grupo: { include: { cuotas: true } };
     tutores: { include: { cuenta: true } };
@@ -34,6 +35,56 @@ type AlumnoParaPago = Prisma.AlumnoGetPayload<{
     ajustesCuota: true;
   };
 }>;
+
+/**
+ * Si este pago cerró el plan, se lo dice a la familia. Una sola vez, nunca dos.
+ *
+ * Vive acá y no en cada camino porque el plan se cierra igual venga la plata de
+ * Talo, de Mercado Pago o de que el administrador lo marque a mano, y el aviso
+ * tiene que ser el mismo. Devuelve si avisó, para que quien llamó sepa que ya
+ * no hace falta mandar el comprobante de ese pago: éste lo reemplaza.
+ *
+ * El "una sola vez" lo resuelve la escritura y no la lectura. Mirar
+ * `cierreAvisadoEl` y después escribirlo deja una ventana entre las dos cosas, y
+ * los webhooks de los proveedores llegan repetidos y a veces a la par: dos
+ * entradas simultáneas leerían las dos que está en null y mandarían las dos.
+ * El `updateMany` condicionado a que siga en null es una sola sentencia que la
+ * base resuelve sin empates, y el que pierde recibe `count: 0` y no manda nada.
+ *
+ * Se sella antes de mandar, no después. Si el envío falla queda registrado como
+ * fallido en la bandeja, que se puede ver y reintentar a mano; si se sellara
+ * después, un corte entre el envío y el sello haría que el mail salga dos veces,
+ * y de los dos errores ése es el que la familia ve.
+ */
+export async function avisarCierreDePlan(
+  alumno: AlumnoParaPago,
+  plan: ReturnType<typeof imputarPagos>,
+  /** Lo que entró recién. Va adentro del mail, que hace de comprobante. */
+  ultimoPago: number,
+) {
+  // Un grupo sin plan no se "termina" de pagar, y uno que nunca pagó nada
+  // tampoco: sin esto, un alumno de un grupo sin cuotas tendría deuda cero
+  // desde el día uno y recibiría la felicitación al crearse.
+  if (plan.cuotas.length === 0 || plan.pagado <= 0 || plan.deuda > 0) {
+    return false;
+  }
+  if (alumno.cierreAvisadoEl) return false;
+
+  const emails = destinatarios(alumno);
+  if (emails.length === 0) return false;
+
+  const { count } = await db.alumno.updateMany({
+    where: { id: alumno.id, cierreAvisadoEl: null },
+    data: { cierreAvisadoEl: new Date() },
+  });
+  if (count === 0) return false;
+
+  await notificarPlanTerminado(
+    { alumno, grupo: alumno.grupo, emails },
+    { cuotas: plan.cuotas.length, pagado: plan.pagado, ultimoPago },
+  );
+  return true;
+}
 
 type PagoConfirmado = {
   /** Id único del pago en el proveedor. Llave de idempotencia. */
@@ -102,7 +153,13 @@ async function registrarPagoConfirmado(
     !!cuotaDestino &&
     despues.cuotas.find((c) => c.id === cuotaDestino.id)?.estado === "PAGADA";
 
-  if (saldoLaCuota) {
+  // Si este pago cerró el plan, el aviso de cierre reemplaza al comprobante:
+  // dice lo mismo y además que no queda nada pendiente.
+  const cerroElPlan = await avisarCierreDePlan(alumno, despues, tx.monto);
+
+  if (cerroElPlan) {
+    // Ya se le escribió. No va el comprobante además.
+  } else if (saldoLaCuota) {
     // El comprobante va a todos los responsables: si pagó uno, el otro también
     // tiene que enterarse.
     await notificarPagoRecibido(

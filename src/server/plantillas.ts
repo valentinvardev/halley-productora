@@ -135,6 +135,20 @@ export const PLANTILLAS = {
     },
   },
 
+  planTerminado: {
+    nombre: "Plan terminado",
+    cuando:
+      "Cuando un pago deja el plan en cero. Sale una sola vez por alumno, en lugar del comprobante de ese pago.",
+    variables: ["alumno", "grupo", "total", "monto"],
+    porDefecto: {
+      asunto: "Terminaste de pagar — {grupo}",
+      titulo: "Terminaste de pagar",
+      parrafo:
+        "Con este pago queda saldado el plan completo de {alumno}: las {total} cuotas, todas pagas. Gracias por la confianza. Desde tu panel podés ver el detalle de lo que pagaste y, cuando la galería del grupo esté publicada, entrar a verla desde ahí.",
+      nota: "Guardá este mail: es la constancia de que no queda nada pendiente.",
+    },
+  },
+
   valoracion: {
     nombre: "Pedido de valoración",
     cuando: "Cuando el admin le pide a una familia que cuente cómo le fue.",
