@@ -68,6 +68,22 @@ async function entregar(
 const firma = ["", "Halley Audiovisual"];
 
 /**
+ * "la cuota 4", o "las cuotas 4, 5 y 6".
+ *
+ * Un pago puede saldar varias cuotas de una: la familia que se pone al día con
+ * tres meses juntos hace un solo pago. El comprobante tiene que nombrar las
+ * tres, porque un comprobante que dice "cuota 4" por una plata que cerró tres
+ * no coincide con lo que se pagó, y es el papel al que la familia va a volver
+ * si algo no cierra.
+ */
+function fraseCuotas(numeros: number[]) {
+  const todas = [...numeros].sort((a, b) => a - b);
+  if (todas.length === 0) return "tu plan";
+  if (todas.length === 1) return `la cuota ${todas[0]}`;
+  return `las cuotas ${todas.slice(0, -1).join(", ")} y ${todas.at(-1)}`;
+}
+
+/**
  * El pedido de valoración, con su link.
  *
  * Sale a la familia después del servicio. El link vive en la fila de la
@@ -222,13 +238,21 @@ export async function notificarAcceso(
 
 export async function notificarPagoRecibido(
   { alumno, grupo, emails }: { alumno: Alumno; grupo: Grupo; emails: string[] },
-  pago: { monto: number; cuota: number; deuda: number },
+  pago: { monto: number; cuotas: number[]; deuda: number },
+  /**
+   * El aviso a Halley. Se apaga cuando el pago lo cargó el propio
+   * administrador: mandarle un mail contándole algo que acaba de escribir él
+   * mismo no le informa nada y le llena la casilla.
+   */
+  opciones: { avisarAdmin?: boolean } = {},
 ) {
   const t = await textosDe("pagoRecibido");
+  const frase = fraseCuotas(pago.cuotas);
   const vars = {
     alumno: alumno.nombre,
     grupo: grupo.nombre,
-    cuota: String(pago.cuota),
+    cuota: pago.cuotas.join(", "),
+    cuotas: frase,
     monto: pesos(pago.monto),
   };
   const con = (texto: string) => render(texto, vars);
@@ -254,7 +278,7 @@ export async function notificarPagoRecibido(
         grupoId: grupo.id,
       },
       plantillaEmail({
-        preheader: `Acreditamos ${pesos(pago.monto)} de la cuota ${pago.cuota} de ${alumno.nombre}.`,
+        preheader: `Acreditamos ${pesos(pago.monto)} de ${frase} de ${alumno.nombre}.`,
         titulo: con(t.titulo),
         saludo: "Hola,",
         parrafos: [con(t.parrafo)],
@@ -271,13 +295,15 @@ export async function notificarPagoRecibido(
     );
   }
 
+  if (opciones.avisarAdmin === false) return;
+
   return entregar(
     {
       tipo: "AVISO_ADMIN",
       destinatario: await casillaDeAvisos(),
       asunto: `Pago recibido — ${alumno.nombre} (${grupo.subtitulo})`,
       cuerpo: [
-        `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, cuota ${pago.cuota}.`,
+        `Se acreditaron ${pesos(pago.monto)} de ${alumno.nombre}, ${frase}.`,
         "",
         `Grupo: ${grupo.nombre}`,
         `Alias: ${alumno.alias}`,
@@ -292,7 +318,7 @@ export async function notificarPagoRecibido(
       preheader: `${pesos(pago.monto)} de ${alumno.nombre} — ${grupo.subtitulo}.`,
       titulo: "Pago recibido",
       parrafos: [
-        `Se acreditó un pago de ${alumno.nombre}, cuota ${pago.cuota}.`,
+        `Se acreditó un pago de ${alumno.nombre}, ${frase}.`,
         `Grupo: ${grupo.nombre} · Alias: ${alumno.alias}`,
       ],
       destacado: {

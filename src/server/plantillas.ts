@@ -107,13 +107,17 @@ export const PLANTILLAS = {
 
   pagoRecibido: {
     nombre: "Pago acreditado",
-    cuando: "Cuando una transferencia completa una cuota.",
-    variables: ["alumno", "grupo", "cuota", "monto"],
+    cuando:
+      "Cuando un pago completa una cuota, venga por la app o cargado a mano.",
+    // `cuota` son los números pelados y `cuotas` la frase ya armada —"la cuota
+    // 4", "las cuotas 4, 5 y 6"—, porque un pago puede cerrar varias de una y
+    // el texto tiene que leerse bien en los dos casos.
+    variables: ["alumno", "grupo", "cuota", "cuotas", "monto"],
     porDefecto: {
       asunto: "Recibimos tu pago — {grupo}",
       titulo: "Recibimos tu pago",
       parrafo:
-        "Confirmamos la acreditación del pago de la cuota {cuota} de {alumno}. Este mail es tu comprobante.",
+        "Confirmamos la acreditación del pago de {cuotas} de {alumno}. Este mail es tu comprobante.",
       nota: "",
     },
   },

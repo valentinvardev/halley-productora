@@ -33,6 +33,13 @@ import { api } from "~/trpc/react";
  * que después no se deshace.
  */
 
+/**
+ * Hasta cuántas familias se avisa de una. Lo mismo que el tope del router: cada
+ * aviso es un mail que sale uno atrás del otro y doscientos no entran en una
+ * respuesta. Para alcances grandes está la pantalla de envío en masa.
+ */
+const TOPE_AVISOS = 25;
+
 /** "1, 3 y 4": para nombrar las cuotas elegidas en una frase. */
 function listar(numeros: number[]) {
   if (numeros.length <= 1) return numeros.join("");
@@ -101,6 +108,20 @@ export function GestionCuotas({
    * nuestro. Al destildarlo la mora de esas cuotas queda perdonada.
    */
   const [cobrarMora, setCobrarMora] = useState(true);
+  /**
+   * Si a la familia le llega el comprobante del pago que se está marcando.
+   *
+   * Hasta ahora no le llegaba nunca, y por acá entran tres de cada cuatro pagos
+   * del sistema: el padre que paga en efectivo en la oficina no recibía
+   * constancia de nada.
+   *
+   * Viene tildado cuando se marca a uno solo, que es ese caso, y destildado
+   * cuando se marca a varios, que es el otro uso de esta pantalla: cargar de
+   * golpe un colegio que adelantó cuotas, donde avisar sería mandar cien mails
+   * que nadie pidió. Es el mismo criterio que la mora: el valor por defecto es
+   * el del caso normal, y el otro queda a un clic y a la vista.
+   */
+  const [comprobante, setComprobante] = useState(false);
 
   /**
    * Cada vez que se abre, la pantalla arranca limpia.
@@ -115,9 +136,22 @@ export function GestionCuotas({
     if (!abierto) return;
     setElegidos(new Set(unico ? idsClave.split(",") : []));
     setCobrarMora(true);
+    setComprobante(unico);
     setHasta(null);
     setModo("marcar");
   }, [abierto, unico, idsClave]);
+
+  /**
+   * Pasado el tope no se avisa, y la casilla se apaga sola.
+   *
+   * Si quedara tildada de cuando había uno elegido, el router rechazaría la
+   * operación entera por el aviso y no se registraría ni un pago. Apagarla acá
+   * deja que lo importante —marcar— siga funcionando.
+   */
+  const puedeAvisar = elegidos.size <= TOPE_AVISOS;
+  useEffect(() => {
+    if (!puedeAvisar) setComprobante(false);
+  }, [puedeAvisar]);
 
   const avisar = async (n: number, total: number, verbo: string) => {
     setConfirmando(false);
@@ -140,7 +174,12 @@ export function GestionCuotas({
       await alRefrescar(
         r.registrados === 0
           ? "No había nada que saldar"
-          : `${r.registrados} pago${r.registrados === 1 ? "" : "s"} por ${pesos(r.total)}`,
+          : `${r.registrados} pago${r.registrados === 1 ? "" : "s"} por ${pesos(r.total)}` +
+              // El número lo dice el servidor y no la pantalla: los que no
+              // tienen email quedan afuera y acá no se sabe quiénes son.
+              (r.avisados > 0
+                ? ` · ${r.avisados} comprobante${r.avisados === 1 ? "" : "s"}`
+                : ""),
       );
       alCerrar();
     },
@@ -388,6 +427,40 @@ export function GestionCuotas({
             </label>
           )}
 
+          {/* El comprobante. Aparece sólo si hay algo que registrar: ofrecer
+              avisar de un pago que no se va a crear no tiene sentido. */}
+          {modo === "marcar" && previo.cuantos > 0 && (
+            <label
+              className={`flex items-start gap-2.5 border border-gray-20 px-3.5 py-3 ${
+                puedeAvisar ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={comprobante}
+                disabled={!puedeAvisar}
+                onChange={(e) => setComprobante(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]"
+              />
+              <span className="min-w-0">
+                <span className="block font-rotulo text-[11.5px] tracking-[0.06em] uppercase">
+                  Mandar el comprobante
+                </span>
+                <span className="nota mt-0.5 block text-[11.5px]">
+                  {!puedeAvisar
+                    ? `Son más de ${TOPE_AVISOS} familias: desde acá no se avisa. Se registra igual, y para escribirles está el envío en masa.`
+                    : comprobante
+                      ? `Le llega el mail de pago acreditado a ${
+                          previo.cuantos === 1
+                            ? "la familia"
+                            : `las ${previo.cuantos} familias`
+                        }, a los que tengan email.`
+                      : "No se le avisa a nadie. El pago queda registrado igual."}
+                </span>
+              </span>
+            </label>
+          )}
+
           {/* El total sale de los planes que ya vinieron imputados, así que es el
               monto exacto y no una estimación. Con mora de por medio se muestra
               el desglose: "cuánto de esto es recargo" es justo lo que hay que
@@ -477,7 +550,15 @@ export function GestionCuotas({
                 ? cobrarMora
                   ? ", con la mora incluida."
                   : `, sin la mora. Se le perdonan ${pesos(previo.mora)} de recargo, y no vuelven a aparecer.`
-                : "."}
+                : "."}{" "}
+              {/* Que salga un mail o que no salga se dice en los dos casos. El
+                  silencio es justo lo que hacía que nadie supiera que la
+                  familia no se había enterado. */}
+              {comprobante
+                ? `Le llega el comprobante por mail a ${
+                    previo.cuantos === 1 ? "la familia" : "cada familia"
+                  }.`
+                : "No sale ningún mail."}
             </>
           ) : (
             <>
@@ -512,6 +593,7 @@ export function GestionCuotas({
                     alumnoIds: [...elegidos],
                     cuotas,
                     cobrarMora,
+                    avisar: comprobante,
                   })
                 : deshacer.mutate({
                     alumnoIds: [...elegidos],

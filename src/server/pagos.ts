@@ -107,7 +107,7 @@ async function registrarPagoConfirmado(
     // tiene que enterarse.
     await notificarPagoRecibido(
       { alumno, grupo: alumno.grupo, emails: destinatarios(alumno) },
-      { monto: tx.monto, cuota: cuotaDestino.numero, deuda: despues.deuda },
+      { monto: tx.monto, cuotas: [cuotaDestino.numero], deuda: despues.deuda },
     );
   } else if (cuotaDestino) {
     // Entró plata pero la cuota no cerró. Antes acá no pasaba nada: el pago

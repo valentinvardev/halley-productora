@@ -16,8 +16,71 @@ import { pagoMpEsSimulado, puedeSimularGrupo } from "~/server/demo";
 import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
 import { mercadoPagoMock } from "~/server/mercadopago/mock";
 import { tokenVigente } from "~/server/mercadopago/oauth";
+import { destinatarios } from "~/server/alumnos";
+import { notificarPagoRecibido } from "~/server/notificaciones";
 import { proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada } from "~/server/talo";
+
+/**
+ * Hasta cuántas familias se avisa de una al marcar cuotas a mano.
+ *
+ * No es un límite de la base ni del proveedor: es el tiempo de la request. Cada
+ * aviso es un mail que sale uno atrás del otro, así que doscientos no entran en
+ * una respuesta y quedarían a medias sin que nadie sepa dónde. Para alcances
+ * grandes está la pantalla de envío en masa, que manda de a tandas y muestra el
+ * avance.
+ */
+const TOPE_AVISOS = 25;
+
+/**
+ * Les manda el comprobante a las familias a las que se les acaba de marcar algo.
+ *
+ * Vuelve a leer a los alumnos en vez de reusar los que ya tenía en memoria, y
+ * no es por prolijidad: cuando se perdona la mora se escriben filas de
+ * `CuotaAlumno`, así que la copia en memoria quedó vieja y el plan recalculado
+ * sobre ella diría una deuda que ya no es. Es una consulta más para todos,
+ * no una por alumno.
+ */
+async function avisarDeLoMarcado(
+  hechos: { alumnoId: string; cuotas: number[]; monto: number }[],
+) {
+  if (hechos.length === 0) return 0;
+
+  const alumnos = await db.alumno.findMany({
+    where: { id: { in: hechos.map((h) => h.alumnoId) } },
+    include: {
+      grupo: { include: { cuotas: true } },
+      tutores: { include: { cuenta: true } },
+      pagos: true,
+      ajustesCuota: true,
+    },
+  });
+  const porId = new Map(alumnos.map((a) => [a.id, a]));
+
+  let avisados = 0;
+  for (const hecho of hechos) {
+    const alumno = porId.get(hecho.alumnoId);
+    if (!alumno) continue;
+    const emails = destinatarios(alumno);
+    if (emails.length === 0) continue;
+
+    const plan = imputarPagos(
+      alumno.grupo.cuotas,
+      alumno.ajustesCuota,
+      sumarPagos(alumno.pagos),
+    );
+    // Sin aviso al admin: el pago lo cargó él, contárselo por mail no le
+    // informa nada.
+    await notificarPagoRecibido(
+      { alumno, grupo: alumno.grupo, emails },
+      { monto: hecho.monto, cuotas: hecho.cuotas, deuda: plan.deuda },
+      { avisarAdmin: false },
+    );
+    avisados += 1;
+  }
+
+  return avisados;
+}
 
 /**
  * Arranca un pago por Checkout Pro: crea la preferencia con el monto exacto y
@@ -217,6 +280,23 @@ export const pagoRouter = createTRPCRouter({
          * familia seguiría debiendo justo lo que se le quiso perdonar.
          */
         cobrarMora: z.boolean().default(true),
+        /**
+         * Si a la familia le llega el comprobante.
+         *
+         * Hasta ahora no le llegaba nunca: marcar a mano creaba el pago y ahí
+         * terminaba, así que el padre que pagaba en efectivo en la oficina no
+         * recibía constancia de nada. Es la vía por la que entran tres de cada
+         * cuatro pagos del sistema, o sea el silencio no era la excepción.
+         *
+         * Viene apagado a propósito. El otro uso de esta pantalla es cargar de
+         * golpe un colegio que adelantó cuotas, y ahí avisar sería mandar
+         * doscientos mails que nadie pidió. Quien marca decide, y la pantalla
+         * le dice a cuántos.
+         */
+        avisar: z.boolean().default(false),
+      }).refine((v) => !v.avisar || v.alumnoIds.length <= TOPE_AVISOS, {
+        message: `El comprobante se manda hasta ${TOPE_AVISOS} familias por vez.`,
+        path: ["avisar"],
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -232,6 +312,9 @@ export const pagoRouter = createTRPCRouter({
 
       let registrados = 0;
       let total = 0;
+      /** Qué se le registró a cada uno, para poder avisarle después. */
+      const hechos: { alumnoId: string; cuotas: number[]; monto: number }[] =
+        [];
 
       for (const alumno of alumnos) {
         const plan = imputarPagos(
@@ -288,9 +371,16 @@ export const pagoRouter = createTRPCRouter({
 
         registrados += 1;
         total += monto;
+        hechos.push({
+          alumnoId: alumno.id,
+          cuotas: objetivo.map((c) => c.numero),
+          monto,
+        });
       }
 
-      return { registrados, total };
+      const avisados = input.avisar ? await avisarDeLoMarcado(hechos) : 0;
+
+      return { registrados, total, avisados };
     }),
 
   /**
