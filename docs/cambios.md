@@ -2184,3 +2184,43 @@ base. Todo esto corrido como un solo arnés, en verde de punta a punta y sin
 excepciones en el navegador.
 
 **Rollback:** fila Y de la tabla.
+
+### Z. Un cupo de pedidos en la entrada de familias
+
+**De dónde salió.** Dos cosas juntas. Los 23 links de un día de la madre de
+Inmaculada mostraron que /entrar manda links sin ningún límite: cada envío es un
+correo real a quien sea que escriban, y un script podría pedir miles. Y con el
+punto Y aparece una lista de emails que entran sin link: sin un freno, se
+podría recorrer a velocidad plena probando emails hasta dar con uno.
+
+**Qué hace.** Un cupo por origen (la IP real detrás del proxy) para todo
+intento en /entrar y en el registro desde el link del grupo: 60 pedidos cada
+diez minutos. El pedido que se pasa no manda nada y ve "Demasiados intentos
+desde esta red. Esperá diez minutos y volvé a probar." Cubre el link, el modo
+directo de la demo y la entrada sin link por igual, porque va antes de mirar
+cualquiera de los tres.
+
+**Por qué antes de la lista y no después.** Los jueces del diseño lo marcaron:
+un cupo que sólo cuenta cuando el email ya está habilitado no frena a quien
+prueba, porque probar emails que no están no consume nada. El freno tiene que
+contar intentos, no aciertos.
+
+**Por qué 60 y no 5.** Una reunión de curso registra a treinta familias detrás
+del mismo wifi del colegio en diez minutos, y un operador de celular pone a un
+barrio entero detrás de la misma IP. Sesenta las deja pasar; para un script
+sigue siendo un muro, y para recorrer una lista de emails lo vuelve inútil. No
+hay cupo por email a propósito: un tercero podría agotar el de la madre y
+dejarla afuera, y para un email conocido una sola sesión ya es todo el daño.
+
+**Lo que no cubre.** Vive en memoria del proceso, como el freno del panel de
+admin: se reinicia con cada deploy, y si algún día corren varias instancias
+cada una cuenta por su lado. En desarrollo, sin encabezado de proxy, todos los
+pedidos comparten la misma llave.
+
+**Verificado** contra la app local en un Chrome real: 64 envíos seguidos de
+/entrar con un email inexistente, en el camino del link. Los primeros 60
+pasaron y crearon exactamente 60 links; a partir del 61 el formulario muestra
+el mensaje del cupo y no crea ninguno más. Links y avisos de prueba borrados al
+terminar.
+
+**Rollback:** fila Z de la tabla.

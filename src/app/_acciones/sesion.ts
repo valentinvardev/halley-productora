@@ -19,7 +19,7 @@ import {
 import { demoAbierta } from "~/server/demo";
 import { db } from "~/server/db";
 import { MAX_RESPONSABLES } from "~/server/dominio";
-import { origenDe } from "~/server/limite-intentos";
+import { origenDe, permitirRafaga } from "~/server/limite-intentos";
 import { notificarAcceso } from "~/server/notificaciones";
 
 /**
@@ -49,6 +49,24 @@ async function entrarOEnviarEnlace(
   email: string,
   alumnoId?: string,
 ): Promise<EstadoAcceso> {
+  // Cupo por origen para todo intento, antes de mirar nada. Sin esto /entrar
+  // manda links sin límite (una madre pidió 23 en un día; un script pediría
+  // miles, cada uno un mail a un tercero) y la lista de emails que entran sin
+  // link se podría recorrer a velocidad plena. Va antes de la lista a
+  // propósito: un cupo que sólo cuenta aciertos no frena a quien prueba.
+  //
+  // Sesenta en diez minutos, y no cinco: una reunión de curso registra a
+  // treinta familias detrás del mismo wifi, y un operador móvil pone a un
+  // barrio entero detrás de la misma IP. Para un script es un muro igual.
+  // Es error y no caída al link porque el cupo está sobre el link también.
+  const origen = origenDe(await headers());
+  if (!permitirRafaga(`entrar:${origen}`, 60, 10 * 60_000)) {
+    return {
+      error:
+        "Demasiados intentos desde esta red. Esperá diez minutos y volvé a probar.",
+    };
+  }
+
   // El ingreso directo entra a la cuenta con sólo saber el email: es una
   // herramienta de demostración, no una forma de autenticar. En producción sólo
   // vale si alguien abrió esa puerta a propósito.
@@ -79,10 +97,7 @@ async function entrarOEnviarEnlace(
     sinEnlace ? { sinEnlace: true } : { alumnoId },
   );
   if (sinEnlace) {
-    const seguia = await anotarEntradaSinEnlace(
-      sinEnlace.cuentaId,
-      origenDe(await headers()),
-    );
+    const seguia = await anotarEntradaSinEnlace(sinEnlace.cuentaId, origen);
     // Fran la quitó entre el chequeo de arriba y acá. La sesión recién creada
     // no puede quedar: ya no hay fila desde la cual cerrarla, y Quitar acaba
     // de decirle "se cerraron N sesiones" sin contar ésta.

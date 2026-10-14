@@ -179,9 +179,10 @@ familia (plan, deuda, alias para pagar, fotos).
 
 - **Fuerza bruta** — 5 intentos y después espera exponencial hasta 15 minutos, por
   IP, en el login del panel y en la contraseña de galería
-  ([`limite-intentos.ts`](src/server/limite-intentos.ts)). Vive en memoria del
-  proceso: si algún día corren varias instancias, hay que moverlo a un almacén
-  compartido.
+  ([`limite-intentos.ts`](src/server/limite-intentos.ts)), y 60 pedidos cada 10
+  minutos por IP en el login y el registro de familias (links, modo directo y
+  entrada sin link por igual). Vive en memoria del proceso: si algún día corren
+  varias instancias, hay que moverlo a un almacén compartido.
 - **Cabeceras** — CSP, `nosniff`, `frame-ancestors none`, HSTS, Referrer-Policy y
   Permissions-Policy en [`next.config.js`](next.config.js).
 - **Firma de webhooks** — la de Mercado Pago se verifica (HMAC-SHA256) si
