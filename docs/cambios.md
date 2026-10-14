@@ -305,6 +305,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | W | `6ed6d5a` | Se va el correo de cierre; terminar de pagar vuelve a no avisar nada; la columna cierreAvisadoEl queda en la base sin uso |
 | X | `6ad4848` | Se va el aviso de repetidos; el alta vuelve a aceptar el mismo nombre escrito de otra forma sin decir nada |
 | Y | `56dd89f` | Se va la entrada sin link; los emails habilitados vuelven a necesitar el link; la tabla AccesoSinEnlace y la columna abiertaSinEnlace quedan en la base sin uso |
+| Z | `a0d03b9` | Se va el cupo: /entrar y el registro vuelven a mandar links sin límite |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
