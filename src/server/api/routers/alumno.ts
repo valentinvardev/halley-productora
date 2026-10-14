@@ -5,9 +5,9 @@ import {
   crearAlumno,
   destinatarios,
   invitarFamilia,
-  parsearAlumnos,
   perdonarMora,
 } from "~/server/alumnos";
+import { parsearAlumnos } from "~/lib/nombres";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
 import { notificarRecordatorio } from "~/server/notificaciones";
 

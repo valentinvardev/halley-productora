@@ -182,33 +182,3 @@ export async function invitarFamilia(
   return { enviado: true as const, cantidad: emails.length };
 }
 
-/**
- * Parsea el pegado en bloque del panel: un alumno por línea, opcionalmente con
- * el email de contacto de la familia.
- */
-export function parsearAlumnos(texto: string) {
-  const filas: { nombre: string; emailContacto?: string }[] = [];
-  const errores: string[] = [];
-
-  for (const linea of texto.split("\n")) {
-    const limpia = linea.trim();
-    if (!limpia) continue;
-
-    const partes = limpia.split(/[,;\t]/).map((p) => p.trim());
-    const nombre = partes[0] ?? "";
-    const email = partes[1] ?? "";
-
-    if (!nombre) {
-      errores.push(limpia);
-      continue;
-    }
-    if (email && !email.includes("@")) {
-      errores.push(limpia);
-      continue;
-    }
-
-    filas.push({ nombre, emailContacto: email || undefined });
-  }
-
-  return { filas, errores };
-}

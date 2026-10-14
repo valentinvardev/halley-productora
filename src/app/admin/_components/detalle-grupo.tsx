@@ -38,7 +38,13 @@ import {
 } from "~/app/_components/ui";
 import { cuadro, fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
+import { parsearAlumnos } from "~/lib/nombres";
 import { AccionesAlumno, type AlumnoAcciones } from "./acciones-alumno";
+import {
+  AvisoDuplicados,
+  buscarCoincidencias,
+  type Coincidencia,
+} from "./aviso-duplicados";
 import { EsqueletoDetalle } from "./esqueletos";
 import { AvisosGrupoAdmin } from "./avisos-grupo-admin";
 import { FotosGaleria } from "./fotos-galeria";
@@ -405,6 +411,15 @@ export function DetalleGrupo({ id }: { id: string }) {
           // las carpetas se llenan de verdad: pegar la lista de un curso ya
           // adentro, en vez de cargarla y arrastrar de a uno.
           subgrupos={grupo.subgrupos}
+          // Los que ya están, para poder avisar antes de cargar a alguien que
+          // ya figura con el nombre escrito de otra forma. Va la lista entera
+          // y no una consulta aparte: la pantalla ya la tiene.
+          yaCargados={grupo.alumnos.map((a) => ({
+            id: a.id,
+            nombre: a.nombre,
+            emailContacto: a.emailContacto,
+            invitadaEl: a.invitadaEl,
+          }))}
           alTerminar={refrescar}
         />
       )}
@@ -1191,6 +1206,7 @@ function AltaAlumnos({
   habilitado,
   cuotas,
   subgrupos,
+  yaCargados,
   alTerminar,
 }: {
   grupoId: string;
@@ -1200,6 +1216,13 @@ function AltaAlumnos({
   cuotas: { numero: number; vencida: boolean }[];
   /** Las carpetas del grupo, para elegir a cuál entran. */
   subgrupos: { id: string; nombre: string }[];
+  /** Los que ya están en el grupo, para avisar de los repetidos. */
+  yaCargados: {
+    id: string;
+    nombre: string;
+    emailContacto: string | null;
+    invitadaEl: Date | string | null;
+  }[];
   alTerminar: (mensaje?: string) => Promise<void>;
 }) {
   const [modo, setModo] = useState<"cerrado" | "uno" | "bloque">("cerrado");
@@ -1227,10 +1250,20 @@ function AltaAlumnos({
   /** A qué carpeta entran. `null` es sin asignar, que es lo de siempre. */
   const [subgrupoId, setSubgrupoId] = useState<string | null>(null);
 
+  /**
+   * Lo que parece repetido, cuando lo parece.
+   *
+   * En null el alta va directo. Con contenido, la pantalla se detiene y
+   * pregunta: es un aviso y no un bloqueo, porque en un curso hay hermanos y
+   * nombres que se repiten, y quién es quién lo sabe el que carga la lista.
+   */
+  const [aviso, setAviso] = useState<Coincidencia[] | null>(null);
+
   const agregar = api.alumno.agregar.useMutation({
     onSuccess: async (r) => {
       setNombre("");
       setEmail("");
+      setAviso(null);
       await alTerminar(
         r.yaExistia ? "Ese alumno ya estaba en el grupo" : "Alumno agregado",
       );
@@ -1240,12 +1273,51 @@ function AltaAlumnos({
   const enBloque = api.alumno.agregarEnBloque.useMutation({
     onSuccess: async (r) => {
       setTexto("");
+      setAviso(null);
       setModo("cerrado");
       await alTerminar(
         `Cargados: ${r.creados} · Repetidos: ${r.repetidos} · Con error: ${r.errores.length}`,
       );
     },
   });
+
+  const datosUno = () => ({
+    grupoId,
+    nombre,
+    emailContacto: email,
+    invitar,
+    sinMoraCuotas,
+    subgrupoId,
+  });
+  const datosBloque = () => ({
+    grupoId,
+    texto,
+    invitar,
+    sinMoraCuotas,
+    subgrupoId,
+  });
+
+  /**
+   * Mandar, salvo que algo parezca repetido.
+   *
+   * La comparación se hace acá y no en el servidor porque la pantalla ya tiene
+   * la lista del grupo: preguntarla de nuevo sería una ida y vuelta para
+   * calcular algo que está a mano, y el aviso tiene que aparecer en el mismo
+   * gesto de apretar el botón.
+   */
+  function intentar(cual: "uno" | "bloque") {
+    const nuevos =
+      cual === "uno"
+        ? [{ nombre, emailContacto: email }]
+        : parsearAlumnos(texto).filas;
+    const coincidencias = buscarCoincidencias(nuevos, yaCargados);
+    if (coincidencias.length > 0) {
+      setAviso(coincidencias);
+      return;
+    }
+    if (cual === "uno") agregar.mutate(datosUno());
+    else enBloque.mutate(datosBloque());
+  }
 
   /**
    * Sin cuenta que cobre no se puede dar de alta a nadie.
@@ -1322,14 +1394,7 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            agregar.mutate({
-              grupoId,
-              nombre,
-              emailContacto: email,
-              invitar,
-              sinMoraCuotas,
-              subgrupoId,
-            });
+            intentar("uno");
           }}
           className="grid gap-4"
         >
@@ -1382,13 +1447,7 @@ function AltaAlumnos({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            enBloque.mutate({
-              grupoId,
-              texto,
-              invitar,
-              sinMoraCuotas,
-              subgrupoId,
-            });
+            intentar("bloque");
           }}
           className="grid gap-4"
         >
@@ -1430,6 +1489,21 @@ function AltaAlumnos({
           </div>
         </form>
       )}
+
+      {/* Va adentro del bloque y no al lado porque es un <dialog>: se dibuja
+          por encima de todo igual, y acá queda al lado del formulario que lo
+          dispara, que es donde se lo busca al leer. */}
+      <AvisoDuplicados
+        abierto={aviso !== null}
+        coincidencias={aviso ?? []}
+        trabajando={agregar.isPending || enBloque.isPending}
+        alCancelar={() => setAviso(null)}
+        alSeguir={() =>
+          modo === "uno"
+            ? agregar.mutate(datosUno())
+            : enBloque.mutate(datosBloque())
+        }
+      />
     </div>
   );
 }
