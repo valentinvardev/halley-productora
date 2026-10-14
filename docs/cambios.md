@@ -303,6 +303,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | U | `e971d28` | Se va el envío en masa; vuelve a invitar o recordar de a un grupo por vez |
 | V | `7f850b8` | Marcar a mano vuelve a no avisarle a nadie; el comprobante vuelve a nombrar sólo la primera cuota saldada |
 | W | `6ed6d5a` | Se va el correo de cierre; terminar de pagar vuelve a no avisar nada; la columna cierreAvisadoEl queda en la base sin uso |
+| X | `6ad4848` | Se va el aviso de repetidos; el alta vuelve a aceptar el mismo nombre escrito de otra forma sin decir nada |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -2021,3 +2022,74 @@ servidor local, pasó lo mismo. En el panel la bandeja muestra el rótulo "Plan
 terminado" y la plantilla aparece en el desplegable de textos.
 
 **Rollback:** fila W de la tabla.
+
+### X. Avisar antes de cargar un alumno que ya podría estar
+
+**De dónde salió.** Revisando por qué no salían las invitaciones de Inmaculada
+aparecieron dos alumnos cargados dos veces: "Araceli Merlo" y "Merlo Araceli" en
+Economía, y "Bertaina Emilia" junto a "Bertaina María Emilia" en Centro. Mismo
+email, mismo curso, la misma persona escrita de dos formas.
+
+**Por qué el sistema no lo vio.** Dar de alta ya era idempotente, pero por
+nombre exacto: pegar dos veces la misma lista no duplica a nadie. Exacto no
+alcanza contra listas escritas a mano, donde el mismo chico aparece como
+"Apellido Nombre" en una planilla y "Nombre Apellido" en la siguiente. Para el
+sistema son dos cadenas distintas, así que eran dos alumnos.
+
+**Qué costaba.** No es un renglón de más en una tabla. Cada alumno tiene su
+propio plan de cuotas, así que el grupo figura cobrando el doble de lo que
+corresponde, y la familia figura debiendo el doble. Y cada alumno recibe sus
+mails: la invitación llega dos veces, y después cada recordatorio de cada cuota,
+al mismo buzón.
+
+**Qué hace ahora.** Los dos formularios del alta, el de uno por uno y el pegado
+en bloque, se detienen antes de crear nada si algo se parece a lo que ya está.
+El aviso muestra contra quién se parece, por qué se parece, si comparten el
+email, y si esa familia ya fue invitada. Y dice en una línea qué pasa si se
+sigue de largo, que es lo que no se ve desde el panel.
+
+**Avisa, no bloquea.** En un curso hay hermanos y hay nombres que se repiten, y
+quién es quién lo sabe el que está cargando la lista, no el sistema. Un control
+que impide pasar obliga a pelearlo cuando se equivoca, y como se equivoca
+seguido, se termina buscando cómo saltearlo. Los dos botones son "Volver y
+revisar", que es lo que casi siempre conviene y por eso tiene el peso visual, y
+"Es otra persona, agregar igual".
+
+**Cómo decide que se parece.** Compara las palabras del nombre sin acentos, sin
+mayúsculas y sin puntuación, y sin importar el orden. Marca dos casos: las
+mismas palabras en distinto orden, y el nombre corto contenido entero adentro
+del largo. Para el segundo pide al menos dos palabras en común, y ese mínimo es
+todo lo que separa un aviso útil de uno que molesta: sin él, "Luna Delfina" y
+"Luna Tamara" saltarían por compartir el apellido, y "Nicolás David Muñoz" y
+"Nicolás Olmos" por compartir el nombre.
+
+**El email no dispara el aviso por su cuenta.** Los hermanos comparten casilla,
+así que saltaría en todos. Sí se informa cuando además el nombre se parece,
+porque ahí deja de ser una sospecha.
+
+**El pegado en bloque también se compara consigo mismo**, no sólo contra el
+grupo: una lista puede traer al mismo alumno dos veces antes de que el curso lo
+tenga ni una vez.
+
+**Medido antes de construirlo.** Corrí la regla contra los 723 alumnos reales,
+curso por curso: 15.957 comparaciones y exactamente 2 pares marcados, que son
+los 2 que de verdad están duplicados. Ningún falso positivo. Y contra 12 casos
+armados a mano, incluidos los de hermanos y los de acentos, los 12 dieron lo
+esperado.
+
+**Verificado** contra el panel real, con un grupo de prueba borrado al terminar,
+y corrido tres veces seguidas para descartar que algo quedara al azar. Cargando
+"Merlo Araceli" con "Araceli Merlo" ya en el grupo, el aviso abre, lo nombra,
+explica que son las mismas palabras en otro orden, marca el mismo email y avisa
+de los dos planes y de los mails duplicados. "Volver y revisar" cierra sin crear
+a nadie. "Es otra persona, agregar igual" lo crea con el nombre escrito. Un
+nombre nuevo de verdad no abre nada y se crea derecho, y "Luna Tamara" con su
+hermana "Luna Delfina" ya cargada tampoco abre nada. En el pegado en bloque, una
+lista de cuatro con un repetido adentro y otro contra el grupo marca los dos,
+deja afuera al que es nuevo, y al volver no carga a nadie.
+
+**Lo que no cubre.** El alta pública del link del grupo no crea alumnos: las
+familias eligen el suyo de la lista que cargó el administrador, así que por ahí
+no entran duplicados.
+
+**Rollback:** fila X de la tabla.
