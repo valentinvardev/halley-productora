@@ -9,7 +9,13 @@ import {
   IconoPapelera,
   IconoTilde,
 } from "~/app/_components/iconos";
-import { Boton, BotonTexto, Campo, Encabezado } from "~/app/_components/ui";
+import {
+  Boton,
+  BotonTexto,
+  Campo,
+  Encabezado,
+  Vacio,
+} from "~/app/_components/ui";
 import {
   CAMPOS_AJUSTE,
   SONIDOS_PAGO,
@@ -17,6 +23,7 @@ import {
   type ClaveAjusteUI,
 } from "~/app/_datos/ajustes";
 import { Desplegable } from "~/app/_components/desplegable";
+import { fecha, fechaHora } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { probarAvisoCobro } from "./aviso-cobros";
 import { EsqueletoAjustes } from "./esqueletos";
@@ -36,6 +43,27 @@ export function Ajustes() {
   const archivoRef = useRef<HTMLInputElement>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorSonido, setErrorSonido] = useState<string | null>(null);
+
+  // Las puertas abiertas sin link. Es la lista de auditoría: acá se ve todo
+  // lo habilitado y se quita, pero no se habilita, porque una fila sin
+  // familia abriría un panel vacío. Eso se hace desde la ficha del alumno.
+  const sinEnlace = api.accesoSinEnlace.listar.useQuery();
+  /** Qué Quitar está esperando el segundo clic. */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [avisoSinEnlace, setAvisoSinEnlace] = useState<string | null>(null);
+  const quitarSinEnlace = api.accesoSinEnlace.quitar.useMutation({
+    onSuccess: (r, v) => {
+      setAvisoSinEnlace(
+        r.sesionesCerradas === 0
+          ? `${v.email} vuelve a entrar por correo. No había sesiones abiertas sin link.`
+          : r.sesionesCerradas === 1
+            ? `${v.email} vuelve a entrar por correo. Se cerró 1 sesión abierta sin link.`
+            : `${v.email} vuelve a entrar por correo. Se cerraron ${r.sesionesCerradas} sesiones abiertas sin link.`,
+      );
+      void utils.accesoSinEnlace.listar.invalidate();
+    },
+    onError: (e) => setAvisoSinEnlace(e.message),
+  });
 
   // Los valores guardados llenan el formulario una vez, al llegar.
   useEffect(() => {
@@ -270,6 +298,79 @@ export function Ajustes() {
           )}
         </div>
       </div>
+
+      {/* Mientras carga no se muestra nada: el bloque aparece con la lista. Si
+          la lista falla, el bloque aparece igual y lo dice: un Ajustes que se
+          ve completo sin este bloque esconde puertas abiertas. */}
+      {(sinEnlace.data || sinEnlace.isError) && (
+        <div className="mt-8 max-w-[560px] border border-ink p-6">
+          <div className="eyebrow mb-2.5">Entran sin link</div>
+          <p className="nota mb-4">
+            Las familias a las que les abriste la puerta con sólo el email.
+            Cualquiera que escriba uno de estos emails entra al panel de esa
+            familia. Se habilita desde la ficha del alumno, en Acciones.
+          </p>
+
+          {!sinEnlace.data ? (
+            <p className="nota text-marca">
+              No se pudo cargar la lista: {sinEnlace.error?.message}
+            </p>
+          ) : sinEnlace.data.length === 0 ? (
+            <Vacio>Nadie entra sin link.</Vacio>
+          ) : (
+            <div className="border border-gray-20">
+              {sinEnlace.data.map((f) => (
+                <div
+                  key={f.email}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11.5px] break-all">
+                      {f.email}
+                    </div>
+                    {/* Una fila sin alumnos es la cuenta a la que le sacaron
+                        o borraron a todos: la regla de entrada ya la deja
+                        inerte, pero se muestra para que se pueda quitar. */}
+                    <div className="text-[11.5px] text-gray-45">
+                      {f.alumnos.length > 0
+                        ? f.alumnos
+                            .map((a) => `${a.nombre}, ${a.grupo}`)
+                            .join(" · ")
+                        : "ya no es responsable de ningún alumno"}
+                    </div>
+                    <div className="text-[11.5px] text-gray-45">
+                      desde el {fecha(f.desde)} ·{" "}
+                      {f.usos === 0 || !f.ultimoUsoEl
+                        ? "todavía no entró"
+                        : `entró ${f.usos} ${f.usos === 1 ? "vez" : "veces"}, la última el ${fechaHora(f.ultimoUsoEl)}`}
+                    </div>
+                  </div>
+                  <BotonTexto
+                    onClick={() => {
+                      if (confirmando === f.email) {
+                        setConfirmando(null);
+                        quitarSinEnlace.mutate({ email: f.email });
+                      } else {
+                        setConfirmando(f.email);
+                      }
+                    }}
+                    disabled={quitarSinEnlace.isPending}
+                    className="text-gray-45"
+                  >
+                    {confirmando === f.email
+                      ? "¿Seguro? Vuelve al correo"
+                      : "Quitar"}
+                  </BotonTexto>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {avisoSinEnlace && (
+            <p className="nota mt-3 text-[12px]">{avisoSinEnlace}</p>
+          )}
+        </div>
+      )}
 
       <p className="nota mt-4 max-w-[62ch]">
         Los cambios se ven en la web enseguida: las páginas públicas leen esto

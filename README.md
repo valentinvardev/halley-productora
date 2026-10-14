@@ -34,6 +34,10 @@ visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
   datos para transferir y la galería.
 - **Link sin login** (`/p/[token]`) — para quien no se quiera registrar; es el que
   ya salió por mail.
+- **Entrar sin link** (excepción por familia): desde la ficha del alumno, el admin
+  puede habilitar un email para que escribirlo en `/entrar` alcance, sin correo.
+  Es para la familia que no logra abrir el link. Se ve en la tabla del curso y en
+  Ajustes, cuenta cada entrada y se quita desde ahí.
 
 ### Galerías
 
@@ -156,6 +160,21 @@ cerradas en producción salvo `DEMO_ABIERTA="si"`, disponibles fuera de producci
 **Si se agrega una herramienta de demo nueva, tiene que preguntarle a esa
 función.**
 
+### Entrar sin link no es una herramienta de demo
+
+Es una excepción de producción, por cuenta, que el admin decide desde la ficha
+del alumno y que queda guardada en la base (tabla `AccesoSinEnlace`). No mira
+`demoAbierta()` ni `AUTH_PADRES`: existe para la familia que no logra abrir el
+link del correo, y vale con la demo cerrada.
+
+Lo que abre es sólo lo que esa cuenta ya tiene: sus alumnos vinculados. Desde el
+link del grupo no sirve para reclamar un alumno nuevo sin probar el email. Cada
+entrada queda contada en la fila, la tabla del curso lo marca y Ajustes lista
+todas las puertas abiertas. Quitarla cierra las sesiones que entraron así; las
+que canjearon un link siguen vivas. El costo, y por eso el botón lo dice con el
+email y el nombre antes de confirmar: quien sepa ese email entra al panel de esa
+familia (plan, deuda, alias para pagar, fotos).
+
 ### Defensas puestas
 
 - **Fuerza bruta** — 5 intentos y después espera exponencial hasta 15 minutos, por
@@ -249,6 +268,9 @@ Se validan **durante el build** ([`src/env.js`](src/env.js)): si falta
 | `CLOUDFRONT_DOMAIN` | CDN delante del bucket para la vitrina |
 | `AUTH_PADRES` | `enlace` (default, correcto) o `directo` (sólo demo) |
 | `DEMO_ABIERTA` | `si` abre las herramientas de demo **en producción** |
+
+La entrada sin link no tiene variable: nace vacía y se habilita familia por
+familia desde el panel.
 
 Las de AWS son opcionales: sin ellas la subida se apaga sola y la landing usa las
 imágenes de relleno. `AWS_S3_PREFIX` es lo que aísla las fotos de Halley de las de

@@ -17,7 +17,8 @@ export function Entrar({ aviso }: { aviso: string | null }) {
     null,
   );
 
-  // Sólo aparece con AUTH_PADRES=enlace; en la demo se entra derecho.
+  // Sólo aparece cuando se mandó un link: en la demo, y para los emails que el
+  // admin habilitó para entrar sin link, se entra derecho.
   if (estado && "enlaceEnviado" in estado) {
     return (
       <MarcoAcceso solapa="login">

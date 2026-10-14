@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
+import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
 import {
   crearAlumno,
   destinatarios,
@@ -210,18 +211,32 @@ export const alumnoRouter = createTRPCRouter({
       return { enviados, sinInvitar };
     }),
 
-  /** Saca a un responsable de un alumno (registro equivocado). */
+  /**
+   * Saca a un responsable de un alumno (registro equivocado).
+   *
+   * Si con eso la cuenta se queda sin alumnos, también se le apaga la entrada
+   * sin link: dejarla sería un estado inerte e invisible que se reactiva solo
+   * el día que ese email vuelve a registrarse por el link de algún grupo. Un
+   * Sacar tiene que sacar de verdad.
+   */
   desvincular: adminProcedure
     .input(z.object({ tutorId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.tutor.delete({ where: { id: input.tutorId } });
-      return { ok: true };
+      const tutor = await ctx.db.tutor.delete({ where: { id: input.tutorId } });
+      // Acotado a esta cuenta: lo que se informa es si ESTE responsable dejó
+      // de entrar sin link, no cuántas filas huérfanas de otras familias
+      // había dando vueltas.
+      const quitadas = await limpiarSinEnlaceSinFamilia(tutor.cuentaId);
+      return { ok: true, sinEnlaceQuitado: quitadas > 0 };
     }),
 
   eliminar: adminProcedure
     .input(z.object({ alumnoId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.alumno.delete({ where: { id: input.alumnoId } });
+      // Mismo motivo que en desvincular: la cascada borró sus Tutor y alguna
+      // cuenta pudo quedar sin familia.
+      await limpiarSinEnlaceSinFamilia();
       return { ok: true };
     }),
 });

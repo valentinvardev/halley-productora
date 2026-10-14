@@ -54,7 +54,8 @@ export function Registro({
 
   const estado = solapa === "registro" ? estadoRegistro : estadoLogin;
 
-  // Sólo aparece con AUTH_PADRES=enlace; en la demo se entra derecho.
+  // Sólo aparece cuando se mandó un link: en la demo, y para los emails que el
+  // admin habilitó para entrar sin link, se entra derecho.
   if (estado && "enlaceEnviado" in estado) {
     return (
       <MarcoAcceso solapa={solapa} alCambiarSolapa={setSolapa}>

@@ -28,7 +28,9 @@ const MINUTOS_ENLACE = 30;
  *
  * Lo que no se hace es dejar entrar sólo con el email: eso convertiría conocer
  * una dirección en poder ver el plan de pagos de esa familia y bajarse su
- * galería privada.
+ * galería privada. La única excepción son las cuentas que el admin habilitó
+ * una por una desde la ficha del alumno (acceso-sin-enlace.ts): entran a lo
+ * que esa cuenta ya tiene y dejan rastro.
  */
 const DIAS_SESION = 365;
 
@@ -106,8 +108,17 @@ export async function puedeSumarResponsable(alumnoId: string, email: string) {
  *
  * Es el punto común de los dos modos de acceso — el directo entra por acá y el
  * de enlace también, después de canjear el token.
+ *
+ * El tercer camino, el de la excepción por email, entra sin alumnoId: la
+ * cuenta ya tiene sus alumnos y entrar no vincula nada. Lo que sí deja es la
+ * marca `sinEnlace` en la sesión, para que quitar la excepción pueda cerrar
+ * exactamente las sesiones que no pasaron por el correo.
  */
-export async function abrirSesion(email: string, alumnoId?: string) {
+export async function abrirSesion(
+  email: string,
+  opciones?: { alumnoId?: string; sinEnlace?: boolean },
+) {
+  const alumnoId = opciones?.alumnoId;
   const cuenta = await db.cuenta.upsert({
     where: { email: normalizarEmail(email) },
     update: { ultimoAcceso: new Date() },
@@ -132,6 +143,7 @@ export async function abrirSesion(email: string, alumnoId?: string) {
       token: tokenAleatorio(),
       cuentaId: cuenta.id,
       expiraEl: new Date(Date.now() + DIAS_SESION * 24 * 60 * 60 * 1000),
+      abiertaSinEnlace: opciones?.sinEnlace ?? false,
     },
   });
 
@@ -156,7 +168,7 @@ export async function canjearEnlace(token: string): Promise<ResultadoCanje> {
   }
 
   const [sesion] = await Promise.all([
-    abrirSesion(enlace.email, enlace.alumnoId ?? undefined),
+    abrirSesion(enlace.email, { alumnoId: enlace.alumnoId ?? undefined }),
     db.enlaceAcceso.update({
       where: { id: enlace.id },
       data: { usadoEl: new Date() },

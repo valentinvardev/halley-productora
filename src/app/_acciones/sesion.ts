@@ -1,9 +1,13 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { env } from "~/env";
+import {
+  anotarEntradaSinEnlace,
+  cuentaSinEnlace,
+} from "~/server/acceso-sin-enlace";
 import {
   COOKIE_SESION,
   abrirSesion,
@@ -15,6 +19,7 @@ import {
 import { demoAbierta } from "~/server/demo";
 import { db } from "~/server/db";
 import { MAX_RESPONSABLES } from "~/server/dominio";
+import { origenDe } from "~/server/limite-intentos";
 import { notificarAcceso } from "~/server/notificaciones";
 
 /**
@@ -27,6 +32,10 @@ import { notificarAcceso } from "~/server/notificaciones";
  * demostración, donde parar a revisar un correo rompe el recorrido. Con
  * "enlace" se manda un link de un solo uso, que es lo que corresponde en
  * producción.
+ *
+ * Hay una tercera puerta, por cuenta: la excepción que el admin habilita desde
+ * la ficha del alumno (acceso-sin-enlace.ts). No es la demo y no pasa por
+ * demoAbierta().
  */
 
 export type EstadoAcceso =
@@ -45,7 +54,12 @@ async function entrarOEnviarEnlace(
   // vale si alguien abrió esa puerta a propósito.
   const directo = env.AUTH_PADRES === "directo" && demoAbierta();
 
-  if (!directo) {
+  // La excepción por cuenta. No es demo ni pasa por demoAbierta(): la
+  // habilitó el admin desde la ficha del alumno, vale en producción, y abre
+  // sólo lo que esa cuenta ya tiene. En modo directo no hace falta mirarla.
+  const sinEnlace = directo ? null : await cuentaSinEnlace(email, alumnoId);
+
+  if (!directo && !sinEnlace) {
     const { url, minutos } = await crearEnlaceAcceso(email, { alumnoId });
     await notificarAcceso(email, url, minutos);
 
@@ -58,7 +72,27 @@ async function entrarOEnviarEnlace(
     };
   }
 
-  const sesion = await abrirSesion(email, alumnoId);
+  // Sin alumnoId cuando entra por la excepción: sus alumnos ya están
+  // vinculados, y pasar uno acá volvería a crear el Tutor que Sacar borró.
+  const sesion = await abrirSesion(
+    email,
+    sinEnlace ? { sinEnlace: true } : { alumnoId },
+  );
+  if (sinEnlace) {
+    const seguia = await anotarEntradaSinEnlace(
+      sinEnlace.cuentaId,
+      origenDe(await headers()),
+    );
+    // Fran la quitó entre el chequeo de arriba y acá. La sesión recién creada
+    // no puede quedar: ya no hay fila desde la cual cerrarla, y Quitar acaba
+    // de decirle "se cerraron N sesiones" sin contar ésta.
+    if (!seguia) {
+      await cerrarSesion(sesion);
+      return {
+        error: "Este email ya no entra sin link. Volvé a intentar y te mandamos el link por correo.",
+      };
+    }
+  }
 
   const galleta = await cookies();
   galleta.set(COOKIE_SESION, sesion, {

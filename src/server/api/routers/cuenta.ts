@@ -15,6 +15,7 @@ import {
   sumarPagos,
 } from "~/server/dominio";
 
+import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
 import { proveedorDeGrupo } from "~/server/pagos";
 import { simuladorMpActivo, simuladorTaloActivo } from "~/server/demo";
 
@@ -88,6 +89,11 @@ export const cuentaRouter = createTRPCRouter({
       if (!soyResponsable) throw new TRPCError({ code: "FORBIDDEN" });
 
       await ctx.db.tutor.delete({ where: { id: tutor.id } });
+      // Misma regla que el Sacar del panel: si esa cuenta se quedó sin alumnos,
+      // se le apaga la entrada sin link. Sin esto quedaba una fila inerte que
+      // volvía a ser una puerta abierta el día que ese email se registraba por
+      // el link de cualquier grupo, para un alumno que el admin nunca decidió.
+      await limpiarSinEnlaceSinFamilia(tutor.cuentaId);
       return { ok: true };
     }),
 

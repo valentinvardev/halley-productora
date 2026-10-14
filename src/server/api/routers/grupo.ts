@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
 import { crearAlumno } from "~/server/alumnos";
 import { borrarObjetos } from "~/server/s3";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
@@ -110,7 +111,7 @@ export const grupoRouter = createTRPCRouter({
             orderBy: { creadoEn: "asc" },
             include: {
               tutores: {
-                include: { cuenta: true },
+                include: { cuenta: { include: { accesoSinEnlace: true } } },
                 orderBy: { creadoEn: "asc" },
               },
               pagos: { orderBy: { recibidoEn: "desc" } },
@@ -191,6 +192,18 @@ export const grupoRouter = createTRPCRouter({
             responsables: a.tutores.map((t) => ({
               id: t.id,
               email: t.cuenta.email,
+              /**
+               * Si esa cuenta entra escribiendo el email, su rastro. Viaja en
+               * el mismo include que se refresca cada 2,5 s, sin consulta
+               * extra. Nunca sale la IP.
+               */
+              sinEnlace: t.cuenta.accesoSinEnlace
+                ? {
+                    desde: t.cuenta.accesoSinEnlace.creadoEn,
+                    usos: t.cuenta.accesoSinEnlace.usos,
+                    ultimoUsoEl: t.cuenta.accesoSinEnlace.ultimoUsoEl,
+                  }
+                : null,
             })),
             plan: {
               total: plan.total,
@@ -532,6 +545,11 @@ export const grupoRouter = createTRPCRouter({
       if (claves.length > 0) await borrarObjetos(claves);
 
       await ctx.db.grupo.delete({ where: { id: input.id } });
+      // La cascada borró a sus alumnos y con ellos sus Tutor: las cuentas que
+      // entraban sin link y se quedaron sin familia pierden la puerta acá, y
+      // no quedan en Ajustes como filas huérfanas esperando a que alguien las
+      // quite a mano.
+      await limpiarSinEnlaceSinFamilia();
       return { ok: true, archivos: claves.length };
     }),
 

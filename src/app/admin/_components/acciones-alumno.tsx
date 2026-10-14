@@ -6,6 +6,7 @@ import { Ayuda } from "~/app/_components/ayuda";
 import { Copiar } from "~/app/_components/copiar";
 import {
   IconoCampana,
+  IconoCandado,
   IconoEstrella,
   IconoPapelera,
   IconoProbeta,
@@ -20,9 +21,10 @@ import {
   BotonTexto,
   Campo,
   Dato,
+  Tag,
   TiraDatos,
 } from "~/app/_components/ui";
-import { fechaHora, pesos } from "~/lib/format";
+import { fecha, fechaHora, pesos } from "~/lib/format";
 import { api } from "~/trpc/react";
 
 /**
@@ -41,7 +43,12 @@ export type AlumnoAcciones = {
   emailContacto: string | null;
   linkRegistro: string;
   linkPago: string;
-  responsables: { id: string; email: string }[];
+  responsables: {
+    id: string;
+    email: string;
+    /** Si está, esta cuenta entra escribiendo el email, sin link. */
+    sinEnlace: { desde: Date; usos: number; ultimoUsoEl: Date | null } | null;
+  }[];
   plan: {
     total: number;
     pagado: number;
@@ -115,6 +122,9 @@ export function AccionesAlumno({
   alMarcarCuotas: () => void;
 }) {
   const [email, setEmail] = useState("");
+  /** El email que se escribe a mano en Entrar sin link, cuando no es ninguno de la familia. */
+  const [otroEmail, setOtroEmail] = useState("");
+  const [mostrarOtro, setMostrarOtro] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   /** Qué acción irreversible está esperando el segundo clic. */
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -134,6 +144,8 @@ export function AccionesAlumno({
     setEstabaAbierto(!!alumno);
     if (alumno) {
       setEmail("");
+      setOtroEmail("");
+      setMostrarOtro(false);
       setMensaje(null);
       setConfirmando(null);
     }
@@ -188,7 +200,56 @@ export function AccionesAlumno({
   });
 
   const desvincular = api.alumno.desvincular.useMutation({
-    onSuccess: () => avisar("Responsable desvinculado"),
+    // Sacar también puede apagar la puerta sin link: si a la cuenta no le
+    // queda ningún alumno, el servidor borra la excepción, y acá se dice.
+    onSuccess: (r) =>
+      avisar(
+        r.sinEnlaceQuitado
+          ? "Responsable desvinculado. Como no le quedaba ningún alumno, también dejó de entrar sin link."
+          : "Responsable desvinculado",
+      ),
+  });
+
+  // Entrar sin link. El mensaje repite el email entero porque es lo único
+  // que la familia tiene que escribir, y si se habilitó uno mal tipeado es
+  // acá donde se nota.
+  const habilitar = api.accesoSinEnlace.habilitar.useMutation({
+    onSuccess: (r) => {
+      setOtroEmail("");
+      setMostrarOtro(false);
+      const nombre = datos?.nombre ?? "";
+      // "ya entraba por X" sólo si hay un X que nombrar: una cuenta que quedó
+      // habilitada y sin alumnos (eliminar un grupo) no tiene otros.
+      const porOtros = r.otrosAlumnos.length > 0 ? ` por ${r.otrosAlumnos.join(" y ")}` : "";
+      return avisar(
+        r.yaEntraba
+          ? r.vinculadoNuevo
+            ? `${r.email} ya entraba sin link${porOtros}; ahora también ve a ${nombre}.`
+            : `${r.email} ya entraba sin link.`
+          : `Listo: ${r.email} entra escribiendo su email en Entrar. Mandale el mensaje de abajo.`,
+      );
+    },
+    // El campo de "Otro email" no está en un <form>, así que el navegador no
+    // valida nada y un "mama" sin arroba llega al router. Lo que zod devuelve
+    // es un JSON en inglés; acá se traduce a lo único que hay que saber.
+    onError: (e) =>
+      setMensaje(
+        e.data?.zodError
+          ? "Escribí un email válido, con arroba y dominio."
+          : e.message,
+      ),
+  });
+
+  const quitarSinEnlace = api.accesoSinEnlace.quitar.useMutation({
+    onSuccess: (r, v) =>
+      avisar(
+        r.sesionesCerradas === 0
+          ? `${v.email} vuelve a entrar por correo. No había sesiones abiertas sin link.`
+          : r.sesionesCerradas === 1
+            ? `${v.email} vuelve a entrar por correo. Se cerró 1 sesión abierta sin link.`
+            : `${v.email} vuelve a entrar por correo. Se cerraron ${r.sesionesCerradas} sesiones abiertas sin link.`,
+      ),
+    onError: (e) => setMensaje(e.message),
   });
 
   const eliminar = api.alumno.eliminar.useMutation({
@@ -204,6 +265,8 @@ export function AccionesAlumno({
     recordar.isPending ||
     simular.isPending ||
     desvincular.isPending ||
+    habilitar.isPending ||
+    quitarSinEnlace.isPending ||
     eliminar.isPending;
 
   // Cerrar no limpia nada: el contenido tiene que seguir en pantalla mientras
@@ -221,6 +284,37 @@ export function AccionesAlumno({
       setConfirmando(clave);
     }
   };
+
+  // Los emails de esta familia, para habilitarlos con un clic: los
+  // responsables registrados y, si no es uno de ellos, el contacto que cargó
+  // el admin. El servidor guarda los emails normalizados, por eso la
+  // comparación ignora mayúsculas y espacios.
+  const contacto = datos.emailContacto?.trim().toLowerCase() ?? null;
+  const candidatos: {
+    email: string;
+    sinEnlace: AlumnoAcciones["responsables"][number]["sinEnlace"];
+  }[] = [
+    ...datos.responsables.map((r) => ({
+      email: r.email,
+      sinEnlace: r.sinEnlace,
+    })),
+    ...(datos.emailContacto &&
+    !datos.responsables.some((r) => r.email.toLowerCase() === contacto)
+      ? [{ email: datos.emailContacto, sinEnlace: null }]
+      : []),
+  ];
+  const habilitados = candidatos.filter((c) => c.sinEnlace !== null);
+  // Sin ningún email de dónde elegir, el campo arranca abierto.
+  const otroAbierto = mostrarOtro || candidatos.length === 0;
+  // El origen sale del link de registro, que ya es absoluto.
+  const urlEntrar = `${new URL(datos.linkRegistro).origin}/entrar`;
+
+  /** Lo que el rastro de uso dice de una puerta abierta. */
+  const rastro = (s: NonNullable<(typeof candidatos)[number]["sinEnlace"]>) =>
+    `desde el ${fecha(s.desde)} · ` +
+    (s.usos === 0 || !s.ultimoUsoEl
+      ? "todavía no entró"
+      : `entró ${s.usos} ${s.usos === 1 ? "vez" : "veces"}, la última el ${fechaHora(s.ultimoUsoEl)}`);
 
   return (
     <Modal
@@ -377,6 +471,149 @@ export function AccionesAlumno({
               </Boton>
             </Ayuda>
           </div>
+        </Seccion>
+
+        {/* La excepción para la familia que no logra canjear el link. Va acá,
+            entre los avisos y lo de después, porque es a esta zona a la que
+            se viene cuando el problema es "no puede entrar". Es una puerta
+            abierta a propósito, y por eso cada botón lo dice con el email y
+            el nombre antes de hacerlo. */}
+        <Seccion titulo="Entrar sin link">
+          <p className="nota mb-3">
+            Para la familia que no logra abrir el link del correo. Con esto,
+            escribe su email en Entrar y pasa directo, sin correo. Cualquiera
+            que sepa ese email entra al panel de {datos.nombre}.
+          </p>
+
+          {candidatos.length > 0 && (
+            <div className="border border-gray-20">
+              {candidatos.map((c) => (
+                <div
+                  key={c.email}
+                  className="flex items-center justify-between gap-3 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
+                >
+                  {c.sinEnlace === null ? (
+                    <>
+                      <span className="font-mono text-[11.5px] break-all">
+                        {c.email}
+                      </span>
+                      <BotonTexto
+                        onClick={confirmar(`sinenlace:${c.email}`, () =>
+                          habilitar.mutate({
+                            alumnoId: datos.id,
+                            email: c.email,
+                          }),
+                        )}
+                        disabled={ocupado}
+                        className={
+                          confirmando === `sinenlace:${c.email}`
+                            ? "text-marca"
+                            : "shrink-0"
+                        }
+                      >
+                        {confirmando === `sinenlace:${c.email}`
+                          ? `¿Seguro? Cualquiera que escriba ${c.email} ve el plan, la deuda, el alias para pagar y las fotos de ${datos.nombre}`
+                          : "Dejar entrar sin link"}
+                      </BotonTexto>
+                    </>
+                  ) : (
+                    <>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[11.5px] break-all">
+                            {c.email}
+                          </span>
+                          <Tag activo>Entra sin link</Tag>
+                        </div>
+                        <div className="mt-1 text-[11.5px] text-gray-45">
+                          {rastro(c.sinEnlace)}
+                        </div>
+                      </div>
+                      <BotonTexto
+                        onClick={confirmar(`quitar:${c.email}`, () =>
+                          quitarSinEnlace.mutate({ email: c.email }),
+                        )}
+                        disabled={ocupado}
+                        className="shrink-0 text-gray-45"
+                      >
+                        {confirmando === `quitar:${c.email}`
+                          ? "¿Seguro? Vuelve al correo y se cierran sus sesiones sin link"
+                          : "Quitar"}
+                      </BotonTexto>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Un email que no es ninguno de los de arriba. Existe porque el
+              caso real es exactamente ése: la madre usa un correo que no es
+              el contacto cargado. Plegado para que no compita con la lista. */}
+          {!otroAbierto ? (
+            <div className="mt-3">
+              <BotonTexto onClick={() => setMostrarOtro(true)}>
+                Otro email…
+              </BotonTexto>
+            </div>
+          ) : (
+            <div className={candidatos.length > 0 ? "mt-3" : ""}>
+              <Campo
+                label="Email"
+                type="email"
+                placeholder="mama@mail.com"
+                value={otroEmail}
+                onChange={(e) => setOtroEmail(e.target.value)}
+                hint={
+                  datos.emailContacto
+                    ? `Este email no es el que está guardado para ${datos.nombre} (guardado: ${datos.emailContacto}). Se va a crear la cuenta y va a quedar como responsable.`
+                    : `${datos.nombre} todavía no tiene ningún email cargado. Se va a crear la cuenta y va a quedar como responsable.`
+                }
+              />
+              <Boton
+                variante="fantasma"
+                className="mt-3 w-full"
+                onClick={confirmar("sinenlace:otro", () =>
+                  habilitar.mutate({ alumnoId: datos.id, email: otroEmail }),
+                )}
+                disabled={ocupado || !otroEmail}
+              >
+                <IconoCandado />
+                {confirmando === "sinenlace:otro"
+                  ? `Confirmar: cualquiera que escriba ${otroEmail} entra al panel de ${datos.nombre}`
+                  : "Dejar entrar sin link"}
+              </Boton>
+            </div>
+          )}
+
+          {/* El mensaje que Fran le manda por WhatsApp, con el email entero:
+              es lo único que la familia tiene que escribir. Una fila por cada
+              email habilitado. */}
+          {habilitados.length > 0 && (
+            <div className="mt-3 grid gap-2">
+              {habilitados.map((c) => {
+                const texto = `Para entrar: ${urlEntrar}. Escribí ${c.email} y tocá Entrar. No hace falta abrir ningún correo.`;
+                return (
+                  <div
+                    key={c.email}
+                    className="flex items-start justify-between gap-4 border border-gray-20 px-3.5 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[13px]">Mensaje para la familia</div>
+                      <div className="nota text-[11.5px] text-gray-45">
+                        {texto}
+                      </div>
+                    </div>
+                    <Copiar
+                      valor={texto}
+                      etiqueta="Copiar"
+                      className="shrink-0"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Seccion>
 
         <Seccion titulo="Después del evento">

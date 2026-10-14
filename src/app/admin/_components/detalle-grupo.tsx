@@ -570,9 +570,14 @@ export function DetalleGrupo({ id }: { id: string }) {
                             a.responsables.map((r) => (
                               <div
                                 key={r.id}
-                                className="nota text-[11.5px] text-gray-45"
+                                className="nota flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-gray-45"
                               >
                                 {r.email}
+                                {/* La puerta abierta se ve sin abrir nada.
+                                    Dice lo que pasa, no suena a que falta
+                                    algo; sin `activo` para no competir con
+                                    "N responsables". */}
+                                {r.sinEnlace && <Tag>Entra sin link</Tag>}
                               </div>
                             ))
                           ) : (

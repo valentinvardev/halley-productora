@@ -2093,3 +2093,93 @@ familias eligen el suyo de la lista que cargó el administrador, así que por ah
 no entran duplicados.
 
 **Rollback:** fila X de la tabla.
+
+### Y. Entrar sin link: la familia que no logra abrir el correo
+
+**De dónde salió.** Una madre de Inmaculada Centro pidió 23 links de acceso en
+un día. Cada uno le llegaba, cada uno lo abría entre 12 segundos y 2 minutos
+después, cada uno le abría una sesión válida (15 en total), y a los pocos
+segundos pedía otro. El panel funcionaba. Lo que pasaba es que abría el link en
+la app de correo y volvía a pedir desde un navegador donde no había cookie. No
+es un problema del sistema; es una persona a la que el mecanismo del link no le
+sale, y no va a empezar a salirle. El cliente pidió que para esos casos el email
+alcance.
+
+**Qué hace ahora.** Desde Acciones del alumno hay una sección "Entrar sin link"
+que lista los emails de esa familia (los responsables y el contacto cargado) con
+un botón "Dejar entrar sin link", y un campo "Otro email" para el caso real: la
+madre que usa un hotmail distinto del que figura. Habilitar crea la cuenta y el
+vínculo con el alumno si no existían, que es lo que el link del grupo habría
+hecho si ella pudiera abrirlo. Desde ese momento, escribir ese email en Entrar
+la lleva derecho a su panel, sin correo. La sección muestra desde cuándo entra
+así, cuántas veces entró y la última vez, y le da a Fran el mensaje listo para
+copiar y mandarle por WhatsApp, con el email escrito entero.
+
+**Qué cuesta y por qué se acepta.** Cualquiera que escriba ese email entra al
+panel de esa familia: el plan, la deuda, el alias para pagar y las fotos. Por eso
+el botón no habilita al primer clic: el segundo clic dice exactamente eso, con el
+email y el nombre de la hija. Y por eso la puerta se ve en tres lugares: en el
+modal, en la tabla del curso con un rótulo "Entra sin link" al lado del email, y
+en Ajustes, donde se listan todas las que están abiertas con su rastro de uso y
+un botón para quitarlas. No vence sola a propósito: la madre no va a aprender a
+usar el link en 90 días, y vencer la devolvería al problema justo cuando nadie
+se acuerda. Se cambia vencimiento por visibilidad.
+
+**No es la demo.** El sistema ya tenía un modo de entrar sin verificar el email,
+AUTH_PADRES=directo, que es una herramienta de demostración y pasa por
+demoAbierta(). Esta funcionalidad no la toca ni la usa: es una excepción de
+producción, por cuenta, guardada en una tabla nueva (AccesoSinEnlace), que vale
+con la demo cerrada. La regla de la auditoría f682023 queda intacta: un grep de
+demoAbierta sobre el módulo nuevo devuelve cero.
+
+**Lo que abre y lo que no.** Sólo lo que esa cuenta ya tiene: sus alumnos
+vinculados. Desde el link de registro del grupo, el email habilitado entra
+directo si elige a su propia hija, pero si elige a otro chico va por el link de
+siempre y no vincula nada. La lista nunca sirve para reclamar un alumno nuevo
+sin probar el email. Para que la madre vea a un hermano, Fran lo habilita desde
+la ficha del hermano.
+
+**Quitar y Sacar son dos cosas.** "Quitar" en Entrar sin link vuelve al correo
+y cierra exactamente las sesiones que entraron así: las que canjearon un link
+probaron el email y siguen vivas, porque cerrarlas devolvería a la familia al
+problema de los 23 links. La persona sigue siendo responsable. "Sacar" en
+Responsables la saca de la familia; si con eso la cuenta se queda sin alumnos,
+también le apaga la puerta, y lo dice. Sin eso quedaba una fila inerte que se
+reactivaba sola el día que ese email volvía a registrarse por el link de algún
+grupo. Lo mismo hacen eliminar un alumno, eliminar un grupo y el "quitar
+responsable" que una familia puede hacer desde su propio panel.
+
+**Avisa, no bloquea.** La única negativa es el cupo de tres responsables por
+alumno, que es una regla del dominio que ya existía: con tres, el cuarto email
+recibe "ya tiene 3 responsables. Sacá uno desde Responsables para habilitar otro
+email" y no se crea nada.
+
+**Tres detalles que salieron de la revisión y quedaron adentro.** Si Fran
+aprieta Quitar en el mismo instante en que alguien está entrando, la sesión
+recién creada se deshace y esa persona ve "este email ya no entra sin link" en
+vez de quedar con una sesión que ya nadie podría cerrar. La IP que se guarda por
+entrada se recorta a 64 caracteres, porque viene de un encabezado que cualquiera
+puede escribir. Y habilitar dos veces casi a la vez (la misma ficha en dos
+pestañas) no falla: la segunda no hace nada.
+
+**Verificado** contra la app real en local, con un grupo de prueba de tres
+alumnos borrado al terminar y sin mandar ningún mail. Habilitar desde el modal
+con el email de contacto: el segundo clic nombra el email y a la hija, el
+mensaje dice "Listo", aparece el rótulo, el rastro dice "todavía no entró", la
+fila para copiar lleva el email entero, y en la base quedan la cuenta, el Tutor
+y la fila con cero usos. Entrar desde /entrar sin cookie con ese email termina
+en /mi con el panel de la hija, sin "Revisá tu correo", sin crear ningún link, y
+la base muestra la sesión marcada, usos en uno y el origen cargado. Un email no
+habilitado sigue recibiendo el link. Desde el link del grupo, elegir a la hija
+entra directo y elegir a otro chico va por el link sin crear vínculo. Quitar con
+dos sesiones sin link y una por link cierra las dos y deja la tercera, el
+responsable sigue, y el email vuelve a ir por el link. Habilitar desde la ficha
+de la hermana reutiliza la misma fila y dice "ya entraba sin link por ZZ Hija
+Uno; ahora también ve a ZZ Hija Dos"; Sacar a una no apaga la puerta y Sacar a
+la otra sí, con el mensaje que lo dice. Ajustes lista el email con la alumna y
+el curso, y Quitar desde ahí lo saca y muestra "Nadie entra sin link". Con tres
+responsables, un cuarto email es rechazado con el mensaje del cupo y no toca la
+base. Todo esto corrido como un solo arnés, en verde de punta a punta y sin
+excepciones en el navegador.
+
+**Rollback:** fila Y de la tabla.

@@ -292,6 +292,8 @@ model Cuenta {
 
   tutorias Tutor[]
   sesiones Sesion[]
+  /// Si está, esta cuenta entra escribiendo el email. Ver AccesoSinEnlace.
+  accesoSinEnlace AccesoSinEnlace?
 
   creadoEn     DateTime  @default(now())
   ultimoAcceso DateTime?
@@ -305,9 +307,49 @@ model Sesion {
   cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
 
   expiraEl DateTime
+  /// Si se abrió escribiendo el email, sin canjear un link. Marca qué sesiones
+  /// no pasaron por el correo: al quitar la cuenta de AccesoSinEnlace se
+  /// cierran éstas y sólo éstas; las que la familia abrió desde un link
+  /// probaron el email y siguen vivas.
+  abiertaSinEnlace Boolean @default(false)
   creadoEn DateTime @default(now())
 
   @@index([cuentaId])
+}
+
+/// Un email que entra escribiéndolo en /entrar, sin link de acceso.
+///
+/// Existe por una familia concreta que no logra canjear el link: lo abre en la
+/// app de correo, vuelve al navegador donde lo pidió y ahí no hay cookie, así
+/// que pide otro, y otro. Con esto, para esa cuenta, escribir el email alcanza.
+///
+/// No es una herramienta de demo y no pasa por demoAbierta() ni por
+/// AUTH_PADRES: es una excepción de producción, cuenta por cuenta, que decide
+/// el administrador desde la ficha del alumno. Abre sólo lo que esa cuenta ya
+/// tiene (sus alumnos vinculados): nunca suma un alumno nuevo.
+///
+/// Va atada a la cuenta y no al email suelto porque habilitar crea la cuenta
+/// y el vínculo con el alumno en el mismo acto, que es lo que el link del
+/// grupo haría si la familia pudiera abrirlo. Una fila sin cuenta abriría un
+/// panel vacío. Es una tabla y no una marca en Cuenta para que la lista de
+/// puertas abiertas sea una consulta y el rastro de uso no ensucie a las
+/// cuentas que entran como corresponde.
+///
+/// Existir es la regla; no existir es la revocación. No hay borrado lógico.
+model AccesoSinEnlace {
+  id       String @id @default(cuid())
+  cuentaId String @unique
+  cuenta   Cuenta @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+
+  /// El rastro de uso. Es lo único que deja ver si la puerta la usa la familia
+  /// o alguien más: una madre entra un par de veces desde la misma red.
+  usos        Int       @default(0)
+  ultimoUsoEl DateTime?
+  /// La IP del último ingreso (la que devuelve origenDe). No se muestra en el
+  /// panel: queda para mirar en la base si un conteo se dispara.
+  ultimoOrigen String?
+
+  creadoEn DateTime @default(now())
 }
 
 /// Magic link: un solo uso, con vencimiento corto.
