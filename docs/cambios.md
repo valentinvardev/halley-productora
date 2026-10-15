@@ -307,6 +307,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | Y | `56dd89f` | Se va la entrada sin link; los emails habilitados vuelven a necesitar el link; la tabla AccesoSinEnlace y la columna abiertaSinEnlace quedan en la base sin uso |
 | Z | `a0d03b9` | Se va el cupo: /entrar y el registro vuelven a mandar links sin límite |
 | AA | `516710d` | Se van Gestión de fechas, el ítem del menú y el link del plan; las fechas ya movidas quedan como están y se vuelven moviéndolas; los dos procedimientos quedan sin uso |
+| AB | `2d4c0f4` | La imputación vuelve a recalcular la mora a hoy sobre la suma de pagos: las cuotas pagadas vuelven a acumular mora con el tiempo; las columnas recargo y recargoFijado quedan en la base sin uso |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
