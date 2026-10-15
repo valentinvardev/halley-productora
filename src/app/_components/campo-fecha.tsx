@@ -26,7 +26,7 @@ const mesFmt = new Intl.DateTimeFormat("es-AR", {
 });
 
 /** A "AAAA-MM-DD" en hora local — nada de toISOString, que corre un día. */
-function aTexto(d: Date) {
+export function aTexto(d: Date) {
   const mes = String(d.getMonth() + 1).padStart(2, "0");
   const dia = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${mes}-${dia}`;

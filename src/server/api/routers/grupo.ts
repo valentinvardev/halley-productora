@@ -67,6 +67,41 @@ function resumir(cuotas: CuotaDb[], alumnos: AlumnoDb[]) {
   };
 }
 
+/**
+ * Las fechas nuevas de un curso, cuota por cuota. Lo comparten la vista previa
+ * y la escritura a propósito: lo que se anuncia es exactamente lo que se guarda.
+ */
+const cambiosDeFechas = z.object({
+  grupoId: z.string(),
+  cambios: z
+    .array(z.object({ cuotaId: z.string(), venceEl: z.date() }))
+    .min(1)
+    .max(60),
+});
+
+/**
+ * De cuotaId a fecha nueva, sólo para cuotas de este curso. Una cuota de otro
+ * curso en la lista es un error del que llama, no algo que se saltea en
+ * silencio: la fecha de un curso no se toca desde otro.
+ */
+function fechasNuevasDe(
+  cuotasDelCurso: { id: string }[],
+  cambios: { cuotaId: string; venceEl: Date }[],
+) {
+  const propias = new Set(cuotasDelCurso.map((c) => c.id));
+  const nuevas = new Map<string, Date>();
+  for (const c of cambios) {
+    if (!propias.has(c.cuotaId)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Hay una cuota que no es de este curso.",
+      });
+    }
+    nuevas.set(c.cuotaId, c.venceEl);
+  }
+  return nuevas;
+}
+
 export const grupoRouter = createTRPCRouter({
   listar: adminProcedure.query(async ({ ctx }) => {
     const grupos = await ctx.db.grupo.findMany({
@@ -364,6 +399,108 @@ export const grupoRouter = createTRPCRouter({
       const { cuotaId, ...datos } = input;
       await ctx.db.cuota.update({ where: { id: cuotaId }, data: datos });
       return { ok: true };
+    }),
+
+  /**
+   * Qué le pasa al curso si se mueven estas fechas, antes de moverlas.
+   *
+   * La mora es derivada: un 3% por mes entero desde el vencimiento, sobre lo
+   * impago. Mover una fecha para adelante le borra recargo a todo el curso en
+   * el acto y moverla para atrás se lo crea, y ese número no lo calcula nadie
+   * de cabeza. Acá se imputa dos veces por alumno, con las fechas de hoy y con
+   * las nuevas, usando la misma función que un segundo después van a usar el
+   * panel, el cobro y la galería: lo que se anuncia es lo que va a pasar.
+   *
+   * Vive en el servidor y no en la pantalla porque dominio.ts no se puede
+   * importar desde el cliente y porque la ficha no manda sinMora en los
+   * ajustes, así que el cliente ni siquiera podría reimputar bien. Es una
+   * consulta y no un modo de la mutación porque no escribe nada.
+   */
+  previsualizarFechas: adminProcedure
+    .input(cambiosDeFechas)
+    .query(async ({ ctx, input }) => {
+      const grupo = await ctx.db.grupo.findUniqueOrThrow({
+        where: { id: input.grupoId },
+        include: {
+          cuotas: { orderBy: { numero: "asc" } },
+          alumnos: {
+            include: { pagos: { select: { monto: true } }, ajustesCuota: true },
+          },
+          _count: { select: { galerias: true } },
+        },
+      });
+      const nuevas = fechasNuevasDe(grupo.cuotas, input.cambios);
+      const despues = grupo.cuotas.map((c) => ({
+        ...c,
+        venceEl: nuevas.get(c.id) ?? c.venceEl,
+      }));
+
+      const r = {
+        alumnos: grupo.alumnos.length,
+        /** Familias con alguna cuota vencida, hoy y con el cambio. */
+        vencidos: { antes: 0, despues: 0 },
+        /** Recargo acumulado sobre todo el curso, hoy y con el cambio. */
+        mora: { antes: 0, despues: 0 },
+        /** Familias cuya deuda sube o baja más de un centavo, y cuánto en total. */
+        suben: 0,
+        bajan: 0,
+        masDeuda: 0,
+        menosDeuda: 0,
+        /** Cruzan el cero: es la regla que abre o cierra la galería de entrega. */
+        pasanADeber: 0,
+        quedanSinDeuda: 0,
+        conGalerias: grupo._count.galerias > 0,
+      };
+
+      for (const a of grupo.alumnos) {
+        const pagado = sumarPagos(a.pagos);
+        const hoy = imputarPagos(grupo.cuotas, a.ajustesCuota, pagado);
+        const con = imputarPagos(despues, a.ajustesCuota, pagado);
+
+        if (hoy.cuotas.some((c) => c.estado === "VENCIDA")) r.vencidos.antes += 1;
+        if (con.cuotas.some((c) => c.estado === "VENCIDA")) r.vencidos.despues += 1;
+        r.mora.antes += hoy.recargo;
+        r.mora.despues += con.recargo;
+
+        const diferencia = con.deuda - hoy.deuda;
+        if (diferencia > 0.01) {
+          r.suben += 1;
+          r.masDeuda += diferencia;
+        } else if (diferencia < -0.01) {
+          r.bajan += 1;
+          r.menosDeuda += -diferencia;
+        }
+        if (hoy.deuda <= 0.01 && con.deuda > 0.01) r.pasanADeber += 1;
+        if (hoy.deuda > 0.01 && con.deuda <= 0.01) r.quedanSinDeuda += 1;
+      }
+
+      return r;
+    }),
+
+  /**
+   * Mueve las fechas de las cuotas del curso, todas juntas.
+   *
+   * Es del curso: les cambia la fecha a todos los alumnos salvo a los que
+   * tengan fecha propia en esa cuota, que siguen con la suya. No se renumera
+   * ni se bloquea nada: correr un plan entero un mes pasa necesariamente por
+   * un estado fuera de orden, y la imputación es por número igual. Lo que hay
+   * que saber antes de apretar lo cuenta previsualizarFechas; la pantalla la
+   * pide antes de llamar acá.
+   */
+  actualizarFechas: adminProcedure
+    .input(cambiosDeFechas)
+    .mutation(async ({ ctx, input }) => {
+      const cuotas = await ctx.db.cuota.findMany({
+        where: { grupoId: input.grupoId },
+        select: { id: true },
+      });
+      const nuevas = fechasNuevasDe(cuotas, input.cambios);
+      await ctx.db.$transaction(
+        [...nuevas].map(([id, venceEl]) =>
+          ctx.db.cuota.update({ where: { id }, data: { venceEl } }),
+        ),
+      );
+      return { cambiadas: nuevas.size };
     }),
 
   /**

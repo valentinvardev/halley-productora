@@ -2225,3 +2225,76 @@ el mensaje del cupo y no crea ninguno más. Links y avisos de prueba borrados al
 terminar.
 
 **Rollback:** fila Z de la tabla.
+
+### AA. Gestión de fechas: los vencimientos del curso, todos juntos y con la mora a la vista
+
+**Pedido.** Fran quiere cambiar las fechas de vencimiento de las cuotas de un
+curso, no de alumnos sueltos: todo el grupo. Empezó como una solapa dentro de
+Gestión de cuotas y terminó como una pantalla propia, porque Gestión de cuotas
+aplica a los alumnos tildados y una fecha del curso al lado de esas casillas
+haría creer que se cambia a los tildados cuando se cambia a los 58.
+
+**Qué hace.** En el menú Acciones del curso hay un ítem nuevo, "Gestión de
+fechas", y en el cuadro "Plan de cuotas" un link "Fechas" al lado de "Editar
+montos". Los dos abren el mismo modal. Arriba, una línea de tiempo con los meses
+del plan y una marca por cuota, con una raya en "hoy": es lo que no se veía en
+ningún lado, si las cuotas están parejas, si hay un hueco, si una quedó fuera
+de orden. Cuando una fecha se edita, la marca se mueve y deja la vieja en hueco.
+Después, dos herramientas de a muchas que sólo llenan los campos: "Correr todo
+el plan" un mes antes o después, y "Todas el día" para poner el mismo día del
+mes en todas. Después, una cuota por renglón con su campo de fecha, y al lado lo
+que hace falta para decidir: cuántas familias tienen esa cuota vencida hoy,
+cuántas tienen fecha propia y no van a cambiar, y el "20/05 → 20/07" cuando se
+tocó, en rojo si queda en el pasado. Abajo, "Se va a guardar: 4 fechas",
+Descartar cambios y Guardar fechas.
+
+**Por qué la fecha pasa por una previa y el monto no.** El estado de cada
+cuota no se guarda: se deriva de lo pagado y de cuánto tiempo pasó desde el
+vencimiento, con un recargo compuesto del 3% por mes entero. Mover una fecha
+para adelante le borra recargo a todo el curso en el acto; moverla para atrás
+se lo crea. Ese número no lo calcula nadie de cabeza. Guardar abre una
+confirmación que lista cada cambio y muestra, con la misma función que después
+usan el panel, el cobro y la galería, cuántas familias tienen alguna cuota
+vencida antes y después, la mora acumulada del curso antes y después, a cuántas
+les baja o les sube la deuda y por cuánto, cuántas quedan sin deuda o pasan a
+deber (que es lo que abre o cierra la galería de entrega, y se dice sólo si el
+curso tiene galerías), qué cuotas quedan fuera de orden y qué familias con fecha
+propia no cambian. Y la última línea, siempre: no sale ningún mail.
+
+**Se avisa, no se bloquea.** Una fecha para atrás está permitida porque es la
+única forma de corregir un curso creado con el mes equivocado; el cartel va en
+rojo y recuerda que la mora que se crea se puede perdonar desde Gestión de
+cuotas. Una cuota fuera de orden también, porque correr un plan entero un mes
+cuota por cuota pasa necesariamente por ahí; se marca con un rótulo y se aclara
+que lo que se pague se sigue imputando por número. No se renumera nada.
+
+**Las fechas propias por alumno mandan.** Si a alguien se le puso una fecha
+propia en esa cuota, cambiar la del curso no lo toca. El renglón lo cuenta y la
+confirmación lo repite. No se ofrece quitarlas desde acá.
+
+**Por qué la previa vive en el servidor.** La imputación está en dominio.ts,
+que no se puede importar desde el navegador, y la ficha no manda a la pantalla
+el perdón de mora por cuota, así que el cliente ni siquiera podría reimputar
+bien. Dos procedimientos nuevos con el mismo input, uno que calcula y otro que
+escribe: lo que se anuncia es exactamente lo que se guarda, en una sola
+transacción. Sin cambio de esquema.
+
+**Verificado** contra la app real en local, en un Chrome de verdad, con un curso
+de prueba de cuatro cuotas (dos ya vencidas) y tres familias (una sin pagos, una
+con un pago, una con fecha propia en la cuota 2), borrado al terminar. El modal
+abre desde el menú y desde el cuadro del plan, la línea de tiempo tiene cuatro
+marcas y la raya de hoy, los renglones dicen "2 familias vencidas" y "1 con
+fecha propia: no cambia" donde corresponde. "Un mes después" cambia las cuatro,
+muestra "20/07 → 20/08" y duplica las marcas con las viejas en hueco; "Todas el
+día 10" cambia el día; "Descartar cambios" vuelve a nada. Con el calendario de
+la cuota 1 llevada a enero del año siguiente, el renglón muestra "Fuera de
+orden" y la confirmación dice "la cuota 1 queda después de la 2". Tres meses
+para atrás: "queda en el pasado" en rojo, y la confirmación anuncia "A 3
+familias les sube la deuda: $ 4.861 más de recargo" con la nota del perdón;
+cancelar no escribe nada. Dos meses para adelante: la previa anunció "vencidas
+3 → 2" y "mora $ 1.818 → $ 0", y después de guardar la base, imputada con la
+función de verdad, dio exactamente 2 y $ 0; las cuatro fechas corrieron dos
+meses, la fecha propia de la cuota 2 quedó intacta, salió el aviso "4 fechas
+guardadas" y el modal se cerró. Sin excepciones en el navegador.
+
+**Rollback:** fila AA de la tabla.

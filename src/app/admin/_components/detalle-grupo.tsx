@@ -49,6 +49,7 @@ import { EsqueletoDetalle } from "./esqueletos";
 import { AvisosGrupoAdmin } from "./avisos-grupo-admin";
 import { FotosGaleria } from "./fotos-galeria";
 import { GestionCuotas } from "./gestion-cuotas";
+import { GestionFechas } from "./gestion-fechas";
 import { MontosDelGrupo } from "./montos-plan";
 
 export function DetalleGrupo({ id }: { id: string }) {
@@ -66,6 +67,8 @@ export function DetalleGrupo({ id }: { id: string }) {
   /** Si el modal de cuotas está abierto. */
   const [gestionandoCuotas, setGestionandoCuotas] = useState(false);
   const [editandoMontos, setEditandoMontos] = useState(false);
+  /** Si el modal de fechas del curso está abierto. */
+  const [gestionandoFechas, setGestionandoFechas] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
   /** El alumno al que se le están marcando cuotas, cuando se entra por su ficha. */
@@ -317,6 +320,10 @@ export function DetalleGrupo({ id }: { id: string }) {
               <IconoLista />
               Gestión de cuotas
             </ItemAccion>
+            <ItemAccion onClick={() => setGestionandoFechas(true)}>
+              <IconoCalendario />
+              Gestión de fechas
+            </ItemAccion>
             <ItemAccion onClick={() => setBorrando(true)}>
               <IconoPapelera />
               Eliminar evento
@@ -362,6 +369,7 @@ export function DetalleGrupo({ id }: { id: string }) {
       <PlanDelGrupo
         cuotas={grupo.cuotas}
         alEditar={() => setEditandoMontos(true)}
+        alEditarFechas={() => setGestionandoFechas(true)}
       />
 
       <CuentaDePago
@@ -786,6 +794,31 @@ export function DetalleGrupo({ id }: { id: string }) {
         alRefrescar={refrescar}
       />
 
+      {/* Las fechas del curso, todas juntas. Cada cuota viaja con lo que hace
+          falta para decidir: cuántas familias la tienen vencida hoy y cuántas
+          tienen fecha propia y no van a cambiar. Sale todo de detalle, que ya
+          trae el plan imputado y los ajustes de cada alumno. */}
+      <GestionFechas
+        abierto={gestionandoFechas}
+        alCerrar={() => setGestionandoFechas(false)}
+        grupoId={id}
+        grupoNombre={grupo.nombre}
+        cuotas={grupo.cuotas.map((c) => ({
+          id: c.id,
+          numero: c.numero,
+          monto: c.monto,
+          venceEl: c.venceEl,
+          vencidas: grupo.alumnos.filter(
+            (a) =>
+              a.plan.cuotas.find((x) => x.id === c.id)?.estado === "VENCIDA",
+          ).length,
+          conFechaPropia: grupo.alumnos.filter((a) =>
+            a.ajustes.some((x) => x.cuotaId === c.id && x.venceEl !== null),
+          ).length,
+        }))}
+        alRefrescar={refrescar}
+      />
+
       {/* Queda siempre montado: si se desmontara al cerrar, el modal
           desaparecería de golpe en vez de irse con su animación. */}
       <AccionesAlumno
@@ -916,9 +949,12 @@ export function DetalleGrupo({ id }: { id: string }) {
 function PlanDelGrupo({
   cuotas,
   alEditar,
+  alEditarFechas,
 }: {
   cuotas: { id: string; numero: number; monto: number; venceEl: Date }[];
   alEditar: () => void;
+  /** Las fechas van en su propia pantalla: mueven la mora de todo el curso. */
+  alEditarFechas: () => void;
 }) {
   const primera = cuotas[0];
   const ultima = cuotas[cuotas.length - 1];
@@ -966,13 +1002,22 @@ function PlanDelGrupo({
         </div>
         {/* "Por alumno" es el del curso: el que tenga precio propio paga otra
             cosa, y ése se edita desde su ficha. */}
-        <button
-          type="button"
-          onClick={alEditar}
-          className="mt-2 cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
-        >
-          Editar montos
-        </button>
+        <div className="mt-2 flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={alEditar}
+            className="cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
+          >
+            Editar montos
+          </button>
+          <button
+            type="button"
+            onClick={alEditarFechas}
+            className="cursor-pointer font-rotulo text-[11px] tracking-[0.06em] text-gray-45 uppercase underline underline-offset-4 hover:text-ink"
+          >
+            Fechas
+          </button>
+        </div>
       </div>
     </div>
   );
