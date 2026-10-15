@@ -11,7 +11,12 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import { imputarPagos, sumarPagos } from "~/server/dominio";
+import {
+  conFijados,
+  imputarPagos,
+  liquidarPago,
+  sumarPagos,
+} from "~/server/dominio";
 import { pagoMpEsSimulado, puedeSimularGrupo } from "~/server/demo";
 import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
 import { mercadoPagoMock } from "~/server/mercadopago/mock";
@@ -31,6 +36,31 @@ import { registrarTransferenciaSimulada } from "~/server/talo";
  * avance.
  */
 const TOPE_AVISOS = 25;
+
+/**
+ * Los ajustes con la mora perdonada en estas cuotas, en memoria.
+ *
+ * Es lo mismo que el upsert de `sinMora` que se escribe en la base un renglón
+ * antes, pero sin volver a leer: el pago que se va a registrar se liquida
+ * contra el plan tal como va a quedar, no como estaba.
+ */
+function sinMoraEn(
+  ajustes: { cuotaId: string; monto: unknown; venceEl: Date | null; sinMora: boolean; recargoFijado?: unknown | null }[],
+  cuotaIds: string[],
+) {
+  const ids = new Set(cuotaIds);
+  const vistos = new Set<string>();
+  const salida = ajustes.map((a) => {
+    vistos.add(a.cuotaId);
+    return ids.has(a.cuotaId) ? { ...a, sinMora: true } : a;
+  });
+  for (const cuotaId of ids) {
+    if (!vistos.has(cuotaId)) {
+      salida.push({ cuotaId, monto: null, venceEl: null, sinMora: true, recargoFijado: null });
+    }
+  }
+  return salida;
+}
 
 /**
  * Les manda el comprobante a las familias a las que se les acaba de marcar algo.
@@ -363,6 +393,19 @@ export const pagoRouter = createTRPCRouter({
           }
         }
 
+        // Qué parte del pago es mora y qué cuotas fijan la suya con él. Se
+        // decide sobre el plan con la mora ya perdonada cuando se eligió no
+        // cobrarla, así lo que queda registrado coincide con lo que la
+        // imputación va a derivar después.
+        const planParaLiquidar = input.cobrarMora
+          ? plan
+          : imputarPagos(
+              alumno.grupo.cuotas,
+              sinMoraEn(alumno.ajustesCuota, objetivo.map((c) => c.id)),
+              sumarPagos(alumno.pagos),
+            );
+        const liquidacion = liquidarPago(planParaLiquidar, monto);
+
         await ctx.db.pago.create({
           data: {
             alumnoId: alumno.id,
@@ -370,9 +413,23 @@ export const pagoRouter = createTRPCRouter({
             // sigue el resto del sistema.
             cuotaId: objetivo[0]?.id ?? null,
             monto,
+            recargo: liquidacion.recargo,
             refPago: `manual:${randomUUID()}`,
           },
         });
+        for (const f of liquidacion.fijar) {
+          await ctx.db.cuotaAlumno.upsert({
+            where: {
+              alumnoId_cuotaId: { alumnoId: alumno.id, cuotaId: f.cuotaId },
+            },
+            create: {
+              alumnoId: alumno.id,
+              cuotaId: f.cuotaId,
+              recargoFijado: f.recargo,
+            },
+            update: { recargoFijado: f.recargo },
+          });
+        }
 
         registrados += 1;
         total += monto;

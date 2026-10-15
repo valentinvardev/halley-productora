@@ -2299,3 +2299,76 @@ meses, la fecha propia de la cuota 2 quedó intacta, salió el aviso "4 fechas
 guardadas" y el modal se cerró. Sin excepciones en el navegador.
 
 **Rollback:** fila AA de la tabla.
+
+### AB. Lo pagado queda pagado: la mora deja de crecer después del pago
+
+**De dónde salió.** Fran preguntó, con razón, si al mover la fecha de una cuota
+los que ya pagaron iban a tener mora. La respuesta con el código de entonces
+era que sí, y peor: no hacía falta mover ninguna fecha. La imputación recibía
+la suma de lo pagado sin fechas y recalculaba el recargo "a hoy" cada vez que
+alguien miraba, así que no podía distinguir entre quien pagó y quien no. Una
+cuota pagada entera con su mora del día volvía a figurar vencida al cumplirse el
+mes siguiente, porque lo exigible de hoy ya era más que lo pagado entonces.
+Medido en producción: hoy ningún caso, el 21 de octubre 49 familias con
+$ 48.761 de mora inventada, el 21 de noviembre 322.
+
+**Por qué no alcanzaba con imputar en orden cronológico.** Esa era la primera
+idea: aplicar cada pago con el recargo del día del pago y congelar ahí. Arregla
+el crecimiento con el tiempo, pero sigue derivando la mora de la fecha de
+vencimiento, así que mover una fecha para atrás alcanza a los que ya pagaron:
+una familia que pagó el 25/09 contra el 20/09, sin mora, pasa a haber pagado
+cuatro meses tarde si la cuota se mueve al 20/05. Una regla derivada no puede
+ser inmune a que le cambien un dato de entrada. Para que lo pagado quede pagado
+hay que recordar qué se saldó.
+
+**Qué cambió.** Dos columnas: cada pago anota qué parte fue mora
+(`Pago.recargo`) y cada cuota de cada alumno fija su mora el día que un pago le
+cubre el capital (`CuotaAlumno.recargoFijado`), se haya pagado entera o no. La
+imputación nueva tiene dos bolsas: el capital va a las cuotas de la más vieja a
+la más nueva, y la mora va a las moras fijadas. Una cuota con el capital
+cubierto no vuelve a derivar mora nunca: ni porque pasen los meses ni porque se
+mueva la fecha. Si su mora fijada no se pagó entera, lo que falta queda como
+saldo, pero congelado. Sólo las cuotas con capital impago tienen mora viva, y
+esa sigue saliendo de la fecha y de hoy, como siempre. Los dos caminos que
+registran pagos, el webhook y el marcado a mano, deciden antes de escribir qué
+parte del pago es mora y qué cuotas fijan la suya, con la misma caminata que
+después hace la imputación.
+
+**La reconstrucción.** Los 956 pagos que ya existían no tenían ese dato. Un
+script los reprodujo en orden, familia por familia, con la imputación nueva y
+las fechas que valían cuando se pagó, y escribió el recargo de cada pago y la
+mora fijada de cada cuota (1.387). Para Inmaculada RV, cuyas fechas se movieron
+el 15/10 con Gestión de fechas, se usaron las siete fechas anteriores, las de
+la confirmación que Fran vio: reconstruir con las de hoy le habría fijado a
+quien pagó a tiempo una mora que nunca debió.
+
+**La red de seguridad.** Antes de escribir nada, la función nueva se comparó
+con la vieja para las 971 familias, cuota por cuota, al centavo. Hoy, fuera de
+RV: cero diferencias y la misma deuda total. En RV: las 36 familias difieren a
+propósito, porque la vieja les está cobrando $ 92.075 de más por el movimiento
+de fechas, incluidas las dos que pagaron a tiempo y hoy figuran debiendo
+$ 1.883 cada una. Simulando el 21/10: la vieja inventa 49 cuotas fantasma y la
+nueva ninguna. El 21/11: 322 contra ninguna.
+
+**Verificado** además de punta a punta contra la app local, con un curso de
+prueba borrado al terminar: una familia paga por webhook lo exigible de hoy y
+el pago guarda $ 609 de recargo, la cuota fija $ 609, queda paga y sigue paga
+un mes después; otra la marca Fran cobrando la mora, mismo resultado; otra la
+marca sin cobrarla y queda paga con mora cero; otra paga por webhook sólo el
+capital y queda vencida debiendo exactamente los $ 609 de mora, que un mes
+después siguen siendo $ 609 y no $ 927, con el aviso de pago incompleto a
+Halley; y una que no paga figura vencida con capital y mora. Después se movió
+la cuota 1 dos meses para atrás con los procedimientos de Gestión de fechas: las
+cuatro que pagaron no cambiaron un peso, la que no pagó subió, y la vista previa
+había dicho exactamente eso, sube una y baja ninguna.
+
+**Lo que hay que hacer al desplegar.** Volver a correr la reconstrucción
+después del deploy: los pagos que el código viejo registre entre la
+reconstrucción y el deploy quedan sin su recargo anotado, y el script es
+idempotente, recalcula todo desde los pagos.
+
+**Lo que no cambia.** La fórmula de la mora (3% compuesto por mes entero, sin
+tope), el orden de imputación, las pantallas, la previa de Gestión de fechas
+(usa esta misma función y queda bien sola) y el perdón de mora por cuota.
+
+**Rollback:** fila AB de la tabla.

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "~/env";
 import { armarAlias, credencialesDeGrupo, talo, taloMock } from "~/server/talo";
 import { db } from "./db";
-import { imputarPagos } from "./dominio";
+import { imputarPagos, sumarPagos } from "./dominio";
 import { notificarInvitacion } from "./notificaciones";
 
 /**
@@ -163,7 +163,7 @@ export async function invitarFamilia(
   const plan = imputarPagos(
     alumno.grupo.cuotas,
     alumno.ajustesCuota,
-    alumno.pagos.reduce((t, p) => t + Number(p.monto), 0),
+    sumarPagos(alumno.pagos),
   );
 
   const cuota = plan.proxima

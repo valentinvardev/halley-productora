@@ -3,7 +3,12 @@ import type { Prisma } from "../../generated/prisma";
 import { destinatarios } from "./alumnos";
 import { cuentaDeGrupo } from "./cuentas-pago";
 import { db } from "./db";
-import { imputarPagos, sumarPagos } from "./dominio";
+import {
+  conFijados,
+  imputarPagos,
+  liquidarPago,
+  sumarPagos,
+} from "./dominio";
 import { pagoMpEsSimulado } from "./demo";
 import { registrarEvento } from "./eventos";
 import { mercadoPago } from "./mercadopago";
@@ -131,20 +136,34 @@ async function registrarPagoConfirmado(
   const antes = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
   const cuotaDestino = antes.proxima;
 
+  // Qué parte de este pago es mora y qué cuotas fijan la suya con él, decidido
+  // antes de escribir: lo que queda registrado tiene que ser exactamente lo
+  // que la imputación va a derivar después. Es lo que hace que lo pagado quede
+  // pagado aunque pasen los meses o se mueva la fecha de la cuota.
+  const liquidacion = liquidarPago(antes, tx.monto);
+
   const pago = await db.pago.create({
     data: {
       alumnoId: alumno.id,
       cuotaId: cuotaDestino?.id ?? null,
       monto: tx.monto,
+      recargo: liquidacion.recargo,
       refPago: tx.refPago,
       recibidoEn: tx.recibidoEn,
     },
   });
+  for (const f of liquidacion.fijar) {
+    await db.cuotaAlumno.upsert({
+      where: { alumnoId_cuotaId: { alumnoId: alumno.id, cuotaId: f.cuotaId } },
+      create: { alumnoId: alumno.id, cuotaId: f.cuotaId, recargoFijado: f.recargo },
+      update: { recargoFijado: f.recargo },
+    });
+  }
 
   const despues = imputarPagos(
     alumno.grupo.cuotas,
-    alumno.ajustesCuota,
-    antes.pagado + tx.monto,
+    conFijados(alumno.ajustesCuota, liquidacion.fijar),
+    sumarPagos([...alumno.pagos, { monto: tx.monto, recargo: liquidacion.recargo }]),
   );
 
   // Sólo confirmamos si la transferencia efectivamente saldó la cuota; un pago

@@ -159,6 +159,17 @@ model CuotaAlumno {
   /// Sacándola, la mora vuelve a correr desde donde estaba.
   sinMora Boolean @default(false)
 
+  /// La mora de esta cuota, congelada el día que se cubrió su capital.
+  ///
+  /// Nulo mientras el capital siga impago: ahí la mora está viva y se deriva
+  /// de la fecha de vencimiento y de hoy. En cuanto un pago cubre el capital,
+  /// la mora que correspondía ese día queda escrita acá, se haya pagado entera
+  /// o no, y no vuelve a crecer ni a cambiar aunque después se mueva la fecha
+  /// de la cuota. Es lo que hace cierta la regla "los que ya pagaron no
+  /// generan intereses nuevos": una regla derivada no puede ser inmune a que
+  /// le cambien un dato de entrada, así que lo saldado se recuerda.
+  recargoFijado Decimal? @db.Decimal(12, 2)
+
   creadoEn DateTime @default(now())
 
   @@unique([alumnoId, cuotaId])
@@ -389,6 +400,14 @@ model Pago {
   cuota   Cuota?  @relation(fields: [cuotaId], references: [id], onDelete: SetNull)
 
   monto   Decimal @db.Decimal(12, 2)
+  /// La parte de este pago que fue recargo por mora, calculada al registrarlo.
+  ///
+  /// Es lo que hace que lo pagado quede pagado: la mora que una familia saldó
+  /// el día que pagó no se vuelve a calcular nunca, ni cuando pasa el tiempo
+  /// ni cuando se mueve la fecha de la cuota. Antes no se guardaba y la
+  /// imputación la rederivaba "a hoy", así que una cuota pagada entera volvía a
+  /// figurar vencida al mes siguiente. Cero en los pagos a tiempo.
+  recargo Decimal @default(0) @db.Decimal(12, 2)
   /// Id único del pago en el proveedor: la transacción de Talo o el payment de
   /// Mercado Pago. Es la llave de idempotencia —el mismo pago no entra dos
   /// veces— y por eso da igual de qué proveedor venga. La columna sigue

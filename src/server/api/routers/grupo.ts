@@ -25,7 +25,7 @@ type CuotaDb = {
   venceEl: Date;
 };
 type AlumnoDb = {
-  pagos: { monto: unknown }[];
+  pagos: { monto: unknown; recargo: unknown }[];
   ajustesCuota: AjusteCuota[];
 };
 
@@ -110,7 +110,10 @@ export const grupoRouter = createTRPCRouter({
         colegio: true,
         cuotas: true,
         alumnos: {
-          select: { pagos: { select: { monto: true } }, ajustesCuota: true },
+          select: {
+            pagos: { select: { monto: true, recargo: true } },
+            ajustesCuota: true,
+          },
         },
       },
     });
@@ -424,7 +427,10 @@ export const grupoRouter = createTRPCRouter({
         include: {
           cuotas: { orderBy: { numero: "asc" } },
           alumnos: {
-            include: { pagos: { select: { monto: true } }, ajustesCuota: true },
+            include: {
+              pagos: { select: { monto: true, recargo: true } },
+              ajustesCuota: true,
+            },
           },
           _count: { select: { galerias: true } },
         },

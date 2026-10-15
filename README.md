@@ -25,6 +25,10 @@ visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
   donde corresponde. La de Mercado Pago se vincula con un botón (OAuth).
 - **Imputación derivada** — el estado de cada cuota no se guarda: se calcula
   repartiendo lo pagado, de la cuota más vieja a la más nueva, con la mora.
+  Lo único que sí se recuerda es lo saldado: cada pago anota qué parte fue mora
+  (`Pago.recargo`) y cada cuota fija su mora el día que se cubre su capital
+  (`CuotaAlumno.recargoFijado`). Sin eso, una cuota pagada volvía a acumular
+  mora con el tiempo y al mover la fecha; con eso, lo pagado queda pagado.
 
 ### Acceso de la familia
 
