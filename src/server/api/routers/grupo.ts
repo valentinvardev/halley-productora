@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
-import { crearAlumno } from "~/server/alumnos";
+import { crearAlumno, podarAjusteVacio } from "~/server/alumnos";
 import { borrarObjetos } from "~/server/s3";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
@@ -12,6 +12,7 @@ import {
   linkAlumno,
   linkGrupo,
   linkRegistroAlumno,
+  proximaMora,
   sumarPagos,
 } from "~/server/dominio";
 import { credencialesDeGrupo } from "~/server/talo";
@@ -213,6 +214,9 @@ export const grupoRouter = createTRPCRouter({
             a.ajustesCuota,
             sumarPagos(a.pagos),
           );
+          const perdonadas = new Set(
+            a.ajustesCuota.filter((x) => x.sinMora).map((x) => x.cuotaId),
+          );
           return {
             id: a.id,
             nombre: a.nombre,
@@ -251,7 +255,23 @@ export const grupoRouter = createTRPCRouter({
               deudaSinMora: plan.deudaSinMora,
               aFavor: plan.aFavor,
               alDia: plan.alDia,
-              cuotas: plan.cuotas,
+              /**
+               * Cada cuota trae, además, el próximo salto de su mora: qué día
+               * se cumple el mes que viene y cuánto recargo tendrá desde ahí.
+               * Nulo si no va a saltar: porque está paga, porque la mora está
+               * perdonada o porque ya se cubrió el capital y la mora quedó
+               * fijada. Es lo que la ficha muestra en vez de un "$ 0" que no
+               * explica nada.
+               */
+              cuotas: plan.cuotas.map((c) => ({
+                ...c,
+                moraQueViene:
+                  c.estado !== "PAGADA" &&
+                  !perdonadas.has(c.id) &&
+                  c.saldoSinMora > 0.01
+                    ? proximaMora(c.venceEl, c.monto)
+                    : null,
+              })),
               proxima: plan.proxima,
             },
             /**
@@ -261,12 +281,14 @@ export const grupoRouter = createTRPCRouter({
              * El plan de arriba ya viene con los montos resueltos, así que sin
              * esto no habría forma de saber si un $35.000 es el precio de todos
              * o el acuerdo de esta familia — y por lo tanto tampoco de ofrecer
-             * volver al general.
+             * volver al general. Y `sinMora` es lo que la ficha necesita para
+             * mostrar el perdón de cada cuota como un interruptor.
              */
             ajustes: a.ajustesCuota.map((x) => ({
               cuotaId: x.cuotaId,
               monto: x.monto === null ? null : Number(x.monto),
               venceEl: x.venceEl,
+              sinMora: x.sinMora,
             })),
             pagos: a.pagos.map((p) => ({
               id: p.id,
@@ -415,8 +437,8 @@ export const grupoRouter = createTRPCRouter({
    * panel, el cobro y la galería: lo que se anuncia es lo que va a pasar.
    *
    * Vive en el servidor y no en la pantalla porque dominio.ts no se puede
-   * importar desde el cliente y porque la ficha no manda sinMora en los
-   * ajustes, así que el cliente ni siquiera podría reimputar bien. Es una
+   * importar desde el cliente, y la imputación es la que tiene que decir qué
+   * pasa: una copia en el cliente se desactualizaría en silencio. Es una
    * consulta y no un modo de la mutación porque no escribe nada.
    */
   previsualizarFechas: adminProcedure
@@ -463,8 +485,10 @@ export const grupoRouter = createTRPCRouter({
         const hoy = imputarPagos(grupo.cuotas, a.ajustesCuota, pagado);
         const con = imputarPagos(despues, a.ajustesCuota, pagado);
 
-        if (hoy.cuotas.some((c) => c.estado === "VENCIDA")) r.vencidos.antes += 1;
-        if (con.cuotas.some((c) => c.estado === "VENCIDA")) r.vencidos.despues += 1;
+        if (hoy.cuotas.some((c) => c.estado === "VENCIDA"))
+          r.vencidos.antes += 1;
+        if (con.cuotas.some((c) => c.estado === "VENCIDA"))
+          r.vencidos.despues += 1;
         r.mora.antes += hoy.recargo;
         r.mora.despues += con.recargo;
 
@@ -516,8 +540,11 @@ export const grupoRouter = createTRPCRouter({
    * si mañana Halley cambia el precio general, los que no tienen ajuste lo
    * heredan solos y los que sí lo tienen no se pisan.
    *
-   * Mandar los dos campos en nulo borra el ajuste y devuelve al alumno al precio
-   * del grupo. Es la forma de deshacer sin una mutación aparte.
+   * Mandar los dos campos en nulo devuelve al alumno al precio del grupo. Es la
+   * forma de deshacer sin una mutación aparte. La fila se borra sólo si no le
+   * queda nada más dicho: en la misma fila viven el perdón de la mora y la
+   * mora fijada al pagar, y volver al precio del curso no tiene por qué
+   * llevárselos puestos.
    */
   ajustarCuotaAlumno: adminProcedure
     .input(
@@ -533,8 +560,12 @@ export const grupoRouter = createTRPCRouter({
       const llave = { alumnoId_cuotaId: { alumnoId, cuotaId } };
 
       if (monto === null && venceEl === null) {
-        await ctx.db.cuotaAlumno.deleteMany({ where: { alumnoId, cuotaId } });
-        return { ok: true, borrado: true };
+        await ctx.db.cuotaAlumno.updateMany({
+          where: { alumnoId, cuotaId },
+          data: { monto: null, venceEl: null },
+        });
+        const borrado = await podarAjusteVacio(alumnoId, cuotaId);
+        return { ok: true, borrado };
       }
 
       await ctx.db.cuotaAlumno.upsert({

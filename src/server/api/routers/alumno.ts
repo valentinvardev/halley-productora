@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
 import {
+  cambiarPerdonDeMora,
   crearAlumno,
   destinatarios,
   invitarFamilia,
@@ -76,6 +77,26 @@ export const alumnoRouter = createTRPCRouter({
       }
 
       return { creados, repetidos, errores };
+    }),
+
+  /**
+   * Perdona, o vuelve a cobrar, la mora de una cuota a un alumno ya cargado.
+   *
+   * Es un interruptor por cuota, desde la ficha. No registra ningún pago: la
+   * cuota sigue debiéndose, sólo que sin recargo. Para "pagó por fuera y no le
+   * cobro la mora" sigue estando Marcar pagas con la casilla destildada.
+   */
+  perdonDeMora: adminProcedure
+    .input(
+      z.object({
+        alumnoId: z.string(),
+        cuotaId: z.string(),
+        perdonar: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await cambiarPerdonDeMora(input.alumnoId, input.cuotaId, input.perdonar);
+      return { ok: true, perdonada: input.perdonar };
     }),
 
   invitar: adminProcedure

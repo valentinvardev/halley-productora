@@ -147,6 +147,28 @@ export function recargoPorMora(venceEl: Date, ahora = new Date()) {
 }
 
 /**
+ * El próximo salto de la mora de una cuota: qué día se cumple el mes que viene
+ * y cuánto recargo va a tener desde entonces, en pesos.
+ *
+ * Existe para la ficha del alumno. Una cuota vencida hace diez días figura
+ * vencida y debe cero de mora, y las dos cosas juntas confunden: parece que la
+ * mora no existe o que no se calculó. Decir "desde el 20 suma $ 900" es lo que
+ * falta para entender qué se está perdonando cuando se perdona antes de tiempo.
+ *
+ * Vive acá y no en la pantalla por lo mismo que `recargoPorMora`: el 3% y la
+ * regla del mes entero están en un solo lugar.
+ */
+export function proximaMora(venceEl: Date, monto: number, ahora = new Date()) {
+  const meses = mesesVencida(venceEl, ahora);
+  const desde = new Date(venceEl);
+  desde.setMonth(venceEl.getMonth() + meses + 1);
+  return {
+    desde,
+    recargo: monto * (Math.pow(1 + MORA_MENSUAL, meses + 1) - 1),
+  };
+}
+
+/**
  * Lo que un alumno pagó, en dos números: el total y cuánto de eso fue mora.
  *
  * Son dos y no uno porque la imputación los reparte distinto: el capital va a
@@ -312,7 +334,8 @@ export function liquidarPago(
     // Lo que esta cuota tiene de mora sin pagar hoy: la viva, si recién se
     // cubre el capital, o lo que quedaba de la fijada.
     const moraPendiente = Math.max(c.saldo - c.saldoSinMora, 0);
-    if (capitalFaltante > 0.01) fijar.push({ cuotaId: c.id, recargo: moraPendiente });
+    if (capitalFaltante > 0.01)
+      fijar.push({ cuotaId: c.id, recargo: moraPendiente });
 
     const aMora = Math.min(resto, moraPendiente);
     resto -= aMora;
@@ -341,13 +364,21 @@ export function conFijados(
   });
   for (const [cuotaId, recargo] of porCuota) {
     if (!vistos.has(cuotaId)) {
-      salida.push({ cuotaId, monto: null, venceEl: null, sinMora: false, recargoFijado: recargo });
+      salida.push({
+        cuotaId,
+        monto: null,
+        venceEl: null,
+        sinMora: false,
+        recargoFijado: recargo,
+      });
     }
   }
   return salida;
 }
 
-export function sumarPagos(pagos: { monto: unknown; recargo: unknown }[]): Pagado {
+export function sumarPagos(
+  pagos: { monto: unknown; recargo: unknown }[],
+): Pagado {
   return pagos.reduce(
     (t, p) => ({
       total: t.total + Number(p.monto),
@@ -356,7 +387,6 @@ export function sumarPagos(pagos: { monto: unknown; recargo: unknown }[]): Pagad
     { total: 0, mora: 0 },
   );
 }
-
 
 export function linkAlumno(token: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/p/${token}`;

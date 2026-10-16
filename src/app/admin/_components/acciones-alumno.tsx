@@ -14,8 +14,9 @@ import {
   IconoTilde,
 } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
-import { PlanCuotas, type CuotaVista } from "~/app/_components/plan-cuotas";
+import { PlanCuotas } from "~/app/_components/plan-cuotas";
 import { PrecioDelAlumno } from "./montos-plan";
+import { MoraDelAlumno, type CuotaConMora } from "./mora-alumno";
 import {
   Boton,
   BotonTexto,
@@ -54,7 +55,7 @@ export type AlumnoAcciones = {
     pagado: number;
     deuda: number;
     aFavor: number;
-    cuotas: CuotaVista[];
+    cuotas: CuotaConMora[];
     proxima: { id: string } | null;
   };
   pagos: {
@@ -63,8 +64,16 @@ export type AlumnoAcciones = {
     recibidoEn: Date;
     refPago: string;
   }[];
-  /** Las cuotas con precio propio, para distinguirlas del precio del curso. */
-  ajustes: { cuotaId: string; monto: number | null; venceEl: Date | null }[];
+  /**
+   * Lo que esta familia tiene distinto por cuota: precio o fecha propios, y
+   * la mora perdonada.
+   */
+  ajustes: {
+    cuotaId: string;
+    monto: number | null;
+    venceEl: Date | null;
+    sinMora: boolean;
+  }[];
 };
 
 function Seccion({
@@ -220,7 +229,8 @@ export function AccionesAlumno({
       const nombre = datos?.nombre ?? "";
       // "ya entraba por X" sólo si hay un X que nombrar: una cuenta que quedó
       // habilitada y sin alumnos (eliminar un grupo) no tiene otros.
-      const porOtros = r.otrosAlumnos.length > 0 ? ` por ${r.otrosAlumnos.join(" y ")}` : "";
+      const porOtros =
+        r.otrosAlumnos.length > 0 ? ` por ${r.otrosAlumnos.join(" y ")}` : "";
       return avisar(
         r.yaEntraba
           ? r.vinculadoNuevo
@@ -372,6 +382,18 @@ export function AccionesAlumno({
               </p>
             </div>
           )}
+        </Seccion>
+
+        {/* Va pegada al plan y antes del precio porque se decide mirando el
+            plan: qué cuota venció y cuánto le va a sumar. Es el lugar donde
+            Halley buscaba "perdonarle la mora" y no lo encontraba. */}
+        <Seccion titulo="Mora">
+          <MoraDelAlumno
+            alumnoId={datos.id}
+            cuotas={datos.plan.cuotas}
+            ajustes={datos.ajustes}
+            alRefrescar={alRefrescar}
+          />
         </Seccion>
 
         <Seccion titulo="Precio de esta familia">

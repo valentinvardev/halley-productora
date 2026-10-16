@@ -29,6 +29,10 @@ visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
   (`Pago.recargo`) y cada cuota fija su mora el día que se cubre su capital
   (`CuotaAlumno.recargoFijado`). Sin eso, una cuota pagada volvía a acumular
   mora con el tiempo y al mover la fecha; con eso, lo pagado queda pagado.
+- **Mora perdonable por cuota** desde la ficha del alumno, con el recargo de
+  hoy y el que viene a la vista. Vale antes de que la mora empiece a correr,
+  que es el caso: la familia avisa que paga tarde y Halley acuerda no cobrarle
+  el recargo. No registra ningún pago y se puede volver atrás.
 
 ### Acceso de la familia
 
@@ -129,7 +133,7 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | Tema | Cómo está resuelto |
 |---|---|
 | **Estado de las cuotas** | No se persiste: se deriva repartiendo lo pagado sobre el plan, de la más vieja a la más nueva. Así un pago parcial, uno de más o dos cuotas juntas se acomodan solos, y el panel no puede terminar diciendo algo distinto de lo que dicen los pagos. |
-| **Mora** | Toda cuota vence el 20. El recargo corre desde ahí: 0 hasta los 2 meses vencida, 3% a los 2, sube parejo hasta 5% a los 5 y se queda. Sale derivado como todo lo demás (`recargoPorMora` en [`dominio.ts`](src/server/dominio.ts)). |
+| **Mora** | Toda cuota vence el 20. El recargo corre por mes entero cumplido: 3% al primer mes, compuesto después y sin tope. Sale derivado como todo lo demás (`recargoPorMora` en [`dominio.ts`](src/server/dominio.ts)); lo saldado queda fijado al pagar. Se perdona por cuota (`CuotaAlumno.sinMora`): al dar de alta, al marcar pagas sin cobrarla, o desde la ficha del alumno con un interruptor. |
 | **Particulares** | Un particular es un grupo de uno: mismo modelo (`Grupo` con `tipo=PARTICULAR` y un solo `Alumno`), así reutiliza la imputación, los pagos, las galerías, el panel de la familia y los avisos sin lógica nueva. El campo `colegio` guarda el tipo de evento. |
 | **Ruteo de cobros** | Cada grupo apunta a una `CuentaPago`, en Talo y en Mercado Pago por igual; sin una elegida cobra la marcada por defecto, y sin ninguna cargada se cae a las credenciales del entorno. La credencial nunca sale del servidor: el panel ve los últimos cuatro caracteres. |
 | **Talo** | Adaptador con dos implementaciones detrás de una interfaz (`src/server/talo/`). En `mock` genera CVU/alias; el webhook y el procesamiento del pago son los definitivos. La autenticación es un token de una hora que se renueva solo: Talo no da API key fija. |

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { TRPCError } from "@trpc/server";
+
 import { env } from "~/env";
 import { armarAlias, credencialesDeGrupo, talo, taloMock } from "~/server/talo";
 import { db } from "./db";
@@ -43,6 +45,74 @@ export async function perdonarMora(
     });
   }
   return cuotas.length;
+}
+
+/**
+ * Perdona, o vuelve a cobrar, la mora de una cuota a un alumno que ya está
+ * cargado.
+ *
+ * Es el mismo perdón que el del alta, pero para después: la familia que avisa
+ * que va a pagar tarde y Halley acuerda no cobrarle el recargo. Hasta acá eso
+ * sólo se podía hacer al cargar al alumno o al marcarle la cuota como paga, y
+ * ninguna de las dos sirve para una cuota que todavía no se pagó. Vale aunque
+ * la mora no haya empezado a correr: perdonar antes de tiempo es justamente el
+ * caso, porque el 20 del mes que viene ya es tarde para avisarle a la familia.
+ *
+ * La cuota tiene que ser del plan de ese alumno. Sin el chequeo, un id de otro
+ * curso crearía una fila huérfana que la imputación nunca leería y el panel
+ * diría "perdonada" sobre nada.
+ */
+export async function cambiarPerdonDeMora(
+  alumnoId: string,
+  cuotaId: string,
+  perdonar: boolean,
+) {
+  const alumno = await db.alumno.findUniqueOrThrow({
+    where: { id: alumnoId },
+    select: { grupoId: true },
+  });
+  const cuota = await db.cuota.findFirst({
+    where: { id: cuotaId, grupoId: alumno.grupoId },
+    select: { id: true },
+  });
+  if (!cuota) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Esa cuota no es del plan de este alumno.",
+    });
+  }
+
+  await db.cuotaAlumno.upsert({
+    where: { alumnoId_cuotaId: { alumnoId, cuotaId } },
+    create: { alumnoId, cuotaId, sinMora: perdonar },
+    update: { sinMora: perdonar },
+  });
+  if (!perdonar) await podarAjusteVacio(alumnoId, cuotaId);
+}
+
+/**
+ * Borra la fila de ajuste de una cuota si ya no dice nada: sin monto propio,
+ * sin fecha propia, sin perdón y sin mora fijada.
+ *
+ * La regla de la tabla es "se guarda sólo lo que se cambió", y una fila con
+ * todo en el valor por defecto la rompe sin que se note. Pero borrar la fila
+ * entera cuando se deshace una sola cosa (volver al precio del curso, por
+ * ejemplo) se llevaba puestas las otras dos: el perdón de la mora y la mora
+ * fijada al pagar, que es la que hace que lo pagado quede pagado. Por eso
+ * primero se pone en nulo lo que se deshace y después se mira si quedó algo.
+ */
+export async function podarAjusteVacio(alumnoId: string, cuotaId: string) {
+  const r = await db.cuotaAlumno.deleteMany({
+    where: {
+      alumnoId,
+      cuotaId,
+      monto: null,
+      venceEl: null,
+      sinMora: false,
+      recargoFijado: null,
+    },
+  });
+  return r.count > 0;
 }
 
 export async function crearAlumno(input: {
@@ -181,4 +251,3 @@ export async function invitarFamilia(
 
   return { enviado: true as const, cantidad: emails.length };
 }
-

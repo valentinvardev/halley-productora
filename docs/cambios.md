@@ -2373,3 +2373,65 @@ tope), el orden de imputación, las pantallas, la previa de Gestión de fechas
 (usa esta misma función y queda bien sola) y el perdón de mora por cuota.
 
 **Rollback:** fila AB de la tabla.
+
+### AC. Perdonar la mora desde la ficha, antes de que empiece a correr
+
+**De dónde salió.** Fran quería perdonarle la mora de la cuota de septiembre
+a algunas familias y no encontraba dónde. La mora se perdonaba en dos lugares
+y ninguno servía para su caso: al dar de alta, que es antes de que exista el
+problema, y al marcar una cuota como paga, que registra un pago que todavía no
+entró. El caso real está en el medio: la familia avisa que va a pagar tarde,
+Halley acuerda no cobrarle el recargo, y la cuota sigue impaga hasta que paguen
+por el link. Encima no veía ningún monto: la cuota de septiembre vence el 20/09
+y hasta el 20/10 debe cero de mora, porque la mora cuenta meses enteros. Así
+que ni aparecía la casilla de Marcar pagas, que sólo sale con mora mayor a
+cero, ni había un número que mirar. Medido en Inmaculada RV el 15/10: a 11
+alumnos cuya cuota pendiente era la 3 (vence el 20/09, mora cero) la casilla no
+les apareció; a 7 cuya cuota pendiente era la 2 (corrida al 20/08, $ 900) sí.
+Mismo colegio, misma pantalla.
+
+**Qué cambió.** La ficha del alumno tiene una sección Mora, entre el plan y el
+precio. Arriba dice cuánto debe de mora hoy y cuántas cuotas tiene perdonadas.
+Después, una fila por cuota con la frase que le corresponde: hoy suma tanto y
+desde tal día pasa a tanto; venció y todavía no suma recargo, desde tal día
+debe tanto; todavía no vence, sin recargo hasta tal día; pagó el capital y le
+queda la mora fijada, que ya no crece; pagada; perdonada. Y un interruptor
+"Perdonar" en cada cuota que no esté paga. Perdonar no registra ningún pago:
+la cuota se sigue debiendo, sin recargo. Se puede volver atrás con el mismo
+interruptor. Una cuota paga no lo tiene: perdonarle la mora después de cobrada
+no es perdonar, es devolver, y eso se decide mirando los pagos.
+
+**El dato nuevo.** La imputación ya sabía cuánto debe hoy; lo que faltaba era
+cuándo y a cuánto salta. Eso lo calcula `proximaMora` en `dominio.ts`, al lado
+de la fórmula, y el detalle del grupo lo manda por cuota. Es nulo cuando la
+mora no va a saltar: paga, perdonada o fijada. Los ajustes de la ficha ahora
+traen el perdón de cada cuota. El procedimiento `alumno.perdonDeMora` escribe
+el mismo campo que ya escribían el alta y Marcar pagas, y rechaza una cuota
+que no sea del plan de ese alumno: sin ese chequeo, un id de otro curso
+crearía una fila que la imputación nunca leería y el panel diría "perdonada"
+sobre nada.
+
+**Un arreglo de paso.** Volver al precio del curso borraba la fila entera de
+ajuste de esa cuota, y en esa misma fila viven el perdón de la mora y, desde
+AB, la mora fijada al pagar. O sea que "Volver al del curso" podía borrarle un
+perdón, o devolverle la mora a una cuota ya pagada, convirtiendo lo pagado en
+saldo a favor. Ahora pone en nulo lo que se deshace y borra la fila sólo si no
+quedó nada dicho, con la misma poda que usa el perdón al apagarse.
+
+**Verificado** contra la app local con un curso de prueba borrado al terminar.
+Por la API: los saltos de cada cuota (vencida con mora viva, vencida con cero,
+pendiente, pagada, con el capital cubierto y la mora fijada), perdonar y volver
+atrás, la perdonada sigue en cero dos meses después, volver al precio del
+curso no borra el perdón, y una cuota de otro curso se rechaza sin escribir
+nada. En la pantalla: la sección está, cada fila dice su frase, el clic en
+"Perdonar" escribe en la base y la fila pasa a "Perdonada", el resumen cuenta
+la cuota, las otras filas no cambian, el segundo clic vuelve atrás y borra la
+fila vacía, la cuota pagada no tiene casilla y la de capital pelado dice que su
+mora ya no crece. Sin errores de JS.
+
+**Lo que no cambia.** El perdón del alta y la casilla de Marcar pagas siguen
+igual. "Deshacer todos los marcados a mano" sigue borrando todos los perdones
+del alumno, también los dados desde la ficha: no hay forma de saber cuál vino
+de dónde, y la confirmación lo avisa.
+
+**Rollback:** fila AC de la tabla.
