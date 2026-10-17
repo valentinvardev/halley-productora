@@ -2449,3 +2449,28 @@ registra y quién paga.
 
 **Rollback:** fila AD de la tabla.
 
+### AE. Un buscador en la tabla del curso
+
+**De dónde salió.** Fran pidió poder buscar alumnos. Con sesenta por curso y
+carpetas, encontrar a uno era recorrer la tabla con la rueda y la vista.
+
+**Qué cambió.** Arriba de la tabla, a la derecha de "Nueva carpeta", hay un
+campo de búsqueda. Filtra mientras se escribe y no va al servidor: la lista
+entera ya está en la pantalla y se refresca sola cada dos segundos y medio.
+Compara sin acentos ni mayúsculas, sobre el nombre, el email de contacto, los
+emails de los responsables registrados y el alias de pago: "nunez" encuentra a
+Núñez, y el email que llegó en una transferencia encuentra a la familia. Al
+lado dice cuántos coinciden de cuántos. Buscando, las carpetas sin
+coincidencias se esconden; si no coincide nadie, la tabla lo dice con la
+palabra buscada. Al borrar, vuelve todo. El número de cuadro de cada alumno no
+cambia: sale del orden de carga, no de la posición en pantalla.
+
+**Verificado** en el navegador contra la app local, con tres alumnos de prueba
+borrados al terminar: búsqueda por apellido sin acento, por email de contacto,
+por alias, por email de responsable, sin coincidencias y al vaciar el campo.
+
+**Lo que no cambia.** Arrastrar a una carpeta sigue funcionando con la lista
+filtrada. La lista de Gestión de cuotas no tiene buscador: queda para después
+si hace falta.
+
+**Rollback:** fila AE de la tabla.

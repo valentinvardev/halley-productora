@@ -33,6 +33,9 @@ visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
   hoy y el que viene a la vista. Vale antes de que la mora empiece a correr,
   que es el caso: la familia avisa que paga tarde y Halley acuerda no cobrarle
   el recargo. No registra ningún pago y se puede volver atrás.
+- **Buscador en la tabla del curso**: filtra mientras se escribe, sin acentos,
+  por nombre, emails (contacto y responsables) y alias de pago. Es de pantalla:
+  la lista ya está cargada y se refresca sola.
 
 ### Acceso de la familia
 

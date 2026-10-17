@@ -71,6 +71,11 @@ export function DetalleGrupo({ id }: { id: string }) {
   const [gestionandoFechas, setGestionandoFechas] = useState(false);
   /** Qué alumno tiene abierto el modal de acciones. */
   const [gestionandoId, setGestionandoId] = useState<string | null>(null);
+  /**
+   * Lo que se escribió en el buscador de la tabla. Filtra en la pantalla, sin
+   * ir al servidor: la lista entera ya está acá y se refresca sola.
+   */
+  const [busqueda, setBusqueda] = useState("");
   /** El alumno al que se le están marcando cuotas, cuando se entra por su ficha. */
   const [cuotasDe, setCuotasDe] = useState<string | null>(null);
   /** La carpeta que se está creando o renombrando. `id` nulo es una nueva. */
@@ -210,20 +215,51 @@ export function DetalleGrupo({ id }: { id: string }) {
   const porNombre = (a: { nombre: string }, b: { nombre: string }) =>
     a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
 
+  /**
+   * El buscador compara sin acentos ni mayúsculas, sobre el nombre, los
+   * emails (el de contacto y los de los responsables) y el alias de pago: es
+   * lo que uno tiene a mano cuando busca a alguien, un apellido a medias o
+   * el email que llegó en una transferencia.
+   */
+  const sinAcentos = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const buscado = sinAcentos(busqueda.trim());
+  const coincide = (a: (typeof grupo.alumnos)[number]) =>
+    buscado === "" ||
+    [
+      a.nombre,
+      a.emailContacto ?? "",
+      a.alias ?? "",
+      ...a.responsables.map((r) => r.email),
+    ].some((v) => sinAcentos(v).includes(buscado));
+
   const secciones = [
     {
       id: null as string | null,
       nombre: "Sin asignar",
-      alumnos: grupo.alumnos.filter((a) => !a.subgrupoId).sort(porNombre),
+      alumnos: grupo.alumnos
+        .filter((a) => !a.subgrupoId && coincide(a))
+        .sort(porNombre),
     },
     ...grupo.subgrupos.map((c) => ({
       id: c.id as string | null,
       nombre: c.nombre,
       alumnos: grupo.alumnos
-        .filter((a) => a.subgrupoId === c.id)
+        .filter((a) => a.subgrupoId === c.id && coincide(a))
         .sort(porNombre),
     })),
-  ].filter((sec) => sec.id !== null || sec.alumnos.length > 0);
+    // Buscando, una carpeta sin coincidencias no aporta nada y se esconde;
+    // sin buscar, las carpetas vacías se ven, porque son el blanco donde
+    // soltar a alguien.
+  ].filter((sec) =>
+    buscado
+      ? sec.alumnos.length > 0
+      : sec.id !== null || sec.alumnos.length > 0,
+  );
+  const encontrados = secciones.reduce((t, s) => t + s.alumnos.length, 0);
 
   /** La clave con la que viaja cada sección en el arrastre. */
   const claveDe = (id: string | null) => id ?? "sueltos";
@@ -448,11 +484,30 @@ export function DetalleGrupo({ id }: { id: string }) {
               Arrastrá un alumno de una carpeta a otra desde su cuadro.
             </span>
           )}
+          {/* El buscador. Con sesenta alumnos la tabla se recorre con la
+              rueda y la vista; un apellido escrito a medias llega antes. */}
+          <label className="ml-auto flex min-w-[240px] items-center gap-2 border border-gray-20 bg-lienzo px-3 py-2 sm:w-[320px]">
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, email o alias"
+              aria-label="Buscar alumno"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-gray-45"
+            />
+            {buscado && (
+              <span className="nota text-[11px] whitespace-nowrap">
+                {encontrados} de {grupo.alumnos.length}
+              </span>
+            )}
+          </label>
         </div>
       )}
 
       {grupo.alumnos.length === 0 ? (
         <Vacio>Todavía no hay alumnos cargados en este grupo</Vacio>
+      ) : encontrados === 0 ? (
+        <Vacio>Ningún alumno coincide con “{busqueda.trim()}”</Vacio>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse border border-ink">
