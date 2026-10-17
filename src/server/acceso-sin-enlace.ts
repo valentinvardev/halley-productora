@@ -18,6 +18,15 @@ import { MAX_RESPONSABLES } from "./dominio";
  *
  * Abre sólo lo que esa cuenta ya tiene: sus alumnos vinculados. Nunca suma un
  * alumno nuevo, porque eso es lo que el link prueba y acá nadie probó nada.
+ *
+ * Y hay una cuarta, por curso (`Grupo.entradaSinEnlace`): el administrador
+ * decide que un curso entero entre con sólo el email. Ésa sí suma alumnos
+ * nuevos desde el link del grupo, porque eso es exactamente lo que se pidió:
+ * que las familias de ese colegio se registren y entren sin confirmar el
+ * correo. La contención es la misma que la de por cuenta: cupo por IP en
+ * /entrar, cupo de responsables por alumno, sesiones marcadas para poder
+ * cerrarlas al apagar, y la puerta a la vista en el curso, en la lista y en
+ * Ajustes.
  */
 
 /**
@@ -40,6 +49,84 @@ export async function cuentaSinEnlace(email: string, alumnoId?: string) {
   });
   if (!cuenta?.accesoSinEnlace || cuenta._count.tutorias === 0) return null;
   return { cuentaId: cuenta.id };
+}
+
+/**
+ * ¿Este email entra por su curso? Devuelve el grupo que lo deja, o null.
+ *
+ * Con `alumnoId` (registro desde el link del grupo) manda el curso de ese
+ * alumno: si tiene la entrada sin link, el email entra y queda vinculado,
+ * sin probar nada. Sin `alumnoId` (login suelto) entra si ya es responsable de
+ * algún alumno de un curso con la puerta abierta. Lo que abre en ese caso es
+ * la cuenta entera, con todos sus alumnos: la sesión es de la cuenta, no del
+ * curso.
+ */
+export async function cursoSinEnlace(email: string, alumnoId?: string) {
+  if (alumnoId) {
+    const alumno = await db.alumno.findUnique({
+      where: { id: alumnoId },
+      select: { grupo: { select: { id: true, entradaSinEnlace: true } } },
+    });
+    return alumno?.grupo.entradaSinEnlace ? { grupoId: alumno.grupo.id } : null;
+  }
+  const tutoria = await db.tutor.findFirst({
+    where: {
+      cuenta: { email: normalizarEmail(email) },
+      alumno: { grupo: { entradaSinEnlace: true } },
+    },
+    select: { alumno: { select: { grupoId: true } } },
+  });
+  return tutoria ? { grupoId: tutoria.alumno.grupoId } : null;
+}
+
+/**
+ * Enciende o apaga la entrada sin link de un curso entero.
+ *
+ * Apagarla cierra las sesiones que entraron así por este curso: las de
+ * cuentas sin excepción propia, responsables de algún alumno del curso y de
+ * ningún otro curso que siga abierto. Las que canjearon un link probaron el
+ * email y siguen vivas, igual que al quitar la excepción por cuenta.
+ */
+export async function cambiarEntradaSinEnlaceDelCurso(
+  grupoId: string,
+  activo: boolean,
+) {
+  await db.grupo.update({
+    where: { id: grupoId },
+    data: { entradaSinEnlace: activo },
+  });
+  if (activo) return { sesionesCerradas: 0 };
+
+  const { count } = await db.sesion.deleteMany({
+    where: {
+      abiertaSinEnlace: true,
+      cuenta: {
+        accesoSinEnlace: { is: null },
+        tutorias: {
+          some: { alumno: { grupoId } },
+          none: { alumno: { grupo: { entradaSinEnlace: true } } },
+        },
+      },
+    },
+  });
+  return { sesionesCerradas: count };
+}
+
+/**
+ * Cuántas sesiones vivas entraron sin link por este curso. Es el rastro que
+ * la fila por cuenta lleva en `usos`; acá se cuenta sobre las sesiones.
+ */
+export async function contarSesionesSinEnlaceDelCurso(grupoId: string) {
+  return db.sesion.count({
+    where: {
+      abiertaSinEnlace: true,
+      expiraEl: { gt: new Date() },
+      cuenta: {
+        accesoSinEnlace: { is: null },
+        tutorias: { some: { alumno: { grupoId } } },
+      },
+    },
+  });
 }
 
 /**
@@ -74,7 +161,8 @@ export async function anotarEntradaSinEnlace(cuentaId: string, origen: string) {
 export async function habilitarSinEnlace(alumnoId: string, emailCrudo: string) {
   const email = normalizarEmail(emailCrudo);
   const permiso = await puedeSumarResponsable(alumnoId, email);
-  if (permiso.motivo === "no-existe") throw new TRPCError({ code: "NOT_FOUND" });
+  if (permiso.motivo === "no-existe")
+    throw new TRPCError({ code: "NOT_FOUND" });
   if (!permiso.ok) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -166,30 +254,53 @@ export async function limpiarSinEnlaceSinFamilia(cuentaId?: string) {
   return filas.count;
 }
 
-/** Para el bloque de Ajustes: todas las puertas abiertas, con su familia. */
+/**
+ * Para el bloque de Ajustes: todas las puertas abiertas. Las familias con
+ * excepción propia y los cursos enteros, en la misma lista de auditoría.
+ */
 export async function listarSinEnlace() {
-  const filas = await db.accesoSinEnlace.findMany({
-    orderBy: { creadoEn: "desc" },
-    include: {
-      cuenta: {
-        include: {
-          tutorias: {
-            include: {
-              alumno: { include: { grupo: { select: { nombre: true } } } },
+  const [filas, cursos] = await Promise.all([
+    db.accesoSinEnlace.findMany({
+      orderBy: { creadoEn: "desc" },
+      include: {
+        cuenta: {
+          include: {
+            tutorias: {
+              include: {
+                alumno: { include: { grupo: { select: { nombre: true } } } },
+              },
             },
           },
         },
       },
-    },
-  });
-  return filas.map((f) => ({
-    email: f.cuenta.email,
-    desde: f.creadoEn,
-    usos: f.usos,
-    ultimoUsoEl: f.ultimoUsoEl,
-    alumnos: f.cuenta.tutorias.map((t) => ({
-      nombre: t.alumno.nombre,
-      grupo: t.alumno.grupo.nombre,
+    }),
+    db.grupo.findMany({
+      where: { entradaSinEnlace: true },
+      orderBy: { nombre: "asc" },
+      select: {
+        id: true,
+        nombre: true,
+        subtitulo: true,
+        _count: { select: { alumnos: true } },
+      },
+    }),
+  ]);
+  return {
+    familias: filas.map((f) => ({
+      email: f.cuenta.email,
+      desde: f.creadoEn,
+      usos: f.usos,
+      ultimoUsoEl: f.ultimoUsoEl,
+      alumnos: f.cuenta.tutorias.map((t) => ({
+        nombre: t.alumno.nombre,
+        grupo: t.alumno.grupo.nombre,
+      })),
     })),
-  }));
+    cursos: cursos.map((g) => ({
+      id: g.id,
+      nombre: g.nombre,
+      colegio: g.subtitulo,
+      alumnos: g._count.alumnos,
+    })),
+  };
 }

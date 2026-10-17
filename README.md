@@ -49,6 +49,10 @@ visual en [`docs/halley-design-system.html`](docs/halley-design-system.html).
   puede habilitar un email para que escribirlo en `/entrar` alcance, sin correo.
   Es para la familia que no logra abrir el link. Se ve en la tabla del curso y en
   Ajustes, cuenta cada entrada y se quita desde ahí.
+- **Entrar sin link para todo un curso** (excepción por curso): un interruptor
+  en la página del curso hace que sus familias se registren y entren con sólo el
+  email. Encenderlo pide confirmar y dice el costo; apagarlo cierra las sesiones
+  que entraron así. Se ve en el curso, en la lista de grupos y en Ajustes.
 
 ### Galerías
 
@@ -185,6 +189,15 @@ todas las puertas abiertas. Quitarla cierra las sesiones que entraron así; las
 que canjearon un link siguen vivas. El costo, y por eso el botón lo dice con el
 email y el nombre antes de confirmar: quien sepa ese email entra al panel de esa
 familia (plan, deuda, alias para pagar, fotos).
+
+La misma excepción existe por curso (`Grupo.entradaSinEnlace`, interruptor en la
+página del curso). Ésa sí vincula alumnos nuevos desde el link del grupo, porque
+es lo que se pidió: que las familias de ese colegio se registren sin confirmar el
+correo. Encenderla pide un segundo clic que dice el costo; apagarla cierra las
+sesiones que entraron así (`cambiarEntradaSinEnlaceDelCurso`). Siguen valiendo el
+cupo de responsables por alumno y el cupo por IP. La sesión es de la cuenta: una
+familia con un hijo en un curso abierto ve también a sus otros hijos. Tampoco es
+demo y tampoco mira `demoAbierta()`: es la segunda excepción deliberada.
 
 ### Defensas puestas
 

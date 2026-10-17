@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,6 +15,7 @@ import {
   BotonTexto,
   Campo,
   Encabezado,
+  Etiqueta,
   Vacio,
 } from "~/app/_components/ui";
 import {
@@ -306,64 +308,98 @@ export function Ajustes() {
         <div className="mt-8 max-w-[560px] border border-ink p-6">
           <div className="eyebrow mb-2.5">Entran sin link</div>
           <p className="nota mb-4">
-            Las familias a las que les abriste la puerta con sólo el email.
-            Cualquiera que escriba uno de estos emails entra al panel de esa
-            familia. Se habilita desde la ficha del alumno, en Acciones.
+            Las familias y los cursos a los que les abriste la puerta con sólo
+            el email. Cualquiera que escriba uno de esos emails entra al panel
+            de esa familia. Una familia se habilita desde la ficha del alumno,
+            en Acciones; un curso entero, desde su página.
           </p>
 
           {!sinEnlace.data ? (
             <p className="nota text-marca">
               No se pudo cargar la lista: {sinEnlace.error?.message}
             </p>
-          ) : sinEnlace.data.length === 0 ? (
+          ) : sinEnlace.data.familias.length === 0 &&
+            sinEnlace.data.cursos.length === 0 ? (
             <Vacio>Nadie entra sin link.</Vacio>
           ) : (
-            <div className="border border-gray-20">
-              {sinEnlace.data.map((f) => (
-                <div
-                  key={f.email}
-                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
-                >
-                  <div className="min-w-0">
-                    <div className="font-mono text-[11.5px] break-all">
-                      {f.email}
-                    </div>
-                    {/* Una fila sin alumnos es la cuenta a la que le sacaron
+            <>
+              {/* Los cursos enteros primero: una fila acá son sesenta
+                  familias, y es lo que hay que ver de un vistazo. */}
+              {sinEnlace.data.cursos.length > 0 && (
+                <div className="mb-4">
+                  <Etiqueta>Cursos enteros</Etiqueta>
+                  <div className="mt-1.5 border border-gray-20">
+                    {sinEnlace.data.cursos.map((c) => (
+                      <Link
+                        key={c.id}
+                        href={`/admin/grupos/${c.id}`}
+                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0 hover:bg-paper-dim"
+                      >
+                        <span className="min-w-0">
+                          <span className="text-[13px]">{c.nombre}</span>
+                          <span className="block text-[11.5px] text-gray-45">
+                            {c.colegio} · {c.alumnos}{" "}
+                            {c.alumnos === 1 ? "alumno" : "alumnos"}
+                          </span>
+                        </span>
+                        <span className="font-rotulo text-[11px] tracking-[0.05em] text-gray-45 uppercase underline underline-offset-2">
+                          Se apaga desde el curso
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sinEnlace.data.familias.length > 0 && (
+                <div className="border border-gray-20">
+                  {sinEnlace.data.familias.map((f) => (
+                    <div
+                      key={f.email}
+                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-20 px-3.5 py-2.5 last:border-b-0"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-mono text-[11.5px] break-all">
+                          {f.email}
+                        </div>
+                        {/* Una fila sin alumnos es la cuenta a la que le sacaron
                         o borraron a todos: la regla de entrada ya la deja
                         inerte, pero se muestra para que se pueda quitar. */}
-                    <div className="text-[11.5px] text-gray-45">
-                      {f.alumnos.length > 0
-                        ? f.alumnos
-                            .map((a) => `${a.nombre}, ${a.grupo}`)
-                            .join(" · ")
-                        : "ya no es responsable de ningún alumno"}
+                        <div className="text-[11.5px] text-gray-45">
+                          {f.alumnos.length > 0
+                            ? f.alumnos
+                                .map((a) => `${a.nombre}, ${a.grupo}`)
+                                .join(" · ")
+                            : "ya no es responsable de ningún alumno"}
+                        </div>
+                        <div className="text-[11.5px] text-gray-45">
+                          desde el {fecha(f.desde)} ·{" "}
+                          {f.usos === 0 || !f.ultimoUsoEl
+                            ? "todavía no entró"
+                            : `entró ${f.usos} ${f.usos === 1 ? "vez" : "veces"}, la última el ${fechaHora(f.ultimoUsoEl)}`}
+                        </div>
+                      </div>
+                      <BotonTexto
+                        onClick={() => {
+                          if (confirmando === f.email) {
+                            setConfirmando(null);
+                            quitarSinEnlace.mutate({ email: f.email });
+                          } else {
+                            setConfirmando(f.email);
+                          }
+                        }}
+                        disabled={quitarSinEnlace.isPending}
+                        className="text-gray-45"
+                      >
+                        {confirmando === f.email
+                          ? "¿Seguro? Vuelve al correo"
+                          : "Quitar"}
+                      </BotonTexto>
                     </div>
-                    <div className="text-[11.5px] text-gray-45">
-                      desde el {fecha(f.desde)} ·{" "}
-                      {f.usos === 0 || !f.ultimoUsoEl
-                        ? "todavía no entró"
-                        : `entró ${f.usos} ${f.usos === 1 ? "vez" : "veces"}, la última el ${fechaHora(f.ultimoUsoEl)}`}
-                    </div>
-                  </div>
-                  <BotonTexto
-                    onClick={() => {
-                      if (confirmando === f.email) {
-                        setConfirmando(null);
-                        quitarSinEnlace.mutate({ email: f.email });
-                      } else {
-                        setConfirmando(f.email);
-                      }
-                    }}
-                    disabled={quitarSinEnlace.isPending}
-                    className="text-gray-45"
-                  >
-                    {confirmando === f.email
-                      ? "¿Seguro? Vuelve al correo"
-                      : "Quitar"}
-                  </BotonTexto>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
 
           {avisoSinEnlace && (

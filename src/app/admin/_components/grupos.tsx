@@ -892,6 +892,7 @@ function TarjetaGrupo({
             <h3 className="text-[19px] leading-snug">{g.nombre}</h3>
             {g.tipo === "PARTICULAR" && <Tag>Particular</Tag>}
             {g.modoPrueba && <Tag>Modo prueba</Tag>}
+            {g.entradaSinEnlace && <Tag>Entra sin link</Tag>}
           </div>
           <div className="font-rotulo text-[12px] tracking-[0.06em] text-gray-70 uppercase">
             {g.tipo === "PARTICULAR"

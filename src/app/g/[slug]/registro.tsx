@@ -92,9 +92,11 @@ export function Registro({
         {solapa === "registro" ? (
           <>
             <p className="mt-4 text-[13.5px] leading-relaxed text-gray-70">
-              Elegí a tu hijo o hija y dejá tu email. Con eso entrás: no hay
-              contraseña. Pueden registrarse hasta {grupo.maxResponsables}{" "}
-              responsables por alumno.
+              {grupo.entradaSinEnlace
+                ? "Elegí a tu hijo o hija y dejá tu email. Con eso entrás directo, sin link ni contraseña."
+                : "Elegí a tu hijo o hija y dejá tu email. Con eso entrás: no hay contraseña."}{" "}
+              Pueden registrarse hasta {grupo.maxResponsables} responsables por
+              alumno.
             </p>
 
             {grupo.primerVencimiento && (

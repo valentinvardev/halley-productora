@@ -47,6 +47,8 @@ export const cuentaRouter = createTRPCRouter({
         montoCuota: primera ? Number(primera.monto) : 0,
         primerVencimiento: primera?.venceEl ?? null,
         maxResponsables: MAX_RESPONSABLES,
+        /** Si acá se entra con sólo el email: cambia lo que la pantalla promete. */
+        entradaSinEnlace: grupo.entradaSinEnlace,
         // Del alumno sólo sale el nombre y cuántos lugares quedan. Nada de
         // emails, montos ni tokens en una pantalla pública.
         alumnos: grupo.alumnos.map((a) => ({
@@ -131,12 +133,17 @@ export const cuentaRouter = createTRPCRouter({
       });
       if (!alumno) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const plan = imputarPagos(alumno.grupo.cuotas, alumno.ajustesCuota, sumarPagos(alumno.pagos));
+      const plan = imputarPagos(
+        alumno.grupo.cuotas,
+        alumno.ajustesCuota,
+        sumarPagos(alumno.pagos),
+      );
 
       const hasta = input.hastaCuotaId
         ? plan.cuotas.find((c) => c.id === input.hastaCuotaId)
         : null;
-      if (input.hastaCuotaId && !hasta) throw new TRPCError({ code: "NOT_FOUND" });
+      if (input.hastaCuotaId && !hasta)
+        throw new TRPCError({ code: "NOT_FOUND" });
 
       const alcanzadas = hasta
         ? plan.cuotas.filter((c) => c.numero <= hasta.numero)
@@ -214,11 +221,15 @@ export const cuentaRouter = createTRPCRouter({
             avisos: {
               where: { publicado: true },
               orderBy: [{ orden: "asc" }, { creadoEn: "asc" }],
-              include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+              include: {
+                fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] },
+              },
             },
             galerias: {
               orderBy: { creadoEn: "desc" },
-              include: { fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] } },
+              include: {
+                fotos: { orderBy: [{ orden: "asc" }, { creadoEn: "asc" }] },
+              },
             },
           },
         },
@@ -232,7 +243,11 @@ export const cuentaRouter = createTRPCRouter({
     });
 
     return alumnos.map((a) => {
-      const plan = imputarPagos(a.grupo.cuotas, a.ajustesCuota, sumarPagos(a.pagos));
+      const plan = imputarPagos(
+        a.grupo.cuotas,
+        a.ajustesCuota,
+        sumarPagos(a.pagos),
+      );
 
       return {
         id: a.id,
@@ -295,7 +310,10 @@ export const cuentaRouter = createTRPCRouter({
               ? g.fotos.map((f) => ({
                   id: f.id,
                   nombre: f.nombre,
-                  tipo: f.tipo === "video" ? ("video" as const) : ("imagen" as const),
+                  tipo:
+                    f.tipo === "video"
+                      ? ("video" as const)
+                      : ("imagen" as const),
                   url: `/api/galeria/${f.id}`,
                   urlMini: f.s3KeyMini
                     ? `/api/galeria/${f.id}?m=1`

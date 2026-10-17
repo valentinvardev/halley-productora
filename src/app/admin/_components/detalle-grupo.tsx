@@ -222,10 +222,7 @@ export function DetalleGrupo({ id }: { id: string }) {
    * el email que llegó en una transferencia.
    */
   const sinAcentos = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+    s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const buscado = sinAcentos(busqueda.trim());
   const coincide = (a: (typeof grupo.alumnos)[number]) =>
     buscado === "" ||
@@ -419,6 +416,15 @@ export function DetalleGrupo({ id }: { id: string }) {
         activo={grupo.modoPrueba}
         alCambiar={refrescar}
       />
+
+      {grupo.tipo !== "PARTICULAR" && (
+        <EntradaSinEnlace
+          grupoId={id}
+          activo={grupo.entradaSinEnlace}
+          sesiones={grupo.sesionesSinEnlaceDelCurso}
+          alCambiar={refrescar}
+        />
+      )}
 
       {grupo.autoRegistro && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-gray-20 bg-paper-dim px-4 py-3">
@@ -1127,6 +1133,92 @@ function ModoPrueba({
         disabled={cambiar.isPending}
       >
         {cambiar.isPending ? "Cambiando…" : activo ? "Apagar" : "Encender"}
+      </Boton>
+    </div>
+  );
+}
+
+/**
+ * Entrar sin link para el curso entero.
+ *
+ * Es la excepción de la ficha del alumno, pero decidida para todo un colegio:
+ * las familias se registran y entran con sólo el email, sin el link del
+ * correo. Se pidió porque en algunos colegios el link es más traba que
+ * protección: las familias no lo encuentran, lo abren en la app equivocada o
+ * piden otro y otro.
+ *
+ * Encenderlo pide un segundo clic que dice el costo con todas las letras,
+ * porque es una decisión de seguridad y no una preferencia: cualquiera que
+ * sepa el email de una familia del curso entra a su panel. Apagarlo es un clic,
+ * y cierra las sesiones que entraron así. Se pinta como el modo prueba, en el
+ * color de alerta, por lo mismo: una puerta abierta que se ve igual que una
+ * cerrada es una trampa esperando.
+ */
+function EntradaSinEnlace({
+  grupoId,
+  activo,
+  sesiones,
+  alCambiar,
+}: {
+  grupoId: string;
+  activo: boolean;
+  /** Sesiones vivas que entraron así por este curso. */
+  sesiones: number;
+  alCambiar: (mensaje?: string) => Promise<void>;
+}) {
+  const [confirmando, setConfirmando] = useState(false);
+  const cambiar = api.grupo.entradaSinEnlace.useMutation({
+    onSuccess: (r) => {
+      setConfirmando(false);
+      return alCambiar(
+        activo
+          ? r.sesionesCerradas === 0
+            ? "El curso vuelve a entrar por correo. No había sesiones abiertas sin link."
+            : `El curso vuelve a entrar por correo. Se ${r.sesionesCerradas === 1 ? "cerró 1 sesión abierta" : `cerraron ${r.sesionesCerradas} sesiones abiertas`} sin link.`
+          : "Las familias de este curso entran con sólo el email.",
+      );
+    },
+  });
+
+  return (
+    <div
+      className={`mb-8 flex flex-wrap items-center justify-between gap-3 border px-4 py-3 ${
+        activo ? "border-marca bg-marca/5" : "border-gray-20 bg-paper-dim"
+      }`}
+    >
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Etiqueta>Entrar sin link</Etiqueta>
+          {activo && <Tag>Todo el curso</Tag>}
+        </div>
+        <div className="nota mt-0.5 max-w-[70ch] text-[11.5px] text-gray-45">
+          {activo
+            ? `Las familias de este curso se registran y entran con sólo escribir el email, sin el link del correo. Quien sepa el email de una familia entra a su panel. ${
+                sesiones === 1
+                  ? "Hay 1 sesión abierta"
+                  : `Hay ${sesiones} sesiones abiertas`
+              } así.`
+            : "Encendelo para que las familias de este curso entren con sólo el email, sin el link del correo. Los demás cursos siguen igual. Para una sola familia está la ficha del alumno."}
+        </div>
+      </div>
+      <Boton
+        variante={activo || confirmando ? "solido" : "fantasma"}
+        onClick={() => {
+          if (activo || confirmando) {
+            cambiar.mutate({ id: grupoId, activo: !activo });
+          } else {
+            setConfirmando(true);
+          }
+        }}
+        disabled={cambiar.isPending}
+      >
+        {cambiar.isPending
+          ? "Cambiando…"
+          : activo
+            ? "Apagar"
+            : confirmando
+              ? "¿Seguro? Cualquiera con el email entra"
+              : "Encender"}
       </Boton>
     </div>
   );

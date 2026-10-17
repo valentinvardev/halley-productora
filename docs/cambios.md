@@ -310,6 +310,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | AB | `2d4c0f4` | La imputación vuelve a recalcular la mora a hoy sobre la suma de pagos: las cuotas pagadas vuelven a acumular mora con el tiempo; las columnas recargo y recargoFijado quedan en la base sin uso |
 | AC | `5acd731` | Se va la sección Mora de la ficha y el procedimiento perdonDeMora; los perdones ya dados quedan en sinMora y siguen valiendo; volver al precio del curso vuelve a borrar la fila entera de ajuste, con el perdón y la mora fijada adentro |
 | AD | `a93d60a` | El ejemplo del email vuelve a decir mama@mail.com |
+| AE | `574da6f` | Se va el buscador de la tabla del curso |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -2474,3 +2475,56 @@ filtrada. La lista de Gestión de cuotas no tiene buscador: queda para después
 si hace falta.
 
 **Rollback:** fila AE de la tabla.
+
+### AF. Entrar sin link para todo un curso
+
+**De dónde salió.** Fran pidió poder desactivar la verificación del email
+para algunos colegios: que las familias entren directo con el email. Ya
+existía la excepción por familia (punto Y) y la venía usando una por una: en
+Ajustes ya figuran varias. En esos colegios el link del correo es más traba
+que protección: no lo encuentran, lo abren en la app equivocada, piden otro.
+
+**Qué cambió.** Cada curso tiene un interruptor "Entrar sin link" en su
+página, debajo del modo prueba. Encendido, las familias de ese curso se
+registran desde el link del grupo y entran derecho, sin correo, y después
+entran desde /entrar con sólo el email. Encenderlo pide un segundo clic que
+dice el costo con todas las letras: cualquiera que sepa el email de una
+familia del curso entra a su panel. Apagarlo es un clic y cierra las sesiones
+que entraron así; las que canjearon un link probaron el email y siguen vivas.
+La pantalla del registro cambia lo que promete: "entrás directo, sin link ni
+contraseña". La puerta se ve en tres lugares: el bloque del curso, en el color
+de alerta y con el conteo de sesiones vivas que entraron así; la marca "Entra
+sin link" en la lista de grupos; y Ajustes, que ahora lista los cursos enteros
+arriba de las familias.
+
+**Lo que abre y lo que no.** A diferencia de la excepción por familia, ésta sí
+vincula alumnos nuevos desde el link del grupo: es exactamente lo que se
+pidió. Siguen valiendo el cupo de tres responsables por alumno y el cupo de
+sesenta intentos cada diez minutos por IP. La sesión es de la cuenta, así que
+una familia con un hijo en un curso abierto y otro en uno cerrado ve a los
+dos. No es una herramienta de demo: no mira demoAbierta() ni AUTH_PADRES, vale
+en producción, y queda documentada como la segunda excepción deliberada en la
+sección de seguridad del README.
+
+**Cómo está hecho.** Una columna en el grupo (`Grupo.entradaSinEnlace`). En
+`acceso-sin-enlace.ts`, `cursoSinEnlace` decide si un email entra por su
+curso: con un alumno elegido manda el curso de ese alumno; sin alumno, que ya
+sea responsable de alguien en un curso abierto. La acción de entrar la consulta
+después de la excepción por cuenta y antes de mandar el link, y marca la
+sesión igual que la de por cuenta. `cambiarEntradaSinEnlaceDelCurso` enciende
+o apaga y, al apagar, borra las sesiones marcadas de cuentas sin excepción
+propia que no tengan otro curso abierto. El detalle del curso trae la puerta y
+el conteo de sesiones vivas; la lista de grupos y la pantalla pública del
+grupo traen la puerta.
+
+**Verificado** contra la app local, con dos cursos de prueba borrados al
+terminar. Una familia se registra en el curso abierto y termina en su panel
+sin pasar por "Revisá tu correo", sin ningún link creado, con la cuenta
+vinculada al alumno y la sesión marcada. Vuelve a entrar desde /entrar con
+sólo el email. En el curso de control, el mismo registro manda el correo y no
+abre sesión. En el panel, el bloque dice "Todo el curso" y cuenta las dos
+sesiones; apagar las cierra y lo avisa; encender pide confirmar y la base no
+cambia hasta el segundo clic; con la puerta cerrada, /entrar vuelve a mandar
+el correo; Ajustes lista el curso. Sin errores de JS.
+
+**Rollback:** fila AF de la tabla.

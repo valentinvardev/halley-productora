@@ -7,6 +7,7 @@ import { env } from "~/env";
 import {
   anotarEntradaSinEnlace,
   cuentaSinEnlace,
+  cursoSinEnlace,
 } from "~/server/acceso-sin-enlace";
 import {
   COOKIE_SESION,
@@ -39,9 +40,7 @@ import { notificarAcceso } from "~/server/notificaciones";
  */
 
 export type EstadoAcceso =
-  | { enlaceEnviado: string; url: string | null }
-  | { error: string }
-  | null;
+  { enlaceEnviado: string; url: string | null } | { error: string } | null;
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -77,7 +76,15 @@ async function entrarOEnviarEnlace(
   // sólo lo que esa cuenta ya tiene. En modo directo no hace falta mirarla.
   const sinEnlace = directo ? null : await cuentaSinEnlace(email, alumnoId);
 
-  if (!directo && !sinEnlace) {
+  // La excepción por curso. Tampoco es demo: el admin la encendió para el
+  // curso entero desde su página. A diferencia de la de por cuenta, desde el
+  // link del grupo sí vincula al alumno elegido, porque eso es lo que se
+  // pidió: que las familias de ese colegio se registren sin confirmar el
+  // correo.
+  const porCurso =
+    directo || sinEnlace ? null : await cursoSinEnlace(email, alumnoId);
+
+  if (!directo && !sinEnlace && !porCurso) {
     const { url, minutos } = await crearEnlaceAcceso(email, { alumnoId });
     await notificarAcceso(email, url, minutos);
 
@@ -90,11 +97,13 @@ async function entrarOEnviarEnlace(
     };
   }
 
-  // Sin alumnoId cuando entra por la excepción: sus alumnos ya están
-  // vinculados, y pasar uno acá volvería a crear el Tutor que Sacar borró.
+  // Sin alumnoId cuando entra por la excepción por cuenta: sus alumnos ya
+  // están vinculados, y pasar uno acá volvería a crear el Tutor que Sacar
+  // borró. Por curso sí va: es un registro. En los dos casos la sesión queda
+  // marcada, para que apagar la puerta pueda cerrarla.
   const sesion = await abrirSesion(
     email,
-    sinEnlace ? { sinEnlace: true } : { alumnoId },
+    sinEnlace ? { sinEnlace: true } : { alumnoId, sinEnlace: !!porCurso },
   );
   if (sinEnlace) {
     const seguia = await anotarEntradaSinEnlace(sinEnlace.cuentaId, origen);
@@ -104,7 +113,8 @@ async function entrarOEnviarEnlace(
     if (!seguia) {
       await cerrarSesion(sesion);
       return {
-        error: "Este email ya no entra sin link. Volvé a intentar y te mandamos el link por correo.",
+        error:
+          "Este email ya no entra sin link. Volvé a intentar y te mandamos el link por correo.",
       };
     }
   }

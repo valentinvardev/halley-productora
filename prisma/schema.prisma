@@ -85,6 +85,15 @@ model Grupo {
   /// mentira que se ve igual que uno real es una trampa esperando.
   modoPrueba Boolean @default(false)
 
+  /// Las familias de este curso entran con sólo el email, sin el link del
+  /// correo: se registran y entran derecho. Es la misma excepción que
+  /// AccesoSinEnlace da por cuenta, pero decidida para el curso entero, y
+  /// por eso vive acá y no en una fila por familia. Lo que abre: quien sepa el
+  /// email de una familia del curso entra a su panel. Se enciende a sabiendas
+  /// desde la página del curso, se ve ahí, en la lista y en Ajustes, y
+  /// apagarlo cierra las sesiones que entraron así.
+  entradaSinEnlace Boolean @default(false)
+
   cuotas         Cuota[]
   alumnos        Alumno[]
   subgrupos      Subgrupo[]

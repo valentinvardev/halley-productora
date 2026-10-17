@@ -1,7 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { limpiarSinEnlaceSinFamilia } from "~/server/acceso-sin-enlace";
+import {
+  cambiarEntradaSinEnlaceDelCurso,
+  contarSesionesSinEnlaceDelCurso,
+  limpiarSinEnlaceSinFamilia,
+} from "~/server/acceso-sin-enlace";
 import { crearAlumno, podarAjusteVacio } from "~/server/alumnos";
 import { borrarObjetos } from "~/server/s3";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
@@ -131,6 +135,7 @@ export const grupoRouter = createTRPCRouter({
       tipo: g.tipo,
       autoRegistro: g.autoRegistro,
       modoPrueba: g.modoPrueba,
+      entradaSinEnlace: g.entradaSinEnlace,
       creadoEn: g.creadoEn,
       resumen: resumir(g.cuotas, g.alumnos),
     }));
@@ -168,6 +173,12 @@ export const grupoRouter = createTRPCRouter({
         tipo: grupo.tipo,
         autoRegistro: grupo.autoRegistro,
         modoPrueba: grupo.modoPrueba,
+        /** Si las familias de este curso entran con sólo el email. */
+        entradaSinEnlace: grupo.entradaSinEnlace,
+        /** Cuántas sesiones vivas entraron así por este curso: el rastro. */
+        sesionesSinEnlaceDelCurso: await contarSesionesSinEnlaceDelCurso(
+          grupo.id,
+        ),
         linkRegistro: linkGrupo(grupo.slug),
         modoDemo: simuladorTaloActivo(),
         cuentaPago: grupo.cuentaPago
@@ -640,6 +651,20 @@ export const grupoRouter = createTRPCRouter({
       });
       return { ok: true };
     }),
+
+  /**
+   * Enciende o apaga la entrada sin link para el curso entero.
+   *
+   * Es la excepción por cuenta de acceso-sin-enlace.ts, decidida para todo
+   * un colegio. No es demo: vale en producción y no mira demoAbierta(). Lo
+   * que abre lo dice la pantalla antes de encenderla; apagarla cierra las
+   * sesiones que entraron así.
+   */
+  entradaSinEnlace: adminProcedure
+    .input(z.object({ id: z.string(), activo: z.boolean() }))
+    .mutation(({ input }) =>
+      cambiarEntradaSinEnlaceDelCurso(input.id, input.activo),
+    ),
 
   /** Cambia a qué cuenta cobra un grupo. */
   asignarCuenta: adminProcedure
