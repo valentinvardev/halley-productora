@@ -311,6 +311,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | AC | `5acd731` | Se va la sección Mora de la ficha y el procedimiento perdonDeMora; los perdones ya dados quedan en sinMora y siguen valiendo; volver al precio del curso vuelve a borrar la fila entera de ajuste, con el perdón y la mora fijada adentro |
 | AD | `a93d60a` | El ejemplo del email vuelve a decir mama@mail.com |
 | AE | `574da6f` | Se va el buscador de la tabla del curso |
+| AF | `0609691` | Se va la entrada sin link por curso: el interruptor, la marca en la lista, Cursos enteros en Ajustes y el procedimiento; la columna entradaSinEnlace queda en la base sin uso y los cursos abiertos vuelven al correo; las sesiones ya abiertas así siguen vivas hasta vencer o hasta quitarlas a mano |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
