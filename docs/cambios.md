@@ -309,6 +309,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | AA | `516710d` | Se van Gestión de fechas, el ítem del menú y el link del plan; las fechas ya movidas quedan como están y se vuelven moviéndolas; los dos procedimientos quedan sin uso |
 | AB | `2d4c0f4` | La imputación vuelve a recalcular la mora a hoy sobre la suma de pagos: las cuotas pagadas vuelven a acumular mora con el tiempo; las columnas recargo y recargoFijado quedan en la base sin uso |
 | AC | `5acd731` | Se va la sección Mora de la ficha y el procedimiento perdonDeMora; los perdones ya dados quedan en sinMora y siguen valiendo; volver al precio del curso vuelve a borrar la fila entera de ajuste, con el perdón y la mora fijada adentro |
+| AD | `a93d60a` | El ejemplo del email vuelve a decir mama@mail.com |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
@@ -2447,3 +2448,4 @@ registra y quién paga.
 **Qué cambió.** El ejemplo pasa a `nombre@mail.com` en las cinco. Nada más.
 
 **Rollback:** fila AD de la tabla.
+
