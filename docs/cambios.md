@@ -2436,3 +2436,14 @@ del alumno, también los dados desde la ficha: no hay forma de saber cuál vino
 de dónde, y la confirmación lo avisa.
 
 **Rollback:** fila AC de la tabla.
+
+### AD. El ejemplo del email ya no dice "mamá"
+
+**De dónde salió.** El campo del email mostraba `mama@mail.com` como ejemplo
+en las cinco pantallas donde se escribe uno: el registro, la de entrar y tres
+del panel. A las familias no les gustó, y con razón: presupone quién se
+registra y quién paga.
+
+**Qué cambió.** El ejemplo pasa a `nombre@mail.com` en las cinco. Nada más.
+
+**Rollback:** fila AD de la tabla.

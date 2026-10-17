@@ -454,7 +454,7 @@ export function AccionesAlumno({
           <Campo
             label="Email de la familia"
             type="email"
-            placeholder={datos.emailContacto ?? "mama@mail.com"}
+            placeholder={datos.emailContacto ?? "nombre@mail.com"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             hint={
@@ -583,7 +583,7 @@ export function AccionesAlumno({
               <Campo
                 label="Email"
                 type="email"
-                placeholder="mama@mail.com"
+                placeholder="nombre@mail.com"
                 value={otroEmail}
                 onChange={(e) => setOtroEmail(e.target.value)}
                 hint={

@@ -69,7 +69,7 @@ export function Entrar({ aviso }: { aviso: string | null }) {
           label="Email"
           type="email"
           name="email"
-          placeholder="mama@mail.com"
+          placeholder="nombre@mail.com"
           autoFocus
           required
         />

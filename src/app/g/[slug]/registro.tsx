@@ -135,7 +135,7 @@ export function Registro({
                 label="Tu email"
                 type="email"
                 name="email"
-                placeholder="mama@mail.com"
+                placeholder="nombre@mail.com"
                 required
               />
 
@@ -164,7 +164,7 @@ export function Registro({
                 label="Tu email"
                 type="email"
                 name="email"
-                placeholder="mama@mail.com"
+                placeholder="nombre@mail.com"
                 autoFocus
                 required
               />
