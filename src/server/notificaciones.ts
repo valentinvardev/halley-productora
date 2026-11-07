@@ -28,7 +28,7 @@ type Grupo = { id: string; nombre: string; subtitulo: string; slug: string };
  * Sale del panel y no de la variable de entorno, para que puedan cambiarla
  * sin un deploy. La variable queda de respaldo para cuando no la tocaron.
  */
-async function casillaDeAvisos() {
+export async function casillaDeAvisos() {
   const { mailAvisos } = await contacto();
   return mailAvisos || env.ADMIN_EMAIL;
 }

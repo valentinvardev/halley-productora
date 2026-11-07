@@ -48,12 +48,20 @@ export function Bandeja() {
             : "Todo lo que el sistema enviaría por email. Con EMAIL_MODE=bandeja no sale nada a internet: los mensajes quedan registrados tal cual saldrían."
         }
         acciones={
-          <Link
-            href="/admin/notificaciones/textos"
-            className="inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase transition-colors hover:bg-ink hover:text-paper"
-          >
-            Editar los textos
-          </Link>
+          <>
+            <Link
+              href="/admin/notificaciones/correo"
+              className="inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase transition-colors hover:bg-ink hover:text-paper"
+            >
+              Dominios y entrega
+            </Link>
+            <Link
+              href="/admin/notificaciones/textos"
+              className="inline-flex items-center gap-2 border border-ink px-4 py-2.5 font-rotulo text-[12px] tracking-[0.06em] uppercase transition-colors hover:bg-ink hover:text-paper"
+            >
+              Editar los textos
+            </Link>
+          </>
         }
       />
 

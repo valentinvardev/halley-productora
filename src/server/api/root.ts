@@ -8,6 +8,7 @@ import { envioRouter } from "~/server/api/routers/envio";
 import { subgrupoRouter } from "~/server/api/routers/subgrupo";
 import { catalogoRouter } from "~/server/api/routers/catalogo";
 import { contenidoRouter } from "~/server/api/routers/contenido";
+import { correoRouter } from "~/server/api/routers/correo";
 import { cuentaPagoRouter } from "~/server/api/routers/cuenta-pago";
 import { cuentaRouter } from "~/server/api/routers/cuenta";
 import { demoRouter } from "~/server/api/routers/demo";
@@ -36,6 +37,7 @@ export const appRouter = createTRPCRouter({
   publico: publicoRouter,
   pago: pagoRouter,
   notificacion: notificacionRouter,
+  correo: correoRouter,
   demo: demoRouter,
   contenido: contenidoRouter,
   accesoSinEnlace: accesoSinEnlaceRouter,

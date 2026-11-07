@@ -2642,3 +2642,95 @@ casilla donde Fran quiera recibir los avisos de pagos. Hasta entonces esos
 avisos quedan en la bandeja como "No salió".
 
 **Rollback:** fila AH de la tabla.
+
+### AI. Dominios y salud del correo, en una pantalla
+
+**De dónde salió.** Fran pidió poder administrar dominios para mandar a
+muchos colegios sin arriesgar el spam. Hoy lo que decide si un correo llega
+está repartido en tres lugares: los dominios en Resend, el DNS en Cloudflare
+y las casillas configuradas en el servidor. Ninguno de los tres muestra el
+problema más grave que encontré: hay **dos claves DKIM distintas publicadas**
+en `resend._domainkey.halleyaudiovisual.com`. Resend firma con una sola y
+marca el dominio como verificado porque encuentra la suya, pero el servidor
+que recibe el correo toma cualquiera de las dos. Cuando toma la otra, la firma
+no verifica y el correo pierde la confianza que le da el dominio.
+
+**Qué cambió.** En la bandeja hay un botón nuevo, "Dominios y entrega", que
+lleva a una pantalla con tres partes:
+
+- **Salud del correo.** Una lista de chequeos con su estado (Problema,
+  Revisar, Bien) y, cuando hay algo que hacer, qué hacer y dónde. Mira la firma
+  DKIM, los registros de envío, la política DMARC, si el dominio tiene casilla,
+  a dónde contestan las familias, a dónde le llegan a Halley los avisos, y las
+  direcciones de las familias. Lo roto va primero.
+- **Dominios en Resend.** Cada dominio con su estado y sus registros, y para
+  cada registro lo que hay publicado de verdad en el DNS: "Publicado", "No está
+  publicado" o "Publicado, con uno de más". Los nombres y valores se copian con
+  un clic. Se puede agregar un dominio o subdominio y pedirle a Resend que
+  verifique.
+- **Direcciones que no van a llegar.** Las de familias cuyo dominio no existe
+  y las que se parecen demasiado a un proveedor conocido para ser reales, con
+  la dirección que seguramente quisieron escribir y el alumno y el curso para
+  ir a corregirla.
+
+**Lo que dice hoy sobre Halley**, con el DNS real y lo que se ve en la base:
+
+| Chequeo | Estado |
+|---|---|
+| Firma DKIM | Problema: dos claves publicadas |
+| Avisos de pagos a Halley | Problema: `admin@halleyproducciones.com`, que no existe |
+| A dónde contestan las familias | Problema si el servidor no tiene `EMAIL_REPLY_TO`: cae en la misma casilla |
+| Política DMARC | Revisar: publicada sin dirección de reportes |
+| Casilla en halleyaudiovisual.com | Revisar: el dominio no recibe correo |
+| Registros de envío | Bien |
+
+**Para qué sirve agregar un dominio, y para qué no.** Un subdominio sirve
+para separar los envíos en masa de los avisos que no pueden fallar: si un día
+los masivos caen en spam, el link para entrar no se arrastra con ellos. No
+sirve para mandar más, porque el cupo es de la cuenta y no de cada dominio, y
+la pantalla lo dice al lado del campo. Los subdominios se agregan en la misma
+región que los que ya hay, São Paulo.
+
+**Las decisiones adentro.**
+
+- Todo lo publicado sale del DNS público, no del panel de Resend: es la única
+  forma de ver lo que sobra.
+- Las claves RSA empiezan todas igual, así que para decir cuál borrar la
+  pantalla muestra el tramo donde las dos difieren, que es lo que se puede
+  buscar en Cloudflare.
+- El nombre completo de cada registro se arma sin preguntarle al DNS cuál
+  existe. Probé primero esa forma y fallaba: el mismo nombre en la raíz casi
+  siempre existe, porque es el del dominio principal, y daba por publicados
+  los registros de un subdominio recién agregado.
+- Para saber si el dominio tiene casilla se mira el registro MX y nada más.
+  La raíz tiene la dirección de la web, y técnicamente eso alcanza para que
+  un servidor intente entregarle, pero ahí no hay nadie escuchando correo.
+- Las direcciones se miran en las dos fuentes: el email de contacto del
+  alumno y las cuentas de los responsables. Las cuentas también, porque las
+  que entran sin link nunca probaron su email.
+- La lista de proveedores conocidos está para no marcar como error a los que
+  existen: `mail.com` se parece a `gmail.com` y es real.
+
+**Si la clave de Resend sólo puede mandar**, la parte de dominios lo dice y
+explica cómo crear una con acceso completo. La salud del correo funciona
+igual, porque sale del DNS.
+
+**Verificado** contra la app local, con un Resend falso que devuelve el
+dominio de Halley con la clave DKIM que usa, y el DNS real. Detecta las dos
+claves y nombra la que sobra; los registros de envío coinciden; DMARC y la
+casilla quedan para revisar; Reply-To y avisos dan problema. De siete
+alumnos de prueba, marca `gmail.con` y `gmail.com.ar` como inexistentes y
+`gmaim.com` y una cuenta en `hotmial.com` como mal escritas, cada una con su
+sugerencia, y no marca `gmail.com`, `mail.com` ni un dominio de empresa real.
+Agregar `Novedades.HalleyAudiovisual.com` lo crea en minúsculas y en São
+Paulo, con sus tres registros sin publicar; el repetido devuelve el error de
+Resend; verificar lo pasa a "Verificando". En el teléfono no hay scroll
+horizontal. Sin errores de JavaScript.
+
+**Hay que hacer, en Cloudflare:**
+
+1. Borrar el registro TXT de `resend._domainkey` que la pantalla señala.
+2. Activar DMARC Management, que agrega los reportes.
+3. Activar Email Routing para que `hola@halleyaudiovisual.com` reciba.
+
+**Rollback:** fila AI de la tabla.

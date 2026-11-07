@@ -13,7 +13,8 @@ import { env } from "~/env";
 
 let cliente: Resend | null = null;
 
-function resend() {
+/** El cliente de Resend. También lo usa el panel para ver y agregar dominios. */
+export function clienteResend() {
   if (!env.RESEND_API_KEY) return null;
   cliente ??= new Resend(env.RESEND_API_KEY);
   return cliente;
@@ -42,7 +43,7 @@ export async function enviarEmail(mensaje: {
   /** Cara HTML. Se manda junto con el texto, que queda de fallback. */
   html?: string;
 }): Promise<ResultadoEnvio> {
-  const api = resend();
+  const api = clienteResend();
   if (!api) {
     return { ok: false, error: "RESEND_API_KEY no configurada" };
   }
