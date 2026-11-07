@@ -312,6 +312,13 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | AD | `a93d60a` | El ejemplo del email vuelve a decir mama@mail.com |
 | AE | `574da6f` | Se va el buscador de la tabla del curso |
 | AF | `0609691` | Se va la entrada sin link por curso: el interruptor, la marca en la lista, Cursos enteros en Ajustes y el procedimiento; la columna entradaSinEnlace queda en la base sin uso y los cursos abiertos vuelven al correo; las sesiones ya abiertas así siguen vivas hasta vencer o hasta quitarlas a mano |
+| AG | `9fd1a85` | El medidor vuelve a los topes del plan gratuito escritos en el código y a cortar el día a medianoche de Córdoba; el plan elegido queda guardado sin uso |
+| AH | `4f54f21` | Se vuelve a mandar a dominios que no existen: esos correos rebotan y suman a la tasa de rebotes |
+| AI | `36ee193` | Se va la pantalla Dominios y entrega y su botón en la bandeja. AJ, AK y AL viven en esa pantalla: hay que revertirlos antes |
+| AJ | `6484b54` | Se van el webhook de Resend, los estados de entrega de la bandeja y el bloqueo de direcciones; las columnas y la tabla quedan sin uso. Hay que borrar el webhook en Resend, que si no sigue llamando a una ruta que ya no existe |
+| AJ, ajustado | `4d031f3` | Con una clave de sólo envío, la salud vuelve a decir que conectar los avisos es un botón |
+| AK | `0955923` | Todo vuelve a salir de EMAIL_FROM; los remitentes elegidos quedan guardados sin uso |
+| AL | `817329a` | Los envíos en masa vuelven a salir de golpe; lo ya programado en Resend sale igual a su hora, así que conviene cancelar los pendientes desde la bandeja antes de revertir |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |

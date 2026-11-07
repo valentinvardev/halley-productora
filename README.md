@@ -122,10 +122,12 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | `/admin/textos` | clave del panel | Textos de la landing y de los servicios |
 | `/admin/valoraciones` | clave del panel | Moderar valoraciones |
 | `/admin/cuentas` | clave del panel | Cuentas de pago |
-| `/admin/notificaciones` | clave del panel | Bandeja de emails |
+| `/admin/notificaciones` | clave del panel | Bandeja de emails, con la cola de los envíos en masa |
+| `/admin/notificaciones/correo` | clave del panel | Dominios y entrega: salud del correo, dominios de Resend, remitentes, ritmo |
 | `/admin/ajustes` | clave del panel | WhatsApp, Instagram, contacto, email de avisos, sonido al cobrar |
 | `/api/webhooks/talo` | Talo | Aviso de transferencia |
 | `/api/webhooks/mercadopago` | Mercado Pago | Aviso de pago (firma verificada) |
+| `/api/webhooks/resend` | Resend | Entregas, rebotes y quejas (firma verificada) |
 | `/api/oauth/mercadopago` | Mercado Pago | Vuelta de la vinculación |
 | `/api/galeria/[fotoId]` | con permiso | Sirve una foto privada, firmada |
 | `/api/contenido/[id]` | público | Sirve una pieza de la vitrina (o la miniatura de YouTube) |
@@ -153,6 +155,8 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | **Login del panel** | Una sola clave compartida (`ADMIN_PASSWORD`) en una cookie httpOnly, con freno de fuerza bruta. Cuando Halley necesite varias cuentas se cambia por Supabase Auth sin tocar los routers. |
 | **Login de la familia** | Sólo email: un link de un solo uso que dura 30 minutos y se canjea por una sesión. Sin contraseñas que recordar, filtrar ni resetear. |
 | **Emails** | Resend con interruptor. Todo mensaje se registra en `Notificacion` y se ve en la Bandeja; con `EMAIL_MODE=resend` además sale de verdad. El registro es siempre primero: un problema con Resend nunca tumba el pago que lo disparó. |
+| **Envíos en masa** | No salen de golpe: cada correo se programa en Resend con su hora, de a 100 por hora y entre las 8 y las 21, porque lo que más castiga a un dominio es el salto de volumen. La cola vive en Resend y no en un proceso propio. Lo que pide una familia (el link para entrar, un comprobante) sale siempre en el momento. |
+| **A quién no se le escribe** | Antes de mandar se mira si el dominio del destinatario recibe correo, y el webhook de Resend bloquea las direcciones que rebotan o marcan spam. Un rebote o una queja de más acerca a Resend a pausar la cuenta. |
 | **Modo oscuro** | El *negativo*: no hay paleta aparte, se invierten los mismos tokens. Sigue al sistema y el botón lo pisa. El QR queda siempre en positivo para que los lectores lo tomen. |
 
 ---
@@ -287,6 +291,7 @@ Se validan **durante el build** ([`src/env.js`](src/env.js)): si falta
 | `EMAIL_MODE` | `bandeja` (no sale nada) o `resend` |
 | `RESEND_API_KEY` · `EMAIL_FROM` | Sólo con `EMAIL_MODE=resend` |
 | `EMAIL_REPLY_TO` | Casilla real a la que llegan las respuestas de las familias |
+| `RESEND_WEBHOOK_SECRET` | Opcional: sólo si el webhook de Resend se crea a mano. Con el botón del panel la clave queda en la base |
 | `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` | Credenciales del bucket |
 | `AWS_REGION` · `AWS_S3_BUCKET` | Dónde vive el contenido |
 | `AWS_S3_PREFIX` | **La carpeta de este cliente** dentro del bucket (ej. `halley`) |
@@ -368,6 +373,33 @@ EMAIL_REPLY_TO="hola@halleyaudiovisual.com"
 - **Para la demo conviene `bandeja`**: los emails de prueba van a direcciones
   inventadas y mandarlos de verdad sólo ensucia la reputación del dominio.
 
+### Dominios y entrega
+
+Desde la Bandeja, el botón **Dominios y entrega** lleva a la pantalla que
+junta todo lo que decide si un correo llega:
+
+- **Salud del correo.** Compara lo publicado en el DNS con lo que espera
+  Resend: firma DKIM (incluida una clave de más en el mismo selector, que
+  Resend no muestra), registros de envío, DMARC, si el dominio tiene casilla,
+  a dónde contestan las familias y a dónde llegan los avisos de pagos.
+- **Dominios.** Los de la cuenta de Resend con sus registros, para copiar a
+  Cloudflare; se agregan y se verifican desde acá. **Hace falta una clave de
+  Resend con acceso completo**: con una de sólo envío la pantalla lo dice y lo
+  demás funciona igual.
+- **Remitentes.** Uno para los avisos que no pueden fallar y otro, en un
+  subdominio, para los envíos en masa. Sin elegir nada sale todo de
+  `EMAIL_FROM`.
+- **Ritmo.** Cuántos correos en masa por hora. Un dominio nuevo sigue los siete
+  días de calentamiento de Resend.
+- **Avisos de entrega.** Un botón crea el webhook en Resend. Desde ahí la
+  bandeja dice si cada correo llegó, rebotó o lo marcaron como spam, y esas
+  direcciones se bloquean solas.
+- **Direcciones que no van a llegar.** Las de familias con el dominio mal
+  escrito o inexistente, con la corrección sugerida y el curso.
+
+El plan de Resend se elige arriba del medidor de la bandeja. El medidor corta
+el día a medianoche UTC, que es cuando Resend reinicia el tope.
+
 ---
 
 ## Mudar la base de región
@@ -424,7 +456,10 @@ Requiere las herramientas de demo activas (en local ya lo están).
   con la URL de redirección registrada. El contrato de la API ya está verificado.
 - Pasar `TALO_MODE=real` con las credenciales rotadas (el KYC ya está hecho y el adaptador está verificado contra la API real).
 - Verificación de firma del webhook de Talo (la de Mercado Pago ya está).
-- Verificar el dominio de Halley en Resend y pasar `EMAIL_MODE=resend`.
+- Correo, en Cloudflare: borrar la clave DKIM de más en `resend._domainkey`,
+  activar DMARC Management y Email Routing. En el panel: completar "Email de
+  avisos", elegir el plan de Resend y conectar los avisos de entrega. Todo
+  figura en Dominios y entrega.
 - Preguntarle a Talo si emite el QR interoperable (Transferencias 3.0) para los
   CVU de sus customers. Si lo dan, vuelve el QR y se escanea desde cualquier
   banco; hoy no hay forma de generarlo bien de nuestro lado.
