@@ -2590,3 +2590,55 @@ cuenta de Resend. Hasta entonces el panel muestra el aviso rojo, que es lo
 correcto.
 
 **Rollback:** fila AG de la tabla.
+
+### AH. No se le escribe a un dominio que no recibe correo
+
+**De dónde salió.** Un correo a un dominio que no existe vuelve como rebote, y
+los rebotes son lo que más rápido hunde la reputación de un dominio: Resend
+pausa la cuenta pasado el 4%. Revisando a dónde fueron los correos del último
+mes aparecieron dos cosas:
+
+- **Los avisos a Halley van a un dominio que no existe.** El campo "Email de
+  avisos" de Ajustes está vacío, así que se usa la casilla del sistema,
+  `admin@halleyproducciones.com`, y ese dominio no está registrado. Fueron 955
+  avisos en 60 días ("Pago recibido", "Plan terminado", "Pago incompleto") que
+  no le llegaron a nadie. Es lo mismo que vimos en septiembre y sigue igual.
+- **Nueve familias tienen el dominio mal escrito.** `gmail.con`, `gmail.comm`,
+  `hotmail.comn`, `hotmail.coms`, `hotmail.como`, `gmail.com.ae`,
+  `gmail.com.ar`, `mi.unc.esu.ar` y `mi.unv.edu.ar`. Ninguno puede recibir
+  correo, y a esas familias les siguen saliendo recordatorios.
+
+**Qué cambió.** Antes de mandar, el sistema le pregunta al DNS si el dominio
+del destinatario recibe correo. Si no recibe, el correo no sale: queda en la
+bandeja con "No salió" en vez de "Falló el envío", y al abrirlo dice cuál es
+el dominio y que seguramente la dirección está mal escrita. No gasta cupo ni
+suma un rebote.
+
+**Las decisiones adentro.**
+
+- Si el DNS no contesta a tiempo, el correo sale igual. Frenar el link para
+  entrar de una familia por un problema de red de este lado sería peor que el
+  rebote que se quería evitar.
+- Cada dominio se pregunta una vez cada seis horas, no con cada correo: un
+  envío en masa repite gmail.com cuatrocientas veces. Si el DNS no contestó, se
+  vuelve a preguntar a los cinco minutos.
+- La espera máxima es de cinco segundos en total, no los veinte del resolvedor
+  de fábrica.
+- No cambié a quién le llegan los avisos a Halley. Que empiecen a llegarle
+  quince correos por día a una casilla que hoy no recibe nada es una decisión
+  de Fran, no del sistema. Lo que sí cambió es que dejan de mandarse al vacío.
+
+**Lo que no cubre.** `gmaim.com` es un dominio estacionado que sí acepta
+correo: el DNS dice que recibe, así que pasa. Ése lo va a señalar la pantalla
+de salud del correo, que compara contra los proveedores conocidos.
+
+**Verificado** contra la app local con un Resend falso: de tres invitaciones,
+la de `gmail.com` llega a Resend y las de `gmail.con` y `hotmail.comn` no; las
+tres quedan en la bandeja, y las dos frenadas dicen "No salió" con el motivo,
+sin culpar a Resend.
+
+**Hay que hacer una cosa.** En Ajustes, completar "Email de avisos" con la
+casilla donde Fran quiera recibir los avisos de pagos. Hasta entonces esos
+avisos quedan en la bandeja como "No salió".
+
+**Rollback:** fila AH de la tabla.

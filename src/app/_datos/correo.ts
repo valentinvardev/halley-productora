@@ -23,3 +23,13 @@ export type PlanResend = (typeof PLANES_RESEND)[number]["valor"];
 export function planResend(valor: string | null | undefined) {
   return PLANES_RESEND.find((p) => p.valor === valor) ?? PLANES_RESEND[0];
 }
+
+/**
+ * Con qué empieza el error de un correo que frenó Halley antes de mandarlo.
+ * La bandeja lo usa para no decir "Resend rechazó" de algo que Resend nunca vio.
+ */
+export const FRENADO = "No salió";
+
+export function frenadoPorHalley(error: string) {
+  return error.startsWith(FRENADO);
+}

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { useState } from "react";
 
-import { PLANES_RESEND } from "~/app/_datos/correo";
+import { PLANES_RESEND, frenadoPorHalley } from "~/app/_datos/correo";
 import { Ayuda } from "~/app/_components/ayuda";
 import {
   IconoAlerta,
@@ -82,7 +82,9 @@ export function Bandeja() {
                 {n.errorEnvio ? (
                   <Ayuda texto={n.errorEnvio} lado="arriba" largo>
                     <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
-                      Falló el envío
+                      {frenadoPorHalley(n.errorEnvio)
+                        ? "No salió"
+                        : "Falló el envío"}
                     </span>
                   </Ayuda>
                 ) : n.enviadoEl ? (
@@ -102,7 +104,9 @@ export function Bandeja() {
                 <div className="border-t border-gray-20 bg-lienzo">
                   {n.errorEnvio && (
                     <div className="border-b border-gray-20 px-5 py-3 nota text-marca">
-                      Resend rechazó el envío: {n.errorEnvio}
+                      {frenadoPorHalley(n.errorEnvio)
+                        ? n.errorEnvio
+                        : `Resend rechazó el envío: ${n.errorEnvio}`}
                     </div>
                   )}
                   <pre className="px-5 py-4 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">

@@ -6,6 +6,7 @@ import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
 import { emailHabilitado, enviarEmail } from "./email";
 import { plantillaEmail } from "./email-plantilla";
+import { motivoParaNoMandar } from "./entrega";
 import { render, textosDe } from "./plantillas";
 
 /**
@@ -49,6 +50,17 @@ async function entregar(
   const notificacion = await db.notificacion.create({ data });
 
   if (!emailHabilitado) return notificacion;
+
+  // Queda registrado igual, con el motivo: la bandeja es el historial de lo que
+  // se le quiso decir a cada familia, y un correo que no salió es justo el que
+  // hay que poder encontrar.
+  const motivo = await motivoParaNoMandar(data.destinatario);
+  if (motivo) {
+    return db.notificacion.update({
+      where: { id: notificacion.id },
+      data: { errorEnvio: motivo },
+    });
+  }
 
   const resultado = await enviarEmail({
     para: data.destinatario,
