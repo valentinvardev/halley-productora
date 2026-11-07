@@ -54,7 +54,7 @@ async function entregar(
   // Queda registrado igual, con el motivo: la bandeja es el historial de lo que
   // se le quiso decir a cada familia, y un correo que no salió es justo el que
   // hay que poder encontrar.
-  const motivo = await motivoParaNoMandar(data.destinatario);
+  const motivo = await motivoParaNoMandar(data.destinatario, data.tipo);
   if (motivo) {
     return db.notificacion.update({
       where: { id: notificacion.id },

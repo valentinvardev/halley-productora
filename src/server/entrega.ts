@@ -2,7 +2,12 @@ import "server-only";
 
 import { Resolver } from "node:dns/promises";
 
+import type { WebhookEventPayload } from "resend";
+
+import type { TipoNotificacion } from "../../generated/prisma";
 import { FRENADO } from "~/app/_datos/correo";
+import { fecha } from "~/lib/format";
+import { db } from "./db";
 
 /**
  * Lo que se mira antes de mandar un correo, para no mandarlo al vacío.
@@ -89,12 +94,149 @@ function noExiste(e: unknown) {
  * Los motivos empiezan con `FRENADO`: así la bandeja distingue lo que frenó
  * Halley de lo que rechazó Resend, que se lee distinto.
  */
-export async function motivoParaNoMandar(email: string) {
+export async function motivoParaNoMandar(email: string, tipo: TipoNotificacion) {
   const dominio = email.split("@")[1]?.trim();
   if (!dominio) return `${FRENADO}: la dirección no tiene dominio.`;
+
+  const bloqueo = await db.direccionBloqueada.findUnique({
+    where: { email: email.trim().toLowerCase() },
+  });
+  if (bloqueo?.motivo === "rebote") {
+    return `${FRENADO}: esta dirección rebotó el ${fecha(bloqueo.creadoEn)}${bloqueo.detalle ? ` ("${bloqueo.detalle}")` : ""}. No existe o no acepta correo.`;
+  }
+  if (bloqueo?.motivo === "queja" && TIPOS_MASIVOS.includes(tipo)) {
+    return `${FRENADO}: esta familia marcó un correo de Halley como spam el ${fecha(bloqueo.creadoEn)}. Se le sigue mandando lo que pide (el link para entrar, los comprobantes), pero no invitaciones ni recordatorios.`;
+  }
 
   if ((await dominioRecibe(dominio)) === false) {
     return `${FRENADO}: el dominio ${dominio} no recibe correo. Seguramente la dirección está mal escrita.`;
   }
   return null;
+}
+
+/**
+ * Los correos que salen en masa, y no porque la familia hizo algo.
+ *
+ * A quien marcó un correo como spam no se le mandan más de éstos. Los otros sí:
+ * el link para entrar lo pidió ella misma, y el comprobante es de un pago que
+ * hizo; cortárselos sería dejarla afuera de su propia cuenta.
+ */
+export const TIPOS_MASIVOS: TipoNotificacion[] = [
+  "INVITACION",
+  "RECORDATORIO",
+  "VALORACION",
+];
+
+/**
+ * Para contar antes de un envío en masa: si una dirección va a recibir.
+ *
+ * Carga los bloqueos una sola vez. La vista previa de un envío a tres colegios
+ * mira mil direcciones, y una consulta por cada una haría esperar al que
+ * eligió los colegios.
+ */
+export async function filtroMasivo() {
+  const bloqueadas = new Map(
+    (await db.direccionBloqueada.findMany()).map((b) => [b.email, b.motivo]),
+  );
+  return async (email: string): Promise<"ok" | "rebota" | "queja" | "no-recibe"> => {
+    const e = email.trim().toLowerCase();
+    const motivo = bloqueadas.get(e);
+    if (motivo === "rebote") return "rebota";
+    if (motivo === "queja") return "queja";
+    if ((await dominioRecibe(e.split("@")[1] ?? "")) === false) return "no-recibe";
+    return "ok";
+  };
+}
+
+/* ------------------------------------------------- avisos de entrega */
+
+/**
+ * Anota una dirección para no escribirle más.
+ *
+ * Un rebote pisa a una queja y no al revés: si la dirección no existe da igual
+ * que antes la hayan marcado como spam, no se le puede mandar nada.
+ */
+async function bloquear(email: string, motivo: "rebote" | "queja", detalle: string | null) {
+  const e = email.trim().toLowerCase();
+  const previo = await db.direccionBloqueada.findUnique({ where: { email: e } });
+  if (previo?.motivo === "rebote" && motivo === "queja") return;
+  await db.direccionBloqueada.upsert({
+    where: { email: e },
+    create: { email: e, motivo, detalle: detalle?.slice(0, 300) ?? null },
+    update: { motivo, detalle: detalle?.slice(0, 300) ?? null },
+  });
+}
+
+/**
+ * Lo que Resend cuenta que pasó con un correo después de aceptarlo.
+ *
+ * Sin esto "Enviado" sólo quiere decir que Resend lo tomó: no se sabe si llegó,
+ * si rebotó o si alguien lo marcó como spam, y son justo los dos números que
+ * deciden si Resend pausa la cuenta. Los eventos se aplican por el id del
+ * correo; si llega dos veces el mismo, escribe lo mismo dos veces.
+ */
+export async function registrarEventoDeEntrega(evento: WebhookEventPayload) {
+  if (!evento.type.startsWith("email.")) return { aplicado: false };
+  const data = evento.data as { email_id: string; to?: string[] };
+  const cuando = new Date(evento.created_at);
+  const para = data.to?.[0] ?? null;
+  const donde = { resendId: data.email_id };
+
+  switch (evento.type) {
+    case "email.delivered":
+      await db.notificacion.updateMany({ where: donde, data: { entregadoEl: cuando } });
+      break;
+
+    case "email.bounced": {
+      const { bounce } = evento.data;
+      await db.notificacion.updateMany({
+        where: donde,
+        data: { rebotadoEl: cuando, detalleEntrega: bounce.message },
+      });
+      // Los temporales (casilla llena, servidor caído) se reintentan solos y no
+      // dicen nada de la dirección. Sólo el permanente la marca.
+      if (bounce.type === "Permanent" && para) await bloquear(para, "rebote", bounce.message);
+      break;
+    }
+
+    case "email.complained":
+      await db.notificacion.updateMany({ where: donde, data: { quejaEl: cuando } });
+      if (para) await bloquear(para, "queja", null);
+      break;
+
+    case "email.suppressed": {
+      const { suppressed } = evento.data;
+      await db.notificacion.updateMany({
+        where: donde,
+        data: {
+          rebotadoEl: cuando,
+          detalleEntrega: `Resend no lo mandó: la dirección está en su lista de supresión. ${suppressed.message}`.trim(),
+        },
+      });
+      if (para) {
+        await bloquear(para, /complain/i.test(suppressed.type) ? "queja" : "rebote", suppressed.message);
+      }
+      break;
+    }
+
+    case "email.delivery_delayed":
+      await db.notificacion.updateMany({
+        where: { ...donde, entregadoEl: null },
+        data: { detalleEntrega: "Demorado: el servidor del destinatario todavía no lo aceptó. Resend sigue intentando." },
+      });
+      break;
+
+    case "email.failed":
+      // Resend lo había aceptado y después no lo pudo mandar: deja de contar
+      // como enviado, en la bandeja y en el medidor del cupo.
+      await db.notificacion.updateMany({
+        where: donde,
+        data: { enviadoEl: null, errorEnvio: evento.data.failed.reason },
+      });
+      break;
+
+    default:
+      return { aplicado: false };
+  }
+  return { aplicado: true };
 }

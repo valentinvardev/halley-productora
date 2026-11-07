@@ -519,6 +519,13 @@ model Notificacion {
   resendId   String?
   errorEnvio String?
 
+  /// Lo que contesta el servidor del destinatario, vía el webhook de Resend.
+  /// "Enviado" sólo dice que Resend lo aceptó; esto dice qué pasó después.
+  entregadoEl    DateTime?
+  rebotadoEl     DateTime?
+  quejaEl        DateTime?
+  detalleEntrega String?
+
   alumnoId String?
   alumno   Alumno? @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
   grupoId  String?
@@ -527,6 +534,23 @@ model Notificacion {
   creadoEn DateTime @default(now())
 
   @@index([creadoEn])
+  @@index([resendId])
+}
+
+/// Direcciones a las que no se les escribe más, o no de todo.
+///
+/// Las llena el webhook de Resend. Insistir con una dirección que rebota o que
+/// marcó un correo como spam es lo que más castiga la reputación del dominio, y
+/// Resend pausa la cuenta pasado el 4% de rebotes o el 0,08% de quejas.
+model DireccionBloqueada {
+  email    String   @id
+  /// "rebote": la dirección no existe; no se le manda nada.
+  /// "queja": marcó un correo como spam; se le sigue mandando sólo lo que pide
+  /// ella misma (el link para entrar, los comprobantes), nunca invitaciones ni
+  /// recordatorios.
+  motivo   String
+  detalle  String?
+  creadoEn DateTime @default(now())
 }
 
 /// Sólo existe mientras Talo está en modo mock: guarda las transferencias

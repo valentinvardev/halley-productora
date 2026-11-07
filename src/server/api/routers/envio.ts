@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { destinatarios, invitarFamilia } from "~/server/alumnos";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
+import { filtroMasivo } from "~/server/entrega";
 import { notificarRecordatorio } from "~/server/notificaciones";
 
 /**
@@ -79,6 +80,7 @@ export const envioRouter = createTRPCRouter({
 
       const elegidos: string[] = [];
       const grupos = new Set<string>();
+      const recibe = await filtroMasivo();
 
       for (const alumno of alumnos) {
         grupos.add(alumno.grupoId);
@@ -109,6 +111,18 @@ export const envioRouter = createTRPCRouter({
             descartar("al día");
             continue;
           }
+        }
+
+        // Al final y no al principio: "ya invitada" dice más que "dirección
+        // mala" de una familia que no iba a recibir nada igual.
+        const estados = await Promise.all(destinatarios(alumno).map(recibe));
+        if (!estados.includes("ok")) {
+          descartar(
+            estados.includes("queja")
+              ? "marcaron un correo como spam"
+              : "con la dirección rebotada o mal escrita",
+          );
+          continue;
         }
 
         elegidos.push(alumno.id);

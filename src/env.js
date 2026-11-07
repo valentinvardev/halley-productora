@@ -104,6 +104,14 @@ export const env = createEnv({
      * define, se usa ADMIN_EMAIL, que ya es la casilla que recibe los avisos.
      */
     EMAIL_REPLY_TO: z.string().email().optional(),
+    /**
+     * La clave que firma los avisos de entrega de Resend (rebotes, quejas).
+     *
+     * Normalmente no hace falta: el botón "Conectar" de Dominios y entrega
+     * crea el webhook en Resend y guarda la clave en la base. Esta variable es
+     * para quien prefiera crearlo a mano desde el panel de Resend.
+     */
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
 
     /**
      * AWS S3 — donde vive el contenido de la vitrina.
@@ -163,6 +171,7 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
     EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
+    RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: process.env.AWS_REGION,

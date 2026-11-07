@@ -95,6 +95,20 @@ export function Bandeja() {
                         : "Falló el envío"}
                     </span>
                   </Ayuda>
+                ) : n.quejaEl ? (
+                  <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
+                    Marcado como spam
+                  </span>
+                ) : n.rebotadoEl ? (
+                  <Ayuda texto={n.detalleEntrega ?? "Rebotó"} lado="arriba" largo>
+                    <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
+                      Rebotó
+                    </span>
+                  </Ayuda>
+                ) : n.entregadoEl ? (
+                  <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-ink">
+                    Entregado
+                  </span>
                 ) : n.enviadoEl ? (
                   <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
                     Enviado
@@ -115,6 +129,14 @@ export function Bandeja() {
                       {frenadoPorHalley(n.errorEnvio)
                         ? n.errorEnvio
                         : `Resend rechazó el envío: ${n.errorEnvio}`}
+                    </div>
+                  )}
+                  {/* Lo que contó el servidor del destinatario: un rebote, una
+                      demora. Va aparte del error de envío porque es otra cosa:
+                      ése no salió, éste salió y pasó algo después. */}
+                  {n.detalleEntrega && !n.errorEnvio && (
+                    <div className={`border-b border-gray-20 px-5 py-3 nota ${n.rebotadoEl ? "text-marca" : ""}`}>
+                      {n.detalleEntrega}
                     </div>
                   )}
                   <pre className="px-5 py-4 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">

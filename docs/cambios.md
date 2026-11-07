@@ -2734,3 +2734,80 @@ horizontal. Sin errores de JavaScript.
 3. Activar Email Routing para que `hola@halleyaudiovisual.com` reciba.
 
 **Rollback:** fila AI de la tabla.
+
+### AJ. Avisos de entrega: rebotes y quejas
+
+**De dónde salió.** En la bandeja, "Enviado" quiere decir que Resend aceptó
+el correo y nada más. No se sabe si llegó, si rebotó o si alguien lo marcó
+como spam. Esos dos últimos números son los que deciden si Resend pausa la
+cuenta (4% de rebotes, 0,08% de quejas), y son también los que más pesan en
+la reputación del dominio. Sin medirlos, a una dirección que no existe se le
+seguía escribiendo cada vez que salía un recordatorio.
+
+**Qué cambió.**
+
+- **Resend avisa qué pasó con cada correo.** En Dominios y entrega hay una
+  sección nueva, "Avisos de entrega", con un botón que crea el webhook en
+  Resend apuntando a Halley y guarda la clave con que Resend firma cada aviso.
+  Apretarlo dos veces no crea dos.
+- **La bandeja dice qué pasó.** Cada fila pasa de "Enviado" a "Entregado",
+  "Rebotó" (con lo que contestó el servidor del destinatario) o "Marcado como
+  spam". Una demora queda anotada sin cambiar el estado.
+- **Las direcciones problemáticas se bloquean solas.** A una dirección que
+  rebotó de forma permanente no se le manda nada más. A una familia que marcó
+  un correo como spam no se le mandan invitaciones, recordatorios ni pedidos
+  de valoración, pero sí lo que pide ella misma: el link para entrar y el
+  comprobante de un pago. Cortarle eso sería dejarla afuera de su cuenta. Un
+  rebote temporal, como una casilla llena, no bloquea.
+- **La salud del correo mide la tasa.** Rebotes y quejas de los últimos 30
+  días contra los topes de Resend, con Revisar desde la mitad del tope y
+  Problema desde el tope.
+- **Las bloqueadas aparecen en la lista de direcciones**, con la fecha y el
+  motivo, y un "Quitar el bloqueo" para cuando la familia arregló su casilla.
+  Quitarlo también la saca de la lista de supresión de Resend: si no, Resend
+  la seguiría frenando de su lado.
+- **El envío en masa las descuenta antes de mandar.** La vista previa cuenta
+  aparte a las familias con la dirección rebotada o mal escrita y a las que
+  marcaron spam.
+
+**Las decisiones adentro.**
+
+- La ruta del webhook es una puerta abierta a internet y la cuida sólo la
+  firma: sin ella cualquiera podría marcar como rebotada la dirección de una
+  familia. Se verifica sobre el cuerpo crudo, antes de leerlo como JSON.
+- La clave vive en la base, en una fila que no viaja con el formulario de
+  ajustes. Para quien prefiera crear el webhook a mano queda la variable
+  `RESEND_WEBHOOK_SECRET`.
+- La tasa se calcula sobre los correos que tuvieron algún aviso, no sobre
+  todos los enviados. Si no, el primer mes después de conectar mezclaría
+  correos medidos con correos que nunca se iban a medir, y daría más baja de
+  lo que es.
+- Si Resend avisa que un correo que había aceptado finalmente no salió, deja
+  de contar como enviado, en la bandeja y en el medidor del cupo.
+
+**Cómo está hecho.** Una tabla nueva, `DireccionBloqueada`, y cuatro columnas
+nuevas en `Notificacion`: `entregadoEl`, `rebotadoEl`, `quejaEl` y
+`detalleEntrega`, más un índice por `resendId`, que es por donde llegan los
+avisos. La ruta es `/api/webhooks/resend`. La lógica está en
+`registrarEventoDeEntrega` y el freno antes de mandar sigue siendo uno solo,
+`motivoParaNoMandar`, que ahora también mira los bloqueos.
+
+**Verificado** contra la app local con un Resend falso y avisos firmados con
+la misma librería que usa Resend. Sin conectar, la ruta contesta 503 y la
+salud lo pide. Conectar crea el webhook con la URL pública y los eventos de
+correo, y una segunda vez no crea otro; la clave no aparece en nada de lo que
+recibe el panel. Una firma falsa y un cuerpo tocado después de firmar dan 401
+y no tocan la base. Entregado, rebote permanente, queja, demora, rebote
+temporal y falla se aplican cada uno como corresponde, y un aviso repetido no
+rompe nada. Después: a la dirección rebotada no le sale una invitación, a la
+que se quejó tampoco, pero el comprobante de su pago sí. La vista previa del
+envío en masa las descuenta con su motivo. "Quitar el bloqueo" desde la
+pantalla la saca también de la supresión de Resend, y el correo vuelve a
+salir. Sin errores de JavaScript.
+
+**Hay que hacer una cosa.** En Dominios y entrega, apretar "Conectar los
+avisos". Si la clave de Resend del servidor es de sólo envío, la pantalla lo
+dice y explica cómo hacerlo a mano.
+
+**Rollback:** fila AJ de la tabla. Las columnas y la tabla nuevas quedan en la
+base sin uso.

@@ -6,10 +6,13 @@ import { db } from "./db";
  * Los ajustes del correo, guardados en la misma tabla clave/valor que el resto.
  *
  * Van aparte de `AJUSTES` a propósito: ésos se devuelven enteros al panel y se
- * editan con un formulario genérico, y éstos tienen cada uno su pantalla.
+ * editan con un formulario genérico, y acá vive el secreto que firma los
+ * avisos de entrega de Resend, que no tiene por qué viajar al navegador nunca.
  */
 const CLAVES = {
   plan: "correoPlan",
+  webhookId: "resendWebhookId",
+  webhookSecreto: "resendWebhookSecreto",
 } as const;
 
 export type ClaveCorreo = keyof typeof CLAVES;

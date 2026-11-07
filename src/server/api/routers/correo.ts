@@ -7,12 +7,14 @@ import {
   chequeoCasilla,
   chequeoDkim,
   chequeoDmarc,
+  chequeoEntregas,
   direccionesConProblema,
   dominioRaiz,
   mx,
   revisarRegistro,
   type Chequeo,
 } from "~/server/correo-salud";
+import { guardarCorreo, leerCorreo } from "~/server/correo-ajustes";
 import { clienteResend, responderA } from "~/server/email";
 import { casillaDeAvisos } from "~/server/notificaciones";
 
@@ -39,6 +41,19 @@ function mensajeDeResend(error: { name: string; message: string }) {
   }
   return error.message;
 }
+
+/** Lo que Halley le pide a Resend que le avise. */
+const EVENTOS = [
+  "email.delivered",
+  "email.bounced",
+  "email.complained",
+  "email.suppressed",
+  "email.delivery_delayed",
+  "email.failed",
+] as const;
+
+const urlDelWebhook = () =>
+  `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/api/webhooks/resend`;
 
 async function dominiosDeResend() {
   const api = clienteResend();
@@ -158,8 +173,17 @@ export const correoRouter = createTRPCRouter({
       ),
     );
 
+    const ajustes = await leerCorreo();
+    const webhook = {
+      conectado: !!(ajustes.webhookSecreto || env.RESEND_WEBHOOK_SECRET),
+      /** Si lo creó el botón del panel o alguien a mano con la variable. */
+      origen: ajustes.webhookSecreto ? ("panel" as const) : env.RESEND_WEBHOOK_SECRET ? ("entorno" as const) : null,
+      url: urlDelWebhook(),
+    };
+    salud.push(await chequeoEntregas(webhook.conectado));
+
     const direcciones = await direccionesConProblema();
-    const noReciben = direcciones.filter((d) => d.motivo === "no-recibe").length;
+    const noReciben = direcciones.filter((d) => d.motivo !== "parece-mal-escrita").length;
     salud.push(
       direcciones.length
         ? {
@@ -167,7 +191,7 @@ export const correoRouter = createTRPCRouter({
             titulo: "Direcciones de las familias",
             estado: noReciben ? "problema" : "atencion",
             detalle:
-              (noReciben ? `${noReciben} no pueden recibir correo: el dominio no existe. ` : "") +
+              (noReciben ? `${noReciben} no pueden recibir correo: rebotaron, se quejaron o el dominio no existe. ` : "") +
               (direcciones.length - noReciben
                 ? `${direcciones.length - noReciben} se parecen demasiado a un proveedor conocido para ser reales. `
                 : "") +
@@ -190,8 +214,58 @@ export const correoRouter = createTRPCRouter({
       dominios: resend.dominios,
       salud,
       direcciones,
+      webhook,
     };
   }),
+
+  /**
+   * Le pide a Resend que avise de cada entrega, rebote y queja.
+   *
+   * Crea el webhook con la URL pública de Halley y guarda en la base la clave
+   * con que Resend firma cada aviso: es lo que permite que la ruta del webhook
+   * le crea. Si ya hay uno creado desde acá y sigue existiendo, no crea otro.
+   */
+  conectarWebhook: adminProcedure.mutation(async () => {
+    const api = clienteResend();
+    if (!api) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No hay clave de Resend en el servidor." });
+
+    const url = urlDelWebhook();
+    if (process.env.NODE_ENV === "production" && /\/\/(localhost|127\.0\.0\.1)/.test(url)) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `NEXT_PUBLIC_APP_URL apunta a ${url}: Resend no puede avisarle a una dirección local.` });
+    }
+
+    const { webhookId } = await leerCorreo();
+    if (webhookId) {
+      const { data } = await api.webhooks.get(webhookId);
+      if (data) return { yaEstaba: true };
+    }
+
+    const { data, error } = await api.webhooks.create({ endpoint: url, events: [...EVENTOS] });
+    if (error) throw new TRPCError({ code: "BAD_REQUEST", message: mensajeDeResend(error) });
+    await guardarCorreo({ webhookId: data.id, webhookSecreto: data.signing_secret });
+    return { yaEstaba: false };
+  }),
+
+  /**
+   * Vuelve a habilitar una dirección bloqueada.
+   *
+   * Es para cuando la familia arregló su casilla o el rebote fue un error. La
+   * saca también de la lista de supresión de Resend: si no, Resend la seguiría
+   * frenando de su lado y el correo tampoco saldría.
+   */
+  desbloquear: adminProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ ctx, input }) => {
+      const email = input.email.trim().toLowerCase();
+      await ctx.db.direccionBloqueada.deleteMany({ where: { email } });
+
+      const api = clienteResend();
+      if (!api) return { enResend: "sin-clave" as const };
+      const { error } = await api.suppressions.remove(email);
+      if (!error) return { enResend: "quitada" as const };
+      if (error.name === "not_found") return { enResend: "no-estaba" as const };
+      return { enResend: "error" as const, error: mensajeDeResend(error) };
+    }),
 
   /**
    * Agrega un dominio o subdominio en Resend.

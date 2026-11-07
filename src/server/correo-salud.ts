@@ -273,6 +273,53 @@ export async function chequeoCasilla(
   return { clave, titulo, estado: "bien", detalle: `Es ${email}, y su dominio recibe correo.` };
 }
 
+/**
+ * La tasa de rebotes y de quejas, contra los topes con los que Resend pausa la
+ * cuenta.
+ *
+ * Se mide sólo sobre los correos de los que llegó algún aviso de entrega. Si
+ * se dividiera por todos los enviados, el primer mes después de conectar los
+ * avisos mezclaría correos medidos con correos que nunca se iban a medir, y la
+ * tasa saldría más baja de lo que es.
+ */
+export async function chequeoEntregas(conectados: boolean): Promise<Chequeo> {
+  const titulo = "Rebotes y quejas de los últimos 30 días";
+  if (!conectados) {
+    return {
+      clave: "entregas", titulo, estado: "atencion",
+      detalle: "Los avisos de entrega no están conectados. Resend no le cuenta a Halley qué correos rebotan ni quién los marca como spam, que son justo los dos números por los que pausa la cuenta: 4% de rebotes o 0,08% de quejas.",
+      arreglo: "Conectalos abajo, en Avisos de entrega. Es un botón.",
+    };
+  }
+  const desde = new Date(Date.now() - 30 * 86_400_000);
+  const conAviso = {
+    OR: [{ entregadoEl: { gte: desde } }, { rebotadoEl: { gte: desde } }, { quejaEl: { gte: desde } }],
+  };
+  const [medidos, rebotes, quejas] = await Promise.all([
+    db.notificacion.count({ where: conAviso }),
+    db.notificacion.count({ where: { rebotadoEl: { gte: desde } } }),
+    db.notificacion.count({ where: { quejaEl: { gte: desde } } }),
+  ]);
+  if (medidos < 50) {
+    return {
+      clave: "entregas", titulo, estado: "bien",
+      detalle: `Conectados. Todavía hay pocos correos medidos para sacar una tasa: ${medidos} con aviso, ${rebotes} rebote${rebotes === 1 ? "" : "s"}, ${quejas} queja${quejas === 1 ? "" : "s"}.`,
+    };
+  }
+  const tasaRebotes = rebotes / medidos;
+  const tasaQuejas = quejas / medidos;
+  const pct = (x: number) => `${(x * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
+  const estado =
+    tasaRebotes >= 0.04 || tasaQuejas >= 0.0008 ? "problema"
+      : tasaRebotes >= 0.02 || tasaQuejas >= 0.0004 ? "atencion"
+        : "bien";
+  return {
+    clave: "entregas", titulo, estado,
+    detalle: `De ${medidos} correos medidos, ${rebotes} rebotaron (${pct(tasaRebotes)}) y ${quejas} fueron marcados como spam (${pct(tasaQuejas)}). Resend pausa la cuenta pasado el 4% de rebotes o el 0,08% de quejas.`,
+    arreglo: estado === "bien" ? undefined : "Las direcciones que rebotaron o se quejaron están abajo, y ya no se les manda. Si los rebotes vienen de una carga nueva, revisá la lista antes del próximo envío en masa.",
+  };
+}
+
 /* ------------------------------------------- direcciones de las familias */
 
 /**
@@ -319,8 +366,16 @@ export function proveedorParecido(dominio: string) {
 
 export type DireccionConProblema = {
   email: string;
-  motivo: "no-recibe" | "parece-mal-escrita";
+  /**
+   * "rebota" y "marco-spam" los anotó el webhook de Resend; los otros dos
+   * salen de mirar la dirección.
+   */
+  motivo: "rebota" | "marco-spam" | "no-recibe" | "parece-mal-escrita";
   sugerencia: string | null;
+  /** Lo que contestó el servidor del destinatario, si rebotó. */
+  detalle: string | null;
+  /** Cuándo se bloqueó, si se bloqueó. */
+  desde: Date | null;
   alumnos: { id: string; nombre: string; grupoId: string; grupo: string }[];
 };
 
@@ -332,7 +387,7 @@ export type DireccionConProblema = {
  * entran sin link nunca probaron su email.
  */
 export async function direccionesConProblema(): Promise<DireccionConProblema[]> {
-  const [contactos, tutores] = await Promise.all([
+  const [contactos, tutores, bloqueadas] = await Promise.all([
     db.alumno.findMany({
       where: { emailContacto: { not: null } },
       select: { id: true, nombre: true, emailContacto: true, grupoId: true, grupo: { select: { nombre: true } } },
@@ -340,7 +395,9 @@ export async function direccionesConProblema(): Promise<DireccionConProblema[]> 
     db.tutor.findMany({
       select: { cuenta: { select: { email: true } }, alumno: { select: { id: true, nombre: true, grupoId: true, grupo: { select: { nombre: true } } } } },
     }),
+    db.direccionBloqueada.findMany(),
   ]);
+  const bloqueo = new Map(bloqueadas.map((b) => [b.email, b]));
 
   const porEmail = new Map<string, DireccionConProblema["alumnos"]>();
   const sumar = (email: string, a: { id: string; nombre: string; grupoId: string; grupo: { nombre: string } }) => {
@@ -365,8 +422,14 @@ export async function direccionesConProblema(): Promise<DireccionConProblema[]> 
   for (const [email, alumnos] of porEmail) {
     const dominio = email.split("@")[1] ?? "";
     const sugerencia = proveedorParecido(dominio);
-    if (recibe.get(dominio) === false) salida.push({ email, motivo: "no-recibe", sugerencia, alumnos });
-    else if (sugerencia) salida.push({ email, motivo: "parece-mal-escrita", sugerencia, alumnos });
+    const b = bloqueo.get(email);
+    if (b) {
+      salida.push({ email, motivo: b.motivo === "queja" ? "marco-spam" : "rebota", sugerencia, detalle: b.detalle, desde: b.creadoEn, alumnos });
+    } else if (recibe.get(dominio) === false) {
+      salida.push({ email, motivo: "no-recibe", sugerencia, detalle: null, desde: null, alumnos });
+    } else if (sugerencia) {
+      salida.push({ email, motivo: "parece-mal-escrita", sugerencia, detalle: null, desde: null, alumnos });
+    }
   }
   return salida.sort((a, b) => a.email.localeCompare(b.email));
 }

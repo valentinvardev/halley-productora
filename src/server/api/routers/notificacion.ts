@@ -45,6 +45,10 @@ export const notificacionRouter = createTRPCRouter({
         creadoEn: n.creadoEn,
         enviadoEl: n.enviadoEl,
         errorEnvio: n.errorEnvio,
+        entregadoEl: n.entregadoEl,
+        rebotadoEl: n.rebotadoEl,
+        quejaEl: n.quejaEl,
+        detalleEntrega: n.detalleEntrega,
       }));
     }),
 

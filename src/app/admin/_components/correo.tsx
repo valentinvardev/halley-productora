@@ -5,7 +5,8 @@ import { useState, type ReactNode } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
 import { IconoAlerta } from "~/app/_components/iconos";
-import { Boton, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
+import { Boton, BotonTexto, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
+import { fecha } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type Estado = RouterOutputs["correo"]["estado"];
@@ -72,6 +73,7 @@ export function CorreoEntrega() {
             dominios={data.dominios}
             propio={data.dominio}
           />
+          <AvisosDeEntrega webhook={data.webhook} clave={data.clave} />
           <Direcciones direcciones={data.direcciones} />
         </>
       )}
@@ -336,7 +338,87 @@ function AgregarDominio({ raiz }: { raiz: string }) {
   );
 }
 
+function AvisosDeEntrega({
+  webhook,
+  clave,
+}: {
+  webhook: Estado["webhook"];
+  clave: Estado["clave"];
+}) {
+  const utils = api.useUtils();
+  const conectar = api.correo.conectarWebhook.useMutation({
+    onSuccess: () => utils.correo.estado.invalidate(),
+  });
+
+  return (
+    <Caja
+      titulo="Avisos de entrega"
+      extra={
+        <span className={`nota text-[11.5px] ${webhook.conectado ? "text-gray-45" : "text-ink"}`}>
+          {webhook.conectado ? "Conectados" : "Sin conectar"}
+        </span>
+      }
+    >
+      <div className="px-5 py-4">
+        {webhook.conectado ? (
+          <p className="nota max-w-[78ch] text-[12.5px]">
+            Resend avisa a Halley cuando un correo llega, rebota o alguien lo
+            marca como spam. Cada aviso queda en la fila de la bandeja, y las
+            direcciones que rebotan o se quejan se bloquean solas: a las que
+            rebotan no se les manda nada más, y a las que se quejan no se les
+            mandan invitaciones ni recordatorios.
+            {webhook.origen === "entorno" &&
+              " Están conectados a mano, con la clave en RESEND_WEBHOOK_SECRET."}
+          </p>
+        ) : (
+          <>
+            <p className="nota max-w-[78ch] text-[12.5px]">
+              Hoy "Enviado" sólo quiere decir que Resend aceptó el correo. No se
+              sabe si llegó, si rebotó o si alguien lo marcó como spam, y se le
+              sigue escribiendo a direcciones que no existen. Conectar los
+              avisos le pide a Resend que avise de cada entrega a{" "}
+              <code className="font-mono text-[11.5px]">{webhook.url}</code>.
+            </p>
+            {clave === "completa" ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Boton
+                  onClick={() => conectar.mutate()}
+                  disabled={conectar.isPending}
+                >
+                  {conectar.isPending ? "Conectando…" : "Conectar los avisos"}
+                </Boton>
+                {conectar.isError && (
+                  <span className="nota text-marca">{conectar.error.message}</span>
+                )}
+              </div>
+            ) : (
+              <p className="nota mt-2 max-w-[78ch] text-[12.5px] text-gray-70">
+                Para conectarlos desde acá hace falta una clave de Resend con
+                acceso completo. Si no, se puede crear a mano: en Resend,
+                Webhooks, con esa dirección y los eventos de correo, y poner el
+                Signing secret en RESEND_WEBHOOK_SECRET en el servidor.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </Caja>
+  );
+}
+
+const ROTULO_DIRECCION: Record<Estado["direcciones"][number]["motivo"], string> = {
+  rebota: "Rebotó",
+  "marco-spam": "Marcó un correo como spam",
+  "no-recibe": "El dominio no existe",
+  "parece-mal-escrita": "Parece mal escrita",
+};
+
 function Direcciones({ direcciones }: { direcciones: Estado["direcciones"] }) {
+  const utils = api.useUtils();
+  const desbloquear = api.correo.desbloquear.useMutation({
+    onSuccess: () => utils.correo.estado.invalidate(),
+  });
+
   return (
     <Caja
       titulo="Direcciones que no van a llegar"
@@ -358,9 +440,22 @@ function Direcciones({ direcciones }: { direcciones: Estado["direcciones"] }) {
               className="grid gap-x-5 gap-y-1 border-b border-gray-20 px-5 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.2fr)] sm:items-baseline"
             >
               <code className="min-w-0 truncate font-mono text-[12px]">{d.email}</code>
-              <span className={`nota text-[12px] ${d.motivo === "no-recibe" ? "text-marca" : ""}`}>
-                {d.motivo === "no-recibe" ? "El dominio no existe" : "Parece mal escrita"}
+              <span className={`nota text-[12px] ${d.motivo === "parece-mal-escrita" ? "" : "text-marca"}`}>
+                {ROTULO_DIRECCION[d.motivo]}
+                {d.desde && ` el ${fecha(d.desde)}`}
                 {d.sugerencia && ` · ¿${d.email.split("@")[0]}@${d.sugerencia}?`}
+                {d.detalle && (
+                  <span className="block text-[11px] text-gray-45">{d.detalle}</span>
+                )}
+                {(d.motivo === "rebota" || d.motivo === "marco-spam") && (
+                  <BotonTexto
+                    className="mt-1 text-ink"
+                    disabled={desbloquear.isPending}
+                    onClick={() => desbloquear.mutate({ email: d.email })}
+                  >
+                    Quitar el bloqueo
+                  </BotonTexto>
+                )}
               </span>
               <span className="nota min-w-0 text-[12px]">
                 {d.alumnos.map((a, i) => (
