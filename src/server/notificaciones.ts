@@ -1,12 +1,14 @@
 import type { TipoNotificacion } from "../../generated/prisma";
+import { FRENADO } from "~/app/_datos/correo";
 import { env } from "~/env";
 import { contacto } from "./ajustes";
 import { fecha, pesos } from "~/lib/format";
 import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
-import { emailHabilitado, enviarEmail } from "./email";
+import { clienteResend, emailHabilitado, enviarEmail } from "./email";
 import { plantillaEmail } from "./email-plantilla";
 import { motivoParaNoMandar, remitentePara } from "./entrega";
+import { turnoMasivo } from "./ritmo";
 import { render, textosDe } from "./plantillas";
 
 /**
@@ -46,24 +48,39 @@ async function entregar(
   },
   /** La cara HTML. El texto de `cuerpo` queda de fallback y de registro. */
   html?: string,
+  /**
+   * Si es parte de un envío en masa. Ahí el correo no sale en el momento sino
+   * en el turno que le da el ritmo (ver `ritmo.ts`).
+   */
+  opciones: { enMasa?: boolean } = {},
 ) {
   const remitente = await remitentePara(data.tipo);
-  const notificacion = await db.notificacion.create({
-    data: { ...data, remitente },
-  });
-
-  if (!emailHabilitado) return notificacion;
+  if (!emailHabilitado) {
+    return db.notificacion.create({ data: { ...data, remitente } });
+  }
 
   // Queda registrado igual, con el motivo: la bandeja es el historial de lo que
   // se le quiso decir a cada familia, y un correo que no salió es justo el que
   // hay que poder encontrar.
-  const motivo = await motivoParaNoMandar(data.destinatario, data.tipo);
-  if (motivo) {
-    return db.notificacion.update({
-      where: { id: notificacion.id },
-      data: { errorEnvio: motivo },
-    });
+  let motivo = await motivoParaNoMandar(data.destinatario, data.tipo);
+
+  // El turno se pide con el destinatario ya aprobado: uno que no va a salir
+  // no tiene por qué ocupar una hora de la cola.
+  const programadaPara =
+    opciones.enMasa && !motivo ? await turnoMasivo(remitente) : null;
+  if (programadaPara && programadaPara.getTime() - Date.now() > 29 * DIA) {
+    motivo = `${FRENADO}: la cola de envíos en masa ya pasa los 30 días que Resend permite programar. Subí el ritmo o mandalo más adelante.`;
   }
+
+  const notificacion = await db.notificacion.create({
+    data: {
+      ...data,
+      remitente,
+      programadaPara: motivo ? null : programadaPara,
+      errorEnvio: motivo,
+    },
+  });
+  if (motivo) return notificacion;
 
   const resultado = await enviarEmail({
     de: remitente,
@@ -71,6 +88,11 @@ async function entregar(
     asunto: data.asunto,
     texto: data.cuerpo,
     html,
+    // Un turno de acá a un minuto sale directo: programarlo no espacia nada.
+    programadaPara:
+      programadaPara && programadaPara.getTime() - Date.now() > 60_000
+        ? programadaPara
+        : undefined,
   });
 
   return db.notificacion.update({
@@ -79,6 +101,62 @@ async function entregar(
       ? { enviadoEl: new Date(), resendId: resultado.id }
       : { errorEnvio: resultado.error },
   });
+}
+
+const DIA = 86_400_000;
+
+/**
+ * Cancela en Resend correos programados que todavía no salieron.
+ *
+ * Si Resend no deja cancelar uno es porque ya llegó su hora y salió: se deja
+ * como está, porque eso es lo que pasó.
+ */
+export async function cancelarProgramadas(
+  lista: { id: string; resendId: string | null }[],
+) {
+  const api = clienteResend();
+  if (!api) return 0;
+  let canceladas = 0;
+  for (const n of lista) {
+    if (!n.resendId) continue;
+    const { error } = await api.emails.cancel(n.resendId);
+    if (error) continue;
+    await db.notificacion.update({
+      where: { id: n.id },
+      data: { canceladaEl: new Date() },
+    });
+    canceladas += 1;
+  }
+  return canceladas;
+}
+
+/**
+ * Los recordatorios en cola de un alumno que acaba de pagar.
+ *
+ * Es el costo de mandar con ritmo: un recordatorio programado para las cuatro
+ * de la tarde le llegaría a la familia que pagó al mediodía, diciéndole que
+ * debe lo que ya pagó. Se cancelan todos los suyos y no sólo los de la cuota
+ * que pagó: el monto que dicen se calculó antes del pago y ya no es el que es.
+ *
+ * Nunca hace fallar al pago que lo dispara.
+ */
+export async function cancelarRecordatoriosProgramados(alumnoId: string) {
+  try {
+    const pendientes = await db.notificacion.findMany({
+      where: {
+        alumnoId,
+        tipo: "RECORDATORIO",
+        programadaPara: { gt: new Date(Date.now() + 30_000) },
+        canceladaEl: null,
+        errorEnvio: null,
+      },
+      select: { id: true, resendId: true },
+    });
+    return await cancelarProgramadas(pendientes);
+  } catch (error) {
+    console.error("[ritmo] no se pudieron cancelar recordatorios:", error);
+    return 0;
+  }
 }
 
 const firma = ["", "Halley Audiovisual"];
@@ -151,6 +229,7 @@ export async function notificarValoracion({
 export async function notificarInvitacion(
   { alumno, grupo, email }: { alumno: Alumno; grupo: Grupo; email: string },
   cuota: { numero: number; total: number; monto: number; venceEl: Date } | null,
+  opciones: { enMasa?: boolean } = {},
 ) {
   const registro = linkRegistroAlumno(grupo.slug, alumno.id);
 
@@ -209,6 +288,7 @@ export async function notificarInvitacion(
       boton: { texto: "Crear mi cuenta", url: registro },
       nota: `${con(t.nota)} Si preferís no registrarte, este link te lleva directo al pago: ${linkAlumno(alumno.token)}`.trim(),
     }),
+    opciones,
   );
 }
 
@@ -552,6 +632,7 @@ export async function notificarPagoParcial(
 export async function notificarRecordatorio(
   { alumno, grupo, email }: { alumno: Alumno; grupo: Grupo; email: string },
   cuota: { numero: number; monto: number; venceEl: Date; vencida: boolean },
+  opciones: { enMasa?: boolean } = {},
 ) {
   // Vencida y por vencer son dos plantillas y no una con un `if` adentro: son
   // dos mensajes distintos —uno avisa, el otro reclama— y Halley tiene que
@@ -601,6 +682,7 @@ export async function notificarRecordatorio(
       boton: { texto: "Pagar la cuota", url: linkAlumno(alumno.token) },
       nota: con(t.nota) || undefined,
     }),
+    opciones,
   );
 }
 

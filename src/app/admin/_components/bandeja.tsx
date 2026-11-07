@@ -67,6 +67,8 @@ export function Bandeja() {
 
       <UsoDeResend />
 
+      <Cola />
+
       <ProbarPlantillas />
 
       {isLoading && <EsqueletoBandeja soloLista />}
@@ -95,6 +97,10 @@ export function Bandeja() {
                         : "Falló el envío"}
                     </span>
                   </Ayuda>
+                ) : n.canceladaEl ? (
+                  <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
+                    Cancelado
+                  </span>
                 ) : n.quejaEl ? (
                   <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
                     Marcado como spam
@@ -112,6 +118,11 @@ export function Bandeja() {
                 ) : n.entregadoEl ? (
                   <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-ink">
                     Entregado
+                  </span>
+                ) : n.programadaPara &&
+                  new Date(n.programadaPara) > new Date() ? (
+                  <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-ink">
+                    Sale {fechaHora(n.programadaPara)}
                   </span>
                 ) : n.enviadoEl ? (
                   <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-gray-45">
@@ -245,6 +256,79 @@ function UsoDeResend() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Lo que está en cola en Resend, esperando su turno.
+ *
+ * Existe porque un envío en masa ya no sale de golpe: si alguien mandó a un
+ * colegio a las diez y a las doce una familia dice que no le llegó nada, acá
+ * se ve que le llega a las tres. Y si el envío fue un error, acá se cancela lo
+ * que falta, que es lo único que se puede deshacer de un correo.
+ */
+function Cola() {
+  const { data } = api.notificacion.cola.useQuery(undefined, {
+    refetchInterval: 30_000,
+  });
+  const utils = api.useUtils();
+  const cancelar = api.notificacion.cancelarPendientes.useMutation();
+  const [confirmar, setConfirmar] = useState(false);
+  const [avance, setAvance] = useState<number | null>(null);
+
+  if (!data || (data.pendientes === 0 && avance === null)) return null;
+
+  async function cancelarTodo() {
+    setConfirmar(false);
+    let total = 0;
+    setAvance(0);
+    // De a tandas hasta que no quede nada o Resend no deje cancelar más.
+    for (;;) {
+      const r = await cancelar.mutateAsync();
+      total += r.canceladas;
+      setAvance(total);
+      if (r.quedan === 0 || r.canceladas === 0) break;
+    }
+    await Promise.all([
+      utils.notificacion.cola.invalidate(),
+      utils.notificacion.listar.invalidate(),
+    ]);
+    setAvance(null);
+  }
+
+  return (
+    <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-ink px-5 py-3.5">
+      <div className="min-w-0">
+        <div className="font-rotulo text-[12px] tracking-[0.06em] uppercase">
+          En cola
+        </div>
+        <p className="nota mt-0.5 text-[12.5px]">
+          {avance !== null
+            ? `Cancelando… ${avance} hasta ahora.`
+            : `${data.pendientes} correo${data.pendientes === 1 ? "" : "s"} en masa esperando su turno${
+                data.hasta
+                  ? `. El último sale el ${fechaHora(data.hasta)}`
+                  : "."
+              }`}
+        </p>
+      </div>
+      {avance === null &&
+        (confirmar ? (
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="nota text-[12px] text-marca">
+              Se cancelan todos los que faltan. No se puede deshacer.
+            </span>
+            <Boton onClick={() => void cancelarTodo()}>Sí, cancelar</Boton>
+            <Boton variante="fantasma" onClick={() => setConfirmar(false)}>
+              No
+            </Boton>
+          </span>
+        ) : (
+          <Boton variante="fantasma" onClick={() => setConfirmar(true)}>
+            Cancelar los pendientes
+          </Boton>
+        ))}
     </div>
   );
 }

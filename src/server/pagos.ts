@@ -15,6 +15,7 @@ import { mercadoPago } from "./mercadopago";
 import { mercadoPagoMock } from "./mercadopago/mock";
 import { tokenVigente } from "./mercadopago/oauth";
 import {
+  cancelarRecordatoriosProgramados,
   notificarPagoParcial,
   notificarPagoRecibido,
   notificarPlanTerminado,
@@ -152,6 +153,9 @@ async function registrarPagoConfirmado(
       recibidoEn: tx.recibidoEn,
     },
   });
+  // Un recordatorio en cola ya no dice la verdad: el monto se calculó antes
+  // de este pago.
+  await cancelarRecordatoriosProgramados(alumno.id);
   for (const f of liquidacion.fijar) {
     await db.cuotaAlumno.upsert({
       where: { alumnoId_cuotaId: { alumnoId: alumno.id, cuotaId: f.cuotaId } },

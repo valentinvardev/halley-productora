@@ -199,7 +199,8 @@ export function destinatarios(alumno: {
  */
 export async function invitarFamilia(
   alumnoId: string,
-  opciones?: { email?: string },
+  /** `enMasa`: es parte de un envío a muchos, y sale con el ritmo. */
+  opciones?: { email?: string; enMasa?: boolean },
 ) {
   const email = opciones?.email?.trim().toLowerCase();
   if (email) {
@@ -246,7 +247,9 @@ export async function invitarFamilia(
     : null;
 
   for (const email of emails) {
-    await notificarInvitacion({ alumno, grupo: alumno.grupo, email }, cuota);
+    await notificarInvitacion({ alumno, grupo: alumno.grupo, email }, cuota, {
+      enMasa: opciones?.enMasa,
+    });
   }
 
   return { enviado: true as const, cantidad: emails.length };

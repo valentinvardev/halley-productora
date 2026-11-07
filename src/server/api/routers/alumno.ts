@@ -12,6 +12,7 @@ import {
 import { parsearAlumnos } from "~/lib/nombres";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
 import { notificarRecordatorio } from "~/server/notificaciones";
+import { finDeLaCola } from "~/server/ritmo";
 
 export const alumnoRouter = createTRPCRouter({
   agregar: adminProcedure
@@ -73,10 +74,10 @@ export const alumnoRouter = createTRPCRouter({
         }
         creados += 1;
         await perdonarMora(alumno.id, input.grupoId, input.sinMoraCuotas);
-        if (input.invitar) await invitarFamilia(alumno.id);
+        if (input.invitar) await invitarFamilia(alumno.id, { enMasa: true });
       }
 
-      return { creados, repetidos, errores };
+      return { creados, repetidos, errores, hasta: await finDeLaCola() };
     }),
 
   /**
@@ -136,10 +137,14 @@ export const alumnoRouter = createTRPCRouter({
 
       let enviados = 0;
       for (const alumno of alumnos) {
-        const r = await invitarFamilia(alumno.id);
+        const r = await invitarFamilia(alumno.id, { enMasa: true });
         if (r.enviado) enviados += 1;
       }
-      return { enviados, sinEmail: alumnos.length - enviados };
+      return {
+        enviados,
+        sinEmail: alumnos.length - enviados,
+        hasta: await finDeLaCola(),
+      };
     }),
 
   /** Recordatorio de la cuota impaga más vieja. */
@@ -225,11 +230,12 @@ export const alumnoRouter = createTRPCRouter({
               venceEl: plan.proxima.venceEl,
               vencida: plan.proxima.estado === "VENCIDA",
             },
+            { enMasa: true },
           );
           enviados += 1;
         }
       }
-      return { enviados, sinInvitar };
+      return { enviados, sinInvitar, hasta: await finDeLaCola() };
     }),
 
   /**

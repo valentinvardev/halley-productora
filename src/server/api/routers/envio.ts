@@ -3,7 +3,8 @@ import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { destinatarios, invitarFamilia } from "~/server/alumnos";
 import { imputarPagos, sumarPagos } from "~/server/dominio";
-import { filtroMasivo } from "~/server/entrega";
+import { filtroMasivo, remitentes } from "~/server/entrega";
+import { estimarCola } from "~/server/ritmo";
 import { notificarRecordatorio } from "~/server/notificaciones";
 
 /**
@@ -34,6 +35,17 @@ const conTodo = {
 } as const;
 
 export const envioRouter = createTRPCRouter({
+  /**
+   * Hasta cuándo tardaría un envío de `cantidad` correos, con el ritmo de hoy
+   * y lo que ya está en cola. Es la misma cuenta que reparte los turnos.
+   */
+  estimar: adminProcedure
+    .input(z.object({ cantidad: z.number().int().min(1).max(5000) }))
+    .query(async ({ input }) => {
+      const { masivos } = await remitentes();
+      return estimarCola(masivos, input.cantidad);
+    }),
+
   /**
    * A quiénes les tocaría, y por qué los demás quedan afuera.
    *
@@ -164,7 +176,7 @@ export const envioRouter = createTRPCRouter({
 
         try {
           if (input.tipo === "invitacion") {
-            const r = await invitarFamilia(alumno.id);
+            const r = await invitarFamilia(alumno.id, { enMasa: true });
             if (r.enviado) enviados += 1;
             else fallados.push({ alumno: alumno.nombre, motivo: "sin email" });
             continue;
@@ -186,6 +198,7 @@ export const envioRouter = createTRPCRouter({
                 venceEl: plan.proxima.venceEl,
                 vencida: plan.proxima.estado === "VENCIDA",
               },
+              { enMasa: true },
             );
           }
           enviados += 1;

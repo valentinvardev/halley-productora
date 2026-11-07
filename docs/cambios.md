@@ -2872,3 +2872,100 @@ JavaScript.
 
 **Rollback:** fila AK de la tabla. La columna `remitente` queda en la base sin
 uso.
+
+### AL. Los envíos en masa salen con ritmo
+
+**De dónde salió.** Lo que más castiga la reputación de un dominio no es el
+volumen sino el salto. En octubre hubo días de 23 correos y uno de 981: el 24,
+952 recordatorios salieron en 28 minutos, entre las 20 y las 20:30. Para un
+proveedor de correo eso es lo que hace alguien con una lista comprada. Las tandas de 25
+con un segundo y medio de pausa que puse en septiembre separaban los pedidos
+a Resend, pero los correos igual llegaban todos en el mismo rato. Y la
+pantalla tenía que quedar abierta hasta el final.
+
+**Qué cambió.** Un envío en masa ya no sale de golpe. Cada correo se programa
+en Resend con su hora y Resend lo entrega a esa hora, aunque nadie tenga el
+panel abierto:
+
+- **Espaciados.** De a 100 por hora por defecto, uno cada 36 segundos. En
+  Dominios y entrega se elige 50, 100, 150, 300 o sin ritmo.
+- **De día.** Entre las 8 y las 21 de Argentina. Lo que no entra hoy sale
+  mañana desde las 8. Un correo que llega a las 3 de la mañana queda debajo de
+  los que llegan después, y un correo que se abre ayuda a la reputación.
+- **En fila.** Un envío nuevo va detrás del que ya está en cola, no encima.
+- **Con calentamiento para un dominio nuevo.** Si los masivos salen de un
+  dominio que se usa por primera vez, los primeros siete días siguen la tabla
+  de Resend: 150 el primer día, 250 el segundo, hasta 2.000 el séptimo, y como
+  mucho 50 por hora al principio. La pantalla dice en qué día está. El dominio
+  de siempre no se calienta: tiene historial desde julio.
+
+Lo que pide una familia (el link para entrar, un comprobante) no pasa nunca
+por la cola: sale en el momento. Un correo a una sola familia, aunque sea una
+invitación o un recordatorio, también.
+
+**Dónde se ve.**
+
+- **Antes de mandar**, el modal de envío por colegio dice a qué ritmo salen y
+  a qué hora sale el último. Es la misma cuenta que después reparte las horas,
+  así que lo que promete es lo que pasa.
+- **Al terminar**, dice "en cola" y a qué hora sale el último, no "enviados".
+  Lo mismo los botones del curso ("Invitar a todos", "Recordar pendientes") y
+  la carga en bloque con invitación.
+- **En la bandeja**, una tira "En cola" con cuántos esperan y hasta cuándo, y
+  cada fila programada dice "Sale" con su hora.
+
+**Lo que se puede deshacer.**
+
+- **Cancelar los pendientes**, desde la tira de la bandeja, con una
+  confirmación. Cancela en Resend de a 25, empezando por los más lejanos, y
+  no toca los que están a menos de medio minuto de salir.
+- **El pago cancela su recordatorio.** Es el costo de mandar con ritmo: un
+  recordatorio programado para la tarde le llegaría a la familia que pagó al
+  mediodía, diciéndole que debe lo que ya pagó. Cuando entra un pago, por
+  transferencia o marcado a mano, se cancelan los recordatorios en cola de
+  ese alumno. Si cancelar falla, el pago se registra igual.
+
+**Las decisiones adentro.**
+
+- La cola vive en Resend y no en Halley. Programar hasta 30 días está en todos
+  los planes, y así no hace falta agregar un proceso que corra solo en el
+  servidor. Si la cola pasara los 30 días, el correo no sale y lo dice.
+- El reparto de horas es una función pura (`siguientesTurnos`), separada de la
+  base. La usa el envío para darle su hora a cada correo y el modal para
+  estimar. Si fueran dos cuentas distintas, tarde o temprano dirían cosas
+  distintas.
+- Un turno a menos de un minuto sale directo, sin hora: programarlo no
+  espacia nada.
+- Para los primeros tres días del calentamiento Resend da sólo el tope
+  diario. Uso 50 por hora, el del cuarto día, porque un tope diario solo no
+  impide mandar los 150 en diez minutos.
+- Sin ritmo, todo sale como antes, con la pausa entre tandas. Elegir "sin
+  ritmo" muestra un aviso en rojo, en la pantalla y en el modal.
+
+**Cómo está hecho.** Dos columnas nuevas en `Notificacion`: `programadaPara`,
+con índice, y `canceladaEl`. El ritmo se guarda en los ajustes del correo. La
+lógica está en `src/server/ritmo.ts`; `entregar` pide el turno sólo para los
+correos marcados en masa y con el destinatario ya aprobado, para que uno que
+no va a salir no ocupe una hora.
+
+**Verificado.** La función de los turnos, con horas fijas: a las 10 el
+primero sale ya y los siguientes cada 36 segundos; a las 20:30 entran 50
+antes de las 21 y el 51 pasa a las 8 del día siguiente; a las 2 de la mañana
+espera a las 8; detrás de una cola, 36 segundos después del último; sin
+ritmo, todos ahora; con un dominio nuevo, 50 por hora y 150 el primer día, 250
+el segundo desde las 8, 75 por hora el quinto día y el ritmo normal desde el
+octavo. Contra la app local con un Resend falso: invitar a un curso de 30
+reparte 30 horas separadas 36 segundos y dentro del horario, Resend recibe
+cada una con su hora y la que se estimó antes es la que quedó; los
+recordatorios van detrás; marcar paga una cuota cancela en Resend el
+recordatorio en cola de ese alumno y no su invitación. En el navegador: la
+bandeja muestra la cola, las horas y "Cancelado"; el modal del colegio dice el
+ritmo y la hora del último, y al terminar dice "en cola"; "Cancelar los
+pendientes" pide confirmar, cancela todo y la tira desaparece; con un
+subdominio nuevo para los masivos, la pantalla muestra el día 1 de
+calentamiento y 200 correos no entran en el día; sin ritmo salen todos sin
+hora. Sin errores de JavaScript.
+
+**Rollback:** fila AL de la tabla. Las dos columnas quedan en la base sin uso.
+Lo que ya esté programado en Resend sale igual a su hora: revertir no lo
+cancela.

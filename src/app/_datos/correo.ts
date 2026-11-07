@@ -40,6 +40,11 @@ export function planResend(valor: string | null | undefined) {
  */
 export const FRENADO = "No salió";
 
+/** El dominio de "Nombre <x@dominio>" o de "x@dominio". */
+export function dominioDelRemitente(remitente: string) {
+  return /@([^>\s]+)>?\s*$/.exec(remitente)?.[1]?.toLowerCase() ?? "";
+}
+
 export function frenadoPorHalley(error: string) {
   return error.startsWith(FRENADO);
 }

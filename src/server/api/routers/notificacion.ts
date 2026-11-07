@@ -12,6 +12,8 @@ import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { enviarEmail } from "~/server/email";
 import { emailHabilitado } from "~/server/email";
 import { muestraEmail } from "~/server/email-muestras";
+import { cancelarProgramadas } from "~/server/notificaciones";
+import { finDeLaCola } from "~/server/ritmo";
 import { TIPOS_MUESTRA } from "~/server/email-muestras";
 import {
   PLANTILLAS_ORDEN,
@@ -53,8 +55,52 @@ export const notificacionRouter = createTRPCRouter({
         quejaEl: n.quejaEl,
         detalleEntrega: n.detalleEntrega,
         remitente: n.remitente,
+        programadaPara: n.programadaPara,
+        canceladaEl: n.canceladaEl,
       }));
     }),
+
+  /** Cuántos correos en masa están en cola en Resend, y hasta cuándo. */
+  cola: adminProcedure.query(async ({ ctx }) => {
+    const [pendientes, hasta] = await Promise.all([
+      ctx.db.notificacion.count({
+        where: {
+          programadaPara: { gt: new Date() },
+          canceladaEl: null,
+          errorEnvio: null,
+        },
+      }),
+      finDeLaCola(),
+    ]);
+    return { pendientes, hasta };
+  }),
+
+  /**
+   * Cancela una tanda de los correos en cola, empezando por los más lejanos.
+   *
+   * De a 25 por llamada, como el envío: cancelar cuatrocientos son
+   * cuatrocientos pedidos a Resend, y la pantalla tiene que poder mostrar el
+   * avance. Los que están a menos de medio minuto de salir no se tocan: es
+   * probable que Resend ya los esté mandando.
+   */
+  cancelarPendientes: adminProcedure.mutation(async ({ ctx }) => {
+    const donde = {
+      programadaPara: { gt: new Date(Date.now() + 30_000) },
+      canceladaEl: null,
+      errorEnvio: null,
+    };
+    const lote = await ctx.db.notificacion.findMany({
+      where: donde,
+      orderBy: { programadaPara: "desc" },
+      take: 25,
+      select: { id: true, resendId: true },
+    });
+    const canceladas = await cancelarProgramadas(lote);
+    return {
+      canceladas,
+      quedan: await ctx.db.notificacion.count({ where: donde }),
+    };
+  }),
 
   /** Para que el panel aclare si los mails están saliendo o sólo registrándose. */
   modoEnvio: adminProcedure.query(() => ({

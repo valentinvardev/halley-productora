@@ -44,6 +44,8 @@ export async function enviarEmail(mensaje: {
   html?: string;
   /** El remitente. Sin él, el de `EMAIL_FROM`. */
   de?: string;
+  /** Para más tarde: Resend lo guarda y lo entrega a esa hora. */
+  programadaPara?: Date;
 }): Promise<ResultadoEnvio> {
   const api = clienteResend();
   if (!api) {
@@ -58,6 +60,9 @@ export async function enviarEmail(mensaje: {
       subject: mensaje.asunto,
       text: mensaje.texto,
       ...(mensaje.html ? { html: mensaje.html } : {}),
+      ...(mensaje.programadaPara
+        ? { scheduledAt: mensaje.programadaPara.toISOString() }
+        : {}),
     });
 
     if (error) return { ok: false, error: error.message };

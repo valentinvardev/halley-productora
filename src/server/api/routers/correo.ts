@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { dominioDelRemitente } from "~/app/_datos/correo";
 import { env } from "~/env";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import {
@@ -17,6 +18,7 @@ import {
 import { guardarCorreo, leerCorreo } from "~/server/correo-ajustes";
 import { clienteResend, responderA } from "~/server/email";
 import { remitentes } from "~/server/entrega";
+import { CALENTAMIENTO, RITMO_POR_DEFECTO, estimarCola } from "~/server/ritmo";
 import { casillaDeAvisos } from "~/server/notificaciones";
 
 /**
@@ -29,11 +31,6 @@ import { casillaDeAvisos } from "~/server/notificaciones";
  * está publicado de verdad, que es donde aparecen los problemas que ninguno de
  * los dos paneles muestra.
  */
-
-/** El dominio de "Nombre <x@dominio>" o de "x@dominio". */
-export function dominioDelRemitente(remitente: string) {
-  return /@([^>\s]+)>?\s*$/.exec(remitente)?.[1]?.toLowerCase() ?? "";
-}
 
 /** Lo que dice Resend cuando la clave no alcanza, en castellano. */
 function mensajeDeResend(error: { name: string; message: string }) {
@@ -239,7 +236,19 @@ export const correoRouter = createTRPCRouter({
           },
     );
 
+    const cola = await estimarCola(enUso.masivos, 1);
+
     return {
+      ritmo: {
+        porHora: cola.ritmo,
+        porDefecto: RITMO_POR_DEFECTO,
+        calentamiento: cola.calentamiento?.dia
+          ? {
+              dominio: cola.calentamiento.dominio,
+              ...CALENTAMIENTO[cola.calentamiento.dia - 1]!,
+            }
+          : null,
+      },
       remitentes: {
         ...enUso,
         /** Si se eligieron en el panel o salen de EMAIL_FROM. */
@@ -256,6 +265,14 @@ export const correoRouter = createTRPCRouter({
       webhook,
     };
   }),
+
+  /** Cuántos correos en masa por hora. 0 es sin ritmo: todos de una. */
+  guardarRitmo: adminProcedure
+    .input(z.object({ porHora: z.number().int().min(0).max(1000) }))
+    .mutation(async ({ input }) => {
+      await guardarCorreo({ ritmo: String(input.porHora) });
+      return { ok: true };
+    }),
 
   /**
    * Elige desde qué dirección salen los avisos o los envíos en masa.

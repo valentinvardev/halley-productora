@@ -11,6 +11,7 @@ import { db } from "./db";
  */
 const CLAVES = {
   plan: "correoPlan",
+  ritmo: "correoRitmo",
   remitenteAvisos: "correoRemitenteAvisos",
   remitenteMasivos: "correoRemitenteMasivos",
   webhookId: "resendWebhookId",

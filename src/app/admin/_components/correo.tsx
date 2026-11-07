@@ -88,6 +88,7 @@ export function CorreoEntrega() {
             dominios={data.dominios}
             puedeElegir={data.clave === "completa"}
           />
+          <Ritmo ritmo={data.ritmo} />
           <AvisosDeEntrega webhook={data.webhook} clave={data.clave} />
           <Direcciones direcciones={data.direcciones} />
         </>
@@ -598,6 +599,81 @@ function AgregarDominio({ raiz }: { raiz: string }) {
         registros para cargar en Cloudflare; después se verifica desde acá.
       </p>
     </div>
+  );
+}
+
+const OPCIONES_RITMO = [50, 100, 150, 300, 0];
+
+/**
+ * Cuántos correos en masa salen por hora.
+ *
+ * Va en la misma pantalla que los dominios porque es la otra mitad de lo
+ * mismo: separar los masivos protege a los avisos, y espaciarlos protege a los
+ * masivos.
+ */
+function Ritmo({ ritmo }: { ritmo: Estado["ritmo"] }) {
+  const utils = api.useUtils();
+  const guardar = api.correo.guardarRitmo.useMutation({
+    onSuccess: () => utils.correo.estado.invalidate(),
+  });
+
+  return (
+    <Caja
+      titulo="Ritmo de los envíos en masa"
+      extra={
+        <span className="nota text-[11.5px] text-gray-45">
+          {ritmo.porHora ? `${ritmo.porHora} por hora` : "Sin ritmo"}
+        </span>
+      }
+    >
+      <div className="px-5 py-4">
+        <p className="nota max-w-[78ch] text-[12.5px]">
+          Las invitaciones y los recordatorios a muchos no salen de golpe: cada
+          correo se programa en Resend con su hora, espaciados y entre las 8 y
+          las 21, y Resend los entrega aunque nadie tenga el panel abierto. Lo
+          que más castiga a un dominio no es el volumen sino el salto, pasar de
+          cincuenta correos por día a novecientos en una tarde. El link para
+          entrar y los comprobantes salen siempre en el momento.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {OPCIONES_RITMO.map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={guardar.isPending}
+              onClick={() => guardar.mutate({ porHora: n })}
+              className={`cursor-pointer border px-3 py-2 font-rotulo text-[11.5px] tracking-[0.06em] uppercase transition-colors ${
+                ritmo.porHora === n
+                  ? "border-ink bg-ink text-paper"
+                  : "border-gray-20 text-gray-70 hover:border-ink hover:text-ink"
+              }`}
+            >
+              {n ? `${n} por hora` : "Sin ritmo"}
+              {n === ritmo.porDefecto && (
+                <span className="ml-2 opacity-60">recomendado</span>
+              )}
+            </button>
+          ))}
+        </div>
+        {ritmo.porHora === 0 && (
+          <p className="nota mt-2.5 text-[12px] text-marca">
+            Sin ritmo, un envío a un colegio entero sale todo junto, que es
+            justo lo que más castiga al dominio.
+          </p>
+        )}
+        {ritmo.calentamiento && (
+          <p className="nota mt-3 max-w-[78ch] border-l-2 border-ink pl-3 text-[12.5px] text-ink">
+            {ritmo.calentamiento.dominio} está en su día{" "}
+            {ritmo.calentamiento.dia} de 7 de calentamiento: hoy salen hasta{" "}
+            {ritmo.calentamiento.porDia} correos en masa, de a{" "}
+            {ritmo.calentamiento.porHora} por hora como mucho. Un dominio nuevo
+            no tiene reputación, y los proveedores desconfían del que aparece
+            mandando cientos de golpe. Desde el octavo día rige el ritmo de
+            arriba.
+          </p>
+        )}
+      </div>
+    </Caja>
   );
 }
 

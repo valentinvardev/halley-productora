@@ -522,6 +522,12 @@ model Notificacion {
   /// Con qué remitente salió. Con más de un dominio deja de ser obvio, y es lo
   /// primero que hay que saber ante un rebote.
   remitente      String?
+  /// Sólo en los envíos en masa: la hora a la que Resend la entrega. Los
+  /// masivos salen espaciados y no de golpe, y ésta es la que le tocó.
+  programadaPara DateTime?
+  /// Se canceló antes de su hora: la familia pagó en el medio, o se cancelaron
+  /// los pendientes desde el panel.
+  canceladaEl    DateTime?
   /// Lo que contesta el servidor del destinatario, vía el webhook de Resend.
   /// "Enviado" sólo dice que Resend lo aceptó; esto dice qué pasó después.
   entregadoEl    DateTime?
@@ -538,6 +544,7 @@ model Notificacion {
 
   @@index([creadoEn])
   @@index([resendId])
+  @@index([programadaPara])
 }
 
 /// Direcciones a las que no se les escribe más, o no de todo.

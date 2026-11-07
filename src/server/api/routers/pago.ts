@@ -22,7 +22,10 @@ import { aprobarPagoMockMp, mercadoPago } from "~/server/mercadopago";
 import { mercadoPagoMock } from "~/server/mercadopago/mock";
 import { tokenVigente } from "~/server/mercadopago/oauth";
 import { destinatarios } from "~/server/alumnos";
-import { notificarPagoRecibido } from "~/server/notificaciones";
+import {
+  cancelarRecordatoriosProgramados,
+  notificarPagoRecibido,
+} from "~/server/notificaciones";
 import { avisarCierreDePlan, proveedorDeGrupo } from "~/server/pagos";
 import { registrarTransferenciaSimulada } from "~/server/talo";
 
@@ -417,6 +420,9 @@ export const pagoRouter = createTRPCRouter({
             refPago: `manual:${randomUUID()}`,
           },
         });
+        // Un recordatorio en cola ya no dice la verdad: el monto se calculó
+        // antes de este pago.
+        await cancelarRecordatoriosProgramados(alumno.id);
         for (const f of liquidacion.fijar) {
           await ctx.db.cuotaAlumno.upsert({
             where: {

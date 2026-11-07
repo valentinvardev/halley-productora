@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { IconoAlerta, IconoSobre } from "~/app/_components/iconos";
 import { Modal } from "~/app/_components/modal";
 import { Boton, Etiqueta } from "~/app/_components/ui";
+import { fechaHora } from "~/lib/format";
 import { api } from "~/trpc/react";
 
 /**
@@ -24,7 +25,10 @@ import { api } from "~/trpc/react";
  * medias sin que nadie sepa dónde. De a tandas, lo que se cortó se ve.
  */
 
-/** Cuánto se espera entre tandas. Suficiente para no parecer una ráfaga. */
+/**
+ * Cuánto se espera entre tandas cuando no hay ritmo. Con ritmo no hace falta:
+ * los correos ya salen espaciados, cada uno a su hora.
+ */
 const PAUSA_MS = 1500;
 const TANDA = 25;
 
@@ -72,6 +76,13 @@ export function EnvioMasivo({
   );
   void clave;
 
+  const total = previo?.total ?? 0;
+  const { data: estimado } = api.envio.estimar.useQuery(
+    { cantidad: Math.max(total, 1) },
+    { enabled: abierto && total > 0 && envio === null },
+  );
+  const utils = api.useUtils();
+
   const tanda = api.envio.tanda.useMutation();
   const mandando = envio !== null && envio.hechos < envio.total;
 
@@ -107,16 +118,22 @@ export function EnvioMasivo({
       estado.hechos += lote.length;
       setEnvio({ ...estado });
 
-      // La pausa es lo que evita la ráfaga. La última tanda no espera.
-      if (i + TANDA < ids.length) {
+      // Sin ritmo, la pausa es lo único que separa una tanda de la otra. La
+      // última no espera.
+      if (!estimado?.ritmo && i + TANDA < ids.length) {
         await new Promise((r) => setTimeout(r, PAUSA_MS));
       }
     }
 
+    // Con ritmo, lo que terminó es la programación: los correos salen a su
+    // hora. Decir "enviados" ahí haría pensar que ya llegaron.
+    const cola = await utils.notificacion.cola.fetch();
     await alTerminar(
-      `${estado.enviados} mail${estado.enviados === 1 ? "" : "s"} enviado${
-        estado.enviados === 1 ? "" : "s"
-      }` +
+      (cola.hasta
+        ? `${estado.enviados} en cola · el último sale ${fechaHora(cola.hasta)}`
+        : `${estado.enviados} mail${estado.enviados === 1 ? "" : "s"} enviado${
+            estado.enviados === 1 ? "" : "s"
+          }`) +
         (estado.fallados.length
           ? ` · ${estado.fallados.length} sin salir`
           : ""),
@@ -265,11 +282,27 @@ export function EnvioMasivo({
               </div>
             )}
 
-            {(previo?.total ?? 0) > 100 && (
-              <p className="nota mt-2.5 flex items-start gap-2 text-[11.5px] text-marca">
-                <IconoAlerta className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Son muchos de una. Va de a {TANDA} con pausa, pero si el
-                proveedor tiene tope diario conviene partirlo en dos días.
+            {/* Cuándo sale el último, con la misma cuenta que después
+                reparte los turnos: lo que se promete acá es lo que pasa. */}
+            {estimado && total > 0 && (
+              <p className="nota mt-2.5 flex items-start gap-2 border-t border-gray-20 pt-2.5 text-[11.5px]">
+                {estimado.ritmo ? (
+                  <span>
+                    {/* La hora va al final: termina en "p. m." y un punto
+                        después quedaría doble. */}
+                    Salen de a {estimado.ritmo} por hora, entre las 8 y las 21
+                    {estimado.calentamiento?.dia &&
+                      `, y más despacio mientras ${estimado.calentamiento.dominio} se calienta (día ${estimado.calentamiento.dia} de 7)`}
+                    . Se puede cerrar la ventana cuando termine de programarlos.
+                    El último sale el {fechaHora(estimado.termina)}
+                  </span>
+                ) : (
+                  <span className="flex items-start gap-2 text-marca">
+                    <IconoAlerta className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    El ritmo está apagado: salen todos ahora. Se cambia en
+                    Bandeja, Dominios y entrega.
+                  </span>
+                )}
               </p>
             )}
           </>
@@ -281,10 +314,15 @@ export function EnvioMasivo({
         <div className="mt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <span className="font-rotulo text-[11.5px] tracking-[0.08em] text-gray-45 uppercase">
-              {mandando ? "Mandando" : "Terminado"}
+              {mandando
+                ? estimado?.ritmo
+                  ? "Programando"
+                  : "Mandando"
+                : "Terminado"}
             </span>
             <span className="font-display text-[14px] tabular-nums">
-              {envio.hechos} de {envio.total} · {envio.enviados} enviados
+              {envio.hechos} de {envio.total} · {envio.enviados}{" "}
+              {estimado?.ritmo ? "en cola" : "enviados"}
               {envio.fallados.length > 0 &&
                 ` · ${envio.fallados.length} sin salir`}
             </span>
@@ -308,7 +346,10 @@ export function EnvioMasivo({
           )}
           {mandando && (
             <p className="nota mt-1.5 text-[11.5px]">
-              No cierres esta ventana: el envío lo lleva esta pantalla.
+              No cierres esta ventana hasta que termine:{" "}
+              {estimado?.ritmo
+                ? "después los correos quedan en Resend y salen a su hora."
+                : "el envío lo lleva esta pantalla."}
             </p>
           )}
         </div>

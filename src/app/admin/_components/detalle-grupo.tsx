@@ -182,14 +182,15 @@ export function DetalleGrupo({ id }: { id: string }) {
   const invitarTodos = api.alumno.invitarTodos.useMutation({
     onSuccess: (r) =>
       refrescar(
-        `Invitaciones enviadas: ${r.enviados}${r.sinEmail ? ` · sin email: ${r.sinEmail}` : ""}`,
+        `${r.hasta ? "Invitaciones en cola" : "Invitaciones enviadas"}: ${r.enviados}${r.sinEmail ? ` · sin email: ${r.sinEmail}` : ""}${r.hasta ? ` · la cola termina ${fechaHora(r.hasta)}` : ""}`,
       ),
   });
   const recordarPendientes = api.alumno.recordarPendientes.useMutation({
     onSuccess: (r) =>
       refrescar(
-        `Recordatorios enviados: ${r.enviados}` +
-          (r.sinInvitar ? ` · sin invitar todavía: ${r.sinInvitar}` : ""),
+        `${r.hasta ? "Recordatorios en cola" : "Recordatorios enviados"}: ${r.enviados}` +
+          (r.sinInvitar ? ` · sin invitar todavía: ${r.sinInvitar}` : "") +
+          (r.hasta ? ` · la cola termina ${fechaHora(r.hasta)}` : ""),
       ),
   });
   if (isLoading) return <EsqueletoDetalle />;
@@ -1473,7 +1474,8 @@ function AltaAlumnos({
       setAviso(null);
       setModo("cerrado");
       await alTerminar(
-        `Cargados: ${r.creados} · Repetidos: ${r.repetidos} · Con error: ${r.errores.length}`,
+        `Cargados: ${r.creados} · Repetidos: ${r.repetidos} · Con error: ${r.errores.length}` +
+          (r.hasta ? ` · invitaciones en cola hasta ${fechaHora(r.hasta)}` : ""),
       );
     },
   });
