@@ -4,8 +4,13 @@ import Link from "next/link";
 
 import { useState } from "react";
 
+import { PLANES_RESEND } from "~/app/_datos/correo";
 import { Ayuda } from "~/app/_components/ayuda";
-import { IconoProbeta, IconoSobre } from "~/app/_components/iconos";
+import {
+  IconoAlerta,
+  IconoProbeta,
+  IconoSobre,
+} from "~/app/_components/iconos";
 import { Boton, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
 import { fechaHora } from "~/lib/format";
 import { Desplegable } from "~/app/_components/desplegable";
@@ -114,7 +119,7 @@ export function Bandeja() {
 }
 
 /**
- * Cuánto queda del plan gratuito de Resend.
+ * Cuánto queda del plan de Resend.
  *
  * Está acá arriba y no escondido en ajustes porque el problema que resuelve es
  * enterarse tarde: cuando el cupo se llena, Resend deja de aceptar envíos y los
@@ -131,7 +136,16 @@ function UsoDeResend() {
     refetchInterval: 60_000,
   });
 
+  const utils = api.useUtils();
+  const guardar = api.notificacion.guardarPlan.useMutation({
+    onSuccess: () => utils.notificacion.uso.invalidate(),
+  });
+
   if (!data) return null;
+
+  // Más de cien aceptados en un día es imposible en el plan gratuito: si el
+  // panel dice "gratis", el que está mal es el panel.
+  const planDesmentido = data.limiteDia !== null && data.picoDiario > data.limiteDia;
 
   return (
     <div className="mb-8 border border-ink">
@@ -139,16 +153,51 @@ function UsoDeResend() {
         <span className="font-rotulo text-[12px] tracking-[0.06em] uppercase">
           Plan de envío
         </span>
-        {!data.enviando && (
-          <span className="nota text-[11.5px] text-gray-45">
-            El envío real está apagado: no se está gastando cupo.
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {!data.enviando && (
+            <span className="nota text-[11.5px] text-gray-45">
+              El envío real está apagado: no se está gastando cupo.
+            </span>
+          )}
+          <Desplegable
+            compacto
+            valor={data.plan}
+            alCambiar={(plan) =>
+              guardar.mutate({ plan: plan as typeof data.plan })
+            }
+            opciones={PLANES_RESEND.map((p) => ({
+              valor: p.valor,
+              etiqueta: p.etiqueta,
+            }))}
+            deshabilitado={guardar.isPending}
+          />
+        </div>
       </div>
 
-      <div className="grid gap-px bg-gray-20 sm:grid-cols-2">
+      {planDesmentido && (
+        <p className="nota flex items-start gap-2 border-b border-gray-20 px-5 py-3 text-[12px] text-marca">
+          <IconoAlerta className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          En los últimos 30 días hubo un día con {data.picoDiario} correos
+          aceptados, y el plan gratuito corta en {data.limiteDia}. La cuenta
+          tiene que estar en un plan pago: elegilo arriba para que el medidor
+          diga la verdad.
+        </p>
+      )}
+
+      <div
+        className={`grid gap-px bg-gray-20 ${data.limiteDia !== null ? "sm:grid-cols-2" : ""}`}
+      >
         <Medidor rotulo="Este mes" usado={data.mes} tope={data.limiteMes} />
-        <Medidor rotulo="Hoy" usado={data.dia} tope={data.limiteDia} />
+        {/* Los planes pagos no cortan por día: un medidor diario ahí sería
+            un tope inventado. */}
+        {data.limiteDia !== null && (
+          <Medidor
+            rotulo="Hoy"
+            usado={data.dia}
+            tope={data.limiteDia}
+            pie="Se reinicia a las 21, que es medianoche UTC."
+          />
+        )}
       </div>
     </div>
   );
@@ -166,10 +215,12 @@ function Medidor({
   rotulo,
   usado,
   tope,
+  pie,
 }: {
   rotulo: string;
   usado: number;
   tope: number;
+  pie?: string;
 }) {
   const parte = Math.min(usado / tope, 1);
   const apretado = parte >= 0.75;
@@ -212,6 +263,7 @@ function Medidor({
             : "Se está acercando al tope."}
         </p>
       )}
+      {pie && <p className="nota mt-2 text-[11px] text-gray-45">{pie}</p>}
     </div>
   );
 }

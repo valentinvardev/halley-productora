@@ -2529,3 +2529,64 @@ cambia hasta el segundo clic; con la puerta cerrada, /entrar vuelve a mandar
 el correo; Ajustes lista el curso. Sin errores de JS.
 
 **Rollback:** fila AF de la tabla.
+
+---
+
+## Tercera tanda: más correos sin hundir el dominio
+
+Fran quiere poder mandar más correos, a varios colegios de una, sin terminar
+en spam. Antes de construir miré los números de los últimos 45 días, y dos
+cosas cambiaron el plan:
+
+- **El cupo no es el freno.** Desde el 29 de septiembre salen entre 400 y 980
+  correos en un día sin un solo rechazo de cupo: la cuenta de Resend ya está en
+  un plan pago, sin tope diario. Octubre cerró en unos 4.500. Lo que decía lo
+  contrario era el medidor de la bandeja, que tenía escritos a mano los números
+  del plan gratuito y mostraba "casi sin cupo" en rojo.
+- **Más dominios no dan más cupo.** El tope es de la cuenta, no de cada
+  dominio, y repartir el mismo envío entre dominios para esquivar los filtros
+  es justo lo que los filtros castigan. Lo que sí sirve de tener más de un
+  dominio es separar los avisos que no pueden fallar (el link para entrar, los
+  comprobantes) de los envíos en masa, para que un mal día de los masivos no
+  arrastre a los otros.
+
+Lo que más pesa sobre la reputación hoy es otra cosa: correos que van a
+direcciones que no existen, y picos de golpe. Los puntos que siguen van por
+ahí.
+
+### AG. El medidor del cupo sigue al plan de verdad
+
+**De dónde salió.** El medidor de la bandeja tenía los topes del plan gratuito
+(100 por día, 3.000 por mes) escritos en el código. Halley pasó a un plan pago
+a fines de septiembre y el panel siguió marcando "casi sin cupo" con miles de
+correos de margen. Un medidor que alarma de más termina sin que nadie lo mire,
+que es lo mismo que no tenerlo.
+
+**Qué cambió.** El plan se elige en un desplegable arriba del medidor: Gratis,
+Pro de 50.000 o de 100.000, o Scale. Con un plan pago desaparece el medidor
+diario, porque esos planes no cortan por día y un tope inventado engaña. Si el
+plan elegido es el gratuito y en los últimos 30 días hubo un día con más de
+100 correos aceptados, el panel lo dice en rojo: ese plan no puede ser.
+
+**El corte del día.** Antes el día se cortaba a medianoche de Córdoba. Resend
+reinicia el tope diario a medianoche UTC, que en Argentina son las 21: entre
+las 21 y las 24 el panel mostraba cupo gastado que Resend ya había devuelto.
+Ahora corta a la misma hora que Resend, y debajo del medidor diario lo dice.
+
+**Cómo está hecho.** El plan se guarda en la tabla de ajustes, en una clave
+propia que no viaja con el formulario general. Los planes viven en
+`src/app/_datos/correo.ts`, que lo leen el servidor para medir y el panel para
+dibujar. El procedimiento `notificacion.uso` devuelve además el día con más
+envíos de los últimos 30, que es lo que alimenta el aviso.
+
+**Verificado** contra la app local con una base de pruebas propia y un Resend
+falso: sin elegir, el plan es el gratuito; con 151 aceptados en un día aparece
+el aviso; un envío de la 01:00 UTC cuenta en "hoy" y uno de las 23:30 UTC no;
+al elegir Pro desaparecen el aviso y el medidor diario y el mes pasa a medirse
+contra 50.000.
+
+**Hay que hacer una cosa.** En la bandeja, elegir el plan que figura en la
+cuenta de Resend. Hasta entonces el panel muestra el aviso rojo, que es lo
+correcto.
+
+**Rollback:** fila AG de la tabla.

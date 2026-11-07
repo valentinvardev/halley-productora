@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { PLANES_RESEND, planResend, type PlanResend } from "~/app/_datos/correo";
+import { guardarCorreo, leerCorreo } from "~/server/correo-ajustes";
+
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { enviarEmail } from "~/server/email";
 import { emailHabilitado } from "~/server/email";
@@ -14,19 +17,6 @@ import {
   type IdPlantilla,
 } from "~/server/plantillas";
 
-/**
- * Los topes del plan gratuito de Resend.
- *
- * Son datos del proveedor y no del negocio, así que viven acá y no en los
- * ajustes: no se cambian por temporada, se cambian el día que Halley pasa a un
- * plan pago. Ese día se tocan estos dos números y el panel se acomoda solo.
- */
-const LIMITE_MES = 3000;
-const LIMITE_DIA = 100;
-
-/** Halley factura y opera en Córdoba: los días del contador se cortan acá. */
-const ZONA = "America/Argentina/Cordoba";
-const DESFASE = "-03:00";
 
 export const notificacionRouter = createTRPCRouter({
   /** Bandeja de salida: todo lo que el sistema habría enviado por email. */
@@ -68,57 +58,76 @@ export const notificacionRouter = createTRPCRouter({
   /**
    * Cuántos correos se gastaron contra el plan de Resend.
    *
-   * Existe para no enterarse tarde. El plan gratuito corta por mes y por día, y
-   * cuando se llena Resend deja de aceptar envíos: los pagos se siguen
-   * registrando pero las familias no reciben ni el comprobante ni el aviso de
-   * que les falta plata. Eso se descubre cuando alguien reclama, que es varios
-   * días después.
+   * Existe para no enterarse tarde. Cuando el cupo se llena Resend deja de
+   * aceptar envíos: los pagos se siguen registrando pero las familias no
+   * reciben ni el comprobante ni el aviso de que les falta plata, y eso se
+   * descubre cuando alguien reclama, varios días después.
    *
-   * Cuenta `enviadoEl` y no las filas de la bandeja. Son cosas distintas: en
-   * modo bandeja se registra todo y no sale nada, y una que Resend rechazó
-   * quedó anotada con su error pero tampoco consumió cupo. Lo que gasta es lo
-   * que Resend aceptó, que es exactamente lo que marca esa fecha.
+   * Cuenta `enviadoEl` y no las filas de la bandeja. En modo bandeja se
+   * registra todo y no sale nada, y una que Resend rechazó quedó anotada con su
+   * error pero tampoco consumió cupo. Lo que gasta es lo que Resend aceptó.
    *
-   * Los cortes se calculan en hora argentina y no en UTC. Con UTC el día
-   * cambiaría a las nueve de la noche y el contador diario se reiniciaría antes
-   * de tiempo, que en un medidor de cupo es el error que más engaña.
+   * El día se corta a medianoche UTC, que en Argentina son las 21. No es un
+   * descuido: es cuando Resend reinicia su tope diario. Antes se cortaba a
+   * medianoche de Córdoba, y entre las 21 y las 24 el panel mostraba cupo
+   * gastado que Resend ya había devuelto.
+   *
+   * El plan lo elige el panel. Antes eran dos números escritos a mano para el
+   * plan gratuito, y desde que Halley pasó a uno pago el medidor mostraba
+   * "casi sin cupo" en rojo con cuatro mil correos de margen.
    */
   uso: adminProcedure.query(async ({ ctx }) => {
     const ahora = new Date();
+    const hoy = new Date(
+      Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()),
+    );
+    const primeroDelMes = new Date(
+      Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1),
+    );
+    const hace30 = new Date(hoy.getTime() - 30 * 86_400_000);
 
-    // Qué día y qué mes son *acá*, sin importar en qué huso corra el servidor.
-    const partes = new Intl.DateTimeFormat("en-CA", {
-      timeZone: ZONA,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(ahora);
-    const parte = (t: string) => partes.find((p) => p.type === t)?.value ?? "";
-    const hoy = `${parte("year")}-${parte("month")}-${parte("day")}`;
-    const primeroDelMes = `${parte("year")}-${parte("month")}-01`;
-
-    // Medianoche local expresada en UTC, que es como están guardadas las fechas.
-    const desde = (fechaLocal: string) =>
-      new Date(`${fechaLocal}T00:00:00${DESFASE}`);
-
-    const [mes, dia] = await Promise.all([
-      ctx.db.notificacion.count({
-        where: { enviadoEl: { gte: desde(primeroDelMes) } },
-      }),
-      ctx.db.notificacion.count({
-        where: { enviadoEl: { gte: desde(hoy) } },
-      }),
+    const [mes, dia, picos, ajustes] = await Promise.all([
+      ctx.db.notificacion.count({ where: { enviadoEl: { gte: primeroDelMes } } }),
+      ctx.db.notificacion.count({ where: { enviadoEl: { gte: hoy } } }),
+      ctx.db.$queryRaw<{ n: number }[]>`
+        select count(*)::int as n from "Notificacion"
+        where "enviadoEl" >= ${hace30}
+        group by date_trunc('day', "enviadoEl" at time zone 'UTC')
+        order by n desc limit 1`,
+      leerCorreo(),
     ]);
+    const plan = planResend(ajustes.plan);
 
     return {
       mes,
       dia,
-      limiteMes: LIMITE_MES,
-      limiteDia: LIMITE_DIA,
+      plan: plan.valor,
+      limiteMes: plan.mes,
+      limiteDia: plan.dia,
+      /**
+       * El día con más envíos aceptados de los últimos 30. Si pasa de 100, la
+       * cuenta no puede estar en el plan gratuito, y el panel lo dice: es la
+       * forma de que un plan mal elegido no quede mintiendo en silencio.
+       */
+      picoDiario: picos[0]?.n ?? 0,
       /** Sin envío real no se gasta cupo, y el cartel tiene que decirlo. */
       enviando: emailHabilitado,
     };
   }),
+
+  /** El plan de Resend contra el que se mide el cupo. */
+  guardarPlan: adminProcedure
+    .input(
+      z.object({
+        plan: z.enum(
+          PLANES_RESEND.map((p) => p.valor) as [PlanResend, ...PlanResend[]],
+        ),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await guardarCorreo({ plan: input.plan });
+      return { ok: true };
+    }),
 
   /**
    * Manda una muestra de una plantilla a un email, para ver cómo llega.
