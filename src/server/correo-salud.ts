@@ -366,7 +366,11 @@ export async function chequeoCasilla(
  * avisos mezclaría correos medidos con correos que nunca se iban a medir, y la
  * tasa saldría más baja de lo que es.
  */
-export async function chequeoEntregas(conectados: boolean): Promise<Chequeo> {
+export async function chequeoEntregas(
+  conectados: boolean,
+  /** Si la clave de Resend deja crear el webhook desde el panel. */
+  conBoton: boolean,
+): Promise<Chequeo> {
   const titulo = "Rebotes y quejas de los últimos 30 días";
   if (!conectados) {
     return {
@@ -375,7 +379,9 @@ export async function chequeoEntregas(conectados: boolean): Promise<Chequeo> {
       estado: "atencion",
       detalle:
         "Los avisos de entrega no están conectados. Resend no le cuenta a Halley qué correos rebotan ni quién los marca como spam, que son justo los dos números por los que pausa la cuenta: 4% de rebotes o 0,08% de quejas.",
-      arreglo: "Conectalos abajo, en Avisos de entrega. Es un botón.",
+      arreglo: conBoton
+        ? "Conectalos abajo, en Avisos de entrega. Es un botón."
+        : "Con la clave de Resend de hoy no se pueden conectar desde acá. Abajo, en Avisos de entrega, está cómo hacerlo a mano.",
     };
   }
   const desde = new Date(Date.now() - 30 * 86_400_000);

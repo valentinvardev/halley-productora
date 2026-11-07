@@ -204,7 +204,9 @@ export const correoRouter = createTRPCRouter({
           : null,
       url: urlDelWebhook(),
     };
-    salud.push(await chequeoEntregas(webhook.conectado));
+    salud.push(
+      await chequeoEntregas(webhook.conectado, resend.clave === "completa"),
+    );
 
     const direcciones = await direccionesConProblema();
     const noReciben = direcciones.filter(

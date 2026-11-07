@@ -2969,3 +2969,21 @@ hora. Sin errores de JavaScript.
 **Rollback:** fila AL de la tabla. Las dos columnas quedan en la base sin uso.
 Lo que ya esté programado en Resend sale igual a su hora: revertir no lo
 cancela.
+
+### AJ, ajustado. La salud no promete un botón que no está
+
+**Qué pasaba.** Probando con una clave de Resend de sólo envío, que puede ser
+la que tiene hoy el servidor, la salud del correo decía "Conectalos abajo, es
+un botón", y abajo no había botón: con esa clave el webhook no se puede crear
+desde el panel.
+
+**Qué cambió.** Con una clave de sólo envío, el consejo dice que desde acá no
+se puede y remite a la explicación de cómo hacerlo a mano, que ya estaba en la
+sección Avisos de entrega.
+
+**Verificado** con la app local y una clave de sólo envío: la pantalla
+reconoce la clave, explica cómo pedir una completa, no ofrece cambiar
+remitentes ni conectar los avisos, la salud sigue revisando DKIM desde el DNS,
+y mandar correos sigue funcionando.
+
+**Rollback:** fila "AJ, ajustado" de la tabla.
