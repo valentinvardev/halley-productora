@@ -519,6 +519,9 @@ model Notificacion {
   resendId   String?
   errorEnvio String?
 
+  /// Con qué remitente salió. Con más de un dominio deja de ser obvio, y es lo
+  /// primero que hay que saber ante un rebote.
+  remitente      String?
   /// Lo que contesta el servidor del destinatario, vía el webhook de Resend.
   /// "Enviado" sólo dice que Resend lo aceptó; esto dice qué pasó después.
   entregadoEl    DateTime?

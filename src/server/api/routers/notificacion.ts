@@ -1,7 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { PLANES_RESEND, planResend, type PlanResend } from "~/app/_datos/correo";
+import {
+  PLANES_RESEND,
+  planResend,
+  type PlanResend,
+} from "~/app/_datos/correo";
 import { guardarCorreo, leerCorreo } from "~/server/correo-ajustes";
 
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
@@ -16,7 +20,6 @@ import {
   todasLasPlantillas,
   type IdPlantilla,
 } from "~/server/plantillas";
-
 
 export const notificacionRouter = createTRPCRouter({
   /** Bandeja de salida: todo lo que el sistema habría enviado por email. */
@@ -49,6 +52,7 @@ export const notificacionRouter = createTRPCRouter({
         rebotadoEl: n.rebotadoEl,
         quejaEl: n.quejaEl,
         detalleEntrega: n.detalleEntrega,
+        remitente: n.remitente,
       }));
     }),
 
@@ -91,7 +95,9 @@ export const notificacionRouter = createTRPCRouter({
     const hace30 = new Date(hoy.getTime() - 30 * 86_400_000);
 
     const [mes, dia, picos, ajustes] = await Promise.all([
-      ctx.db.notificacion.count({ where: { enviadoEl: { gte: primeroDelMes } } }),
+      ctx.db.notificacion.count({
+        where: { enviadoEl: { gte: primeroDelMes } },
+      }),
       ctx.db.notificacion.count({ where: { enviadoEl: { gte: hoy } } }),
       ctx.db.$queryRaw<{ n: number }[]>`
         select count(*)::int as n from "Notificacion"

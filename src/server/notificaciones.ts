@@ -6,7 +6,7 @@ import { linkAlumno, linkRegistroAlumno } from "./dominio";
 import { db } from "./db";
 import { emailHabilitado, enviarEmail } from "./email";
 import { plantillaEmail } from "./email-plantilla";
-import { motivoParaNoMandar } from "./entrega";
+import { motivoParaNoMandar, remitentePara } from "./entrega";
 import { render, textosDe } from "./plantillas";
 
 /**
@@ -47,7 +47,10 @@ async function entregar(
   /** La cara HTML. El texto de `cuerpo` queda de fallback y de registro. */
   html?: string,
 ) {
-  const notificacion = await db.notificacion.create({ data });
+  const remitente = await remitentePara(data.tipo);
+  const notificacion = await db.notificacion.create({
+    data: { ...data, remitente },
+  });
 
   if (!emailHabilitado) return notificacion;
 
@@ -63,6 +66,7 @@ async function entregar(
   }
 
   const resultado = await enviarEmail({
+    de: remitente,
     para: data.destinatario,
     asunto: data.asunto,
     texto: data.cuerpo,

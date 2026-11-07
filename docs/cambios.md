@@ -2811,3 +2811,64 @@ dice y explica cómo hacerlo a mano.
 
 **Rollback:** fila AJ de la tabla. Las columnas y la tabla nuevas quedan en la
 base sin uso.
+
+### AK. Un remitente para los avisos y otro para los envíos en masa
+
+**De dónde salió.** Es la parte de "una instancia de dominios" que sí sirve
+para mandar a muchos colegios sin arriesgar lo demás. Hoy todo sale de la
+misma dirección: el link para entrar de una familia que está esperando con el
+teléfono en la mano y la invitación a un colegio entero de cuatrocientos
+alumnos. Si un día una tanda grande junta quejas y el dominio pierde
+reputación, el que paga es el link para entrar.
+
+**Qué cambió.** En Dominios y entrega hay una sección "Remitentes" con dos
+filas:
+
+- **Avisos y accesos:** el link para entrar, los comprobantes, los avisos de
+  pago y los presupuestos.
+- **Envíos en masa:** invitaciones, recordatorios de cuota y pedidos de
+  valoración.
+
+Cada una muestra desde dónde sale hoy y se cambia eligiendo nombre, dirección
+y uno de los dominios verificados en Resend. La pantalla muestra cómo va a
+salir antes de guardar, y si el dominio elegido es nuevo avisa que todavía no
+tiene reputación. "Volver al de siempre" y "Usar el de los avisos" deshacen.
+Sin nada elegido, todo sigue saliendo de `EMAIL_FROM`, como hasta ahora.
+
+**Cómo se usa para separar.** Se agrega un subdominio (por ejemplo
+`novedades.halleyaudiovisual.com`) en la sección Dominios, se cargan sus
+registros en Cloudflare, se verifica, y se elige para los envíos en masa. Los
+avisos quedan en el dominio de siempre, con su historial.
+
+**Las decisiones adentro.**
+
+- Sólo se puede elegir un dominio verificado. Con uno sin verificar Resend
+  rechaza cada correo, y el primero en enterarse sería una familia sin su
+  link para entrar. El servidor lo vuelve a comprobar al guardar; no alcanza
+  con que el desplegable no lo ofrezca.
+- El nombre no puede tener `<`, `>`, comillas ni `@`, y la dirección sólo
+  letras, números, punto, guión y `+`: son los caracteres que rompen el
+  encabezado del correo.
+- Cada correo de la bandeja anota de qué remitente salió, y al abrirlo lo
+  dice. Con dos dominios, "de dónde salió" es lo primero que hay que saber
+  ante un rebote.
+- La salud del correo ahora revisa la firma y los registros de cada dominio
+  en uso, no sólo del de `EMAIL_FROM`. DMARC y la casilla son de la raíz y se
+  revisan una vez aunque haya dos subdominios.
+
+**Cómo está hecho.** Dos claves nuevas en los ajustes del correo y una
+columna nueva, `Notificacion.remitente`. `remitentePara(tipo)` decide; los
+tipos en masa son los mismos que ya usaba el bloqueo por quejas.
+
+**Verificado** contra la app local con un Resend falso. De fábrica, una
+invitación sale de `EMAIL_FROM` y queda anotada. No deja elegir un dominio
+sin verificar, uno que no está en Resend, un nombre con `<` ni una dirección
+con espacios. Verificado el subdominio, la invitación sale de él y el
+comprobante de un pago sigue saliendo del de siempre. La salud revisa DKIM de
+los dos dominios y marca el del subdominio sin publicar; DMARC aparece una
+sola vez. En la pantalla, "Usar el de los avisos" vuelve a uno solo y
+"Cambiar" abre el formulario con los dominios verificados. Sin errores de
+JavaScript.
+
+**Rollback:** fila AK de la tabla. La columna `remitente` queda en la base sin
+uso.

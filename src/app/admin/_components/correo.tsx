@@ -4,8 +4,16 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { Copiar } from "~/app/_components/copiar";
+import { Desplegable } from "~/app/_components/desplegable";
 import { IconoAlerta } from "~/app/_components/iconos";
-import { Boton, BotonTexto, Campo, Encabezado, Tag, Vacio } from "~/app/_components/ui";
+import {
+  Boton,
+  BotonTexto,
+  Campo,
+  Encabezado,
+  Tag,
+  Vacio,
+} from "~/app/_components/ui";
 import { fecha } from "~/lib/format";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -60,7 +68,9 @@ export function CorreoEntrega() {
       />
 
       {isLoading && (
-        <p className="nota mb-8">Preguntando al DNS y a Resend… tarda unos segundos.</p>
+        <p className="nota mb-8">
+          Preguntando al DNS y a Resend… tarda unos segundos.
+        </p>
       )}
       {error && <p className="nota mb-8 text-marca">{error.message}</p>}
 
@@ -73,6 +83,11 @@ export function CorreoEntrega() {
             dominios={data.dominios}
             propio={data.dominio}
           />
+          <Remitentes
+            remitentes={data.remitentes}
+            dominios={data.dominios}
+            puedeElegir={data.clave === "completa"}
+          />
           <AvisosDeEntrega webhook={data.webhook} clave={data.clave} />
           <Direcciones direcciones={data.direcciones} />
         </>
@@ -82,6 +97,199 @@ export function CorreoEntrega() {
 }
 
 /* --------------------------------------------------------------- piezas */
+
+const PARA = {
+  avisos: {
+    titulo: "Avisos y accesos",
+    detalle:
+      "El link para entrar, los comprobantes, los avisos de pago y los presupuestos. Son los que no pueden caer en spam.",
+  },
+  masivos: {
+    titulo: "Envíos en masa",
+    detalle:
+      "Invitaciones, recordatorios de cuota y pedidos de valoración. Son los que más quejas juntan.",
+  },
+} as const;
+
+/**
+ * Desde qué dirección sale cada tipo de correo.
+ *
+ * Se elige entre los dominios verificados y nada más: con uno sin verificar,
+ * Resend rechaza cada correo.
+ */
+function Remitentes({
+  remitentes,
+  dominios,
+  puedeElegir,
+}: {
+  remitentes: Estado["remitentes"];
+  dominios: Dominio[];
+  puedeElegir: boolean;
+}) {
+  const verificados = dominios
+    .filter((d) => d.estado === "verified")
+    .map((d) => d.nombre);
+
+  return (
+    <Caja
+      titulo="Remitentes"
+      extra={
+        <span className="nota text-[11.5px] text-gray-45">
+          {remitentes.avisos === remitentes.masivos
+            ? "Uno solo para todo"
+            : "Separados"}
+        </span>
+      }
+    >
+      {(["avisos", "masivos"] as const).map((para) => (
+        <FilaRemitente
+          key={para}
+          para={para}
+          actual={remitentes[para]}
+          elegido={
+            para === "avisos"
+              ? remitentes.avisosElegido
+              : remitentes.masivosElegido
+          }
+          verificados={verificados}
+          puedeElegir={puedeElegir}
+        />
+      ))}
+      {!puedeElegir && (
+        <p className="nota border-t border-gray-20 px-5 py-3 text-[12px] text-gray-70">
+          Para elegir desde acá hace falta ver los dominios de Resend, y la
+          clave del servidor no lo permite.
+        </p>
+      )}
+    </Caja>
+  );
+}
+
+function FilaRemitente({
+  para,
+  actual,
+  elegido,
+  verificados,
+  puedeElegir,
+}: {
+  para: "avisos" | "masivos";
+  actual: string;
+  elegido: boolean;
+  verificados: string[];
+  puedeElegir: boolean;
+}) {
+  const partes = /^(.*?)\s*<([^@>]+)@([^>]+)>$/.exec(actual);
+  const dominioActual = partes?.[3] ?? "";
+  const [editando, setEditando] = useState(false);
+  const [nombre, setNombre] = useState(partes?.[1] || "Halley Audiovisual");
+  const [local, setLocal] = useState(partes?.[2] ?? "hola");
+  const [dominio, setDominio] = useState<string | null>(
+    verificados.includes(dominioActual)
+      ? dominioActual
+      : (verificados[0] ?? null),
+  );
+
+  const utils = api.useUtils();
+  const guardar = api.correo.guardarRemitente.useMutation({
+    onSuccess: () => {
+      setEditando(false);
+      void utils.correo.estado.invalidate();
+    },
+  });
+
+  return (
+    <div className="border-b border-gray-20 px-5 py-4 last:border-b-0">
+      <div className="text-[14px]">{PARA[para].titulo}</div>
+      <p className="nota mt-0.5 max-w-[78ch] text-[12px] text-gray-70">
+        {PARA[para].detalle}
+      </p>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <code className="min-w-0 font-mono text-[12px] break-all">
+          {actual}
+        </code>
+        {!elegido && (
+          <span className="nota text-[11px] text-gray-45">
+            {para === "masivos" ? "el mismo que los avisos" : "el de siempre"}
+          </span>
+        )}
+        {puedeElegir && !editando && (
+          <BotonTexto onClick={() => setEditando(true)}>Cambiar</BotonTexto>
+        )}
+        {elegido && !editando && (
+          <BotonTexto
+            disabled={guardar.isPending}
+            onClick={() => guardar.mutate({ para, remitente: null })}
+          >
+            {para === "masivos"
+              ? "Usar el de los avisos"
+              : "Volver al de siempre"}
+          </BotonTexto>
+        )}
+      </div>
+
+      {editando && (
+        <form
+          className="mt-3 grid gap-3 border border-gray-20 p-3.5 sm:grid-cols-[1fr_1fr_1.3fr] sm:items-end"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!dominio) return;
+            guardar.mutate({ para, remitente: { nombre, local, dominio } });
+          }}
+        >
+          <Campo
+            label="Nombre que se ve"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
+          <Campo
+            label="Dirección"
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+          />
+          <Desplegable
+            label="Dominio verificado"
+            opciones={verificados.map((d) => ({ valor: d, etiqueta: d }))}
+            valor={dominio}
+            alCambiar={setDominio}
+            vacio="No hay dominios verificados"
+          />
+          <p className="nota text-[12px] sm:col-span-3">
+            Va a salir como{" "}
+            <code className="font-mono text-[11.5px] break-all">
+              {nombre.trim() || "…"} &lt;{local.trim().toLowerCase() || "…"}@
+              {dominio ?? "…"}&gt;
+            </code>
+          </p>
+          {dominio && dominio !== dominioActual && (
+            <p className="nota text-[12px] text-gray-70 sm:col-span-3">
+              {dominio} no tiene historial mandando desde este remitente. Un
+              dominio nuevo no tiene reputación todavía: los proveedores
+              desconfían del que aparece mandando cientos de correos de golpe,
+              así que conviene empezar de a poco.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+            <Boton
+              type="submit"
+              disabled={
+                !dominio || !nombre.trim() || !local.trim() || guardar.isPending
+              }
+            >
+              {guardar.isPending ? "Guardando…" : "Guardar"}
+            </Boton>
+            <BotonTexto type="button" onClick={() => setEditando(false)}>
+              Cancelar
+            </BotonTexto>
+          </div>
+        </form>
+      )}
+      {guardar.isError && (
+        <p className="nota mt-2 text-marca">{guardar.error.message}</p>
+      )}
+    </div>
+  );
+}
 
 function Caja({
   titulo,
@@ -95,7 +303,9 @@ function Caja({
   return (
     <section className="mb-8 border border-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-20 px-5 py-3">
-        <h3 className="font-rotulo text-[12px] tracking-[0.06em] uppercase">{titulo}</h3>
+        <h3 className="font-rotulo text-[12px] tracking-[0.06em] uppercase">
+          {titulo}
+        </h3>
         {extra}
       </div>
       {children}
@@ -109,16 +319,21 @@ function Salud({ chequeos }: { chequeos: Chequeo[] }) {
 
   // Lo roto primero: es lo que se vino a buscar.
   const orden = { problema: 0, atencion: 1, "sin-datos": 2, bien: 3 } as const;
-  const ordenados = [...chequeos].sort((a, b) => orden[a.estado] - orden[b.estado]);
+  const ordenados = [...chequeos].sort(
+    (a, b) => orden[a.estado] - orden[b.estado],
+  );
 
   return (
     <Caja
       titulo="Salud del correo"
       extra={
-        <span className={`nota text-[11.5px] ${problemas ? "text-marca" : "text-gray-45"}`}>
+        <span
+          className={`nota text-[11.5px] ${problemas ? "text-marca" : "text-gray-45"}`}
+        >
           {problemas || revisar
             ? [
-                problemas && `${problemas} problema${problemas === 1 ? "" : "s"}`,
+                problemas &&
+                  `${problemas} problema${problemas === 1 ? "" : "s"}`,
                 revisar && `${revisar} para revisar`,
               ]
                 .filter(Boolean)
@@ -146,7 +361,9 @@ function Salud({ chequeos }: { chequeos: Chequeo[] }) {
             </span>
             <div className="min-w-0">
               <div className="text-[14px]">{c.titulo}</div>
-              <p className="nota mt-1 max-w-[78ch] text-[12.5px] text-gray-70">{c.detalle}</p>
+              <p className="nota mt-1 max-w-[78ch] text-[12.5px] text-gray-70">
+                {c.detalle}
+              </p>
               {c.arreglo && (
                 <p className="nota mt-2 max-w-[78ch] border-l-2 border-ink pl-3 text-[12.5px] text-ink">
                   {c.arreglo}
@@ -222,7 +439,13 @@ function Dominios({
   );
 }
 
-function FichaDominio({ dominio, enUso }: { dominio: Dominio; enUso: boolean }) {
+function FichaDominio({
+  dominio,
+  enUso,
+}: {
+  dominio: Dominio;
+  enUso: boolean;
+}) {
   const utils = api.useUtils();
   const verificar = api.correo.verificarDominio.useMutation({
     onSuccess: () => utils.correo.estado.invalidate(),
@@ -236,10 +459,16 @@ function FichaDominio({ dominio, enUso }: { dominio: Dominio; enUso: boolean }) 
           <Tag activo={dominio.estado === "verified"}>
             {ROTULO_DOMINIO[dominio.estado] ?? dominio.estado}
           </Tag>
-          {enUso && <span className="nota text-[11.5px] text-gray-45">es el remitente de hoy</span>}
+          {enUso && (
+            <span className="nota text-[11.5px] text-gray-45">
+              es el remitente de hoy
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="nota text-[11px] text-gray-45">{dominio.region}</span>
+          <span className="nota text-[11px] text-gray-45">
+            {dominio.region}
+          </span>
           {dominio.estado !== "verified" && (
             <Boton
               variante="fantasma"
@@ -252,10 +481,13 @@ function FichaDominio({ dominio, enUso }: { dominio: Dominio; enUso: boolean }) 
           )}
         </div>
       </div>
-      {verificar.isError && <p className="nota mt-2 text-marca">{verificar.error.message}</p>}
+      {verificar.isError && (
+        <p className="nota mt-2 text-marca">{verificar.error.message}</p>
+      )}
       {verificar.isSuccess && dominio.estado !== "verified" && (
         <p className="nota mt-2 text-[12px]">
-          Resend está mirando el DNS. Puede tardar unos minutos; volvé a cargar la página.
+          Resend está mirando el DNS. Puede tardar unos minutos; volvé a cargar
+          la página.
         </p>
       )}
 
@@ -267,20 +499,32 @@ function FichaDominio({ dominio, enUso }: { dominio: Dominio; enUso: boolean }) 
                 {r.proposito} · {r.tipo}
                 {r.prioridad !== null && ` · prioridad ${r.prioridad}`}
               </span>
-              <EstadoPublicado coincide={r.coincide} sobrantes={r.sobrantes.length} />
+              <EstadoPublicado
+                coincide={r.coincide}
+                sobrantes={r.sobrantes.length}
+              />
             </div>
             <div className="mt-1.5 grid gap-1 text-[12px] sm:grid-cols-[70px_1fr_auto] sm:items-center sm:gap-x-3">
               <span className="nota text-[11px] text-gray-45">Nombre</span>
-              <code className="min-w-0 truncate font-mono text-[11.5px]">{r.nombre}</code>
+              <code className="min-w-0 truncate font-mono text-[11.5px]">
+                {r.nombre}
+              </code>
               <Copiar valor={r.nombre} />
               <span className="nota text-[11px] text-gray-45">Valor</span>
-              <code className="min-w-0 truncate font-mono text-[11.5px]">{r.valor}</code>
+              <code className="min-w-0 truncate font-mono text-[11.5px]">
+                {r.valor}
+              </code>
               <Copiar valor={r.valor} />
             </div>
             {r.sobrantes.map((s) => (
-              <p key={s} className="nota mt-1.5 flex items-start gap-2 text-[11.5px] text-marca">
+              <p
+                key={s}
+                className="nota mt-1.5 flex items-start gap-2 text-[11.5px] text-marca"
+              >
                 <IconoAlerta className="mt-0.5 h-3 w-3 shrink-0" />
-                <span className="min-w-0 break-all">De más, hay que borrarlo: {s.slice(0, 60)}…</span>
+                <span className="min-w-0 break-all">
+                  De más, hay que borrarlo: {s.slice(0, 60)}…
+                </span>
               </p>
             ))}
           </div>
@@ -290,10 +534,27 @@ function FichaDominio({ dominio, enUso }: { dominio: Dominio; enUso: boolean }) 
   );
 }
 
-function EstadoPublicado({ coincide, sobrantes }: { coincide: boolean | null; sobrantes: number }) {
-  if (coincide === null) return <span className="nota text-[11px] text-gray-45">El DNS no contestó</span>;
-  if (!coincide) return <span className="nota text-[11px] text-marca">No está publicado</span>;
-  if (sobrantes) return <span className="nota text-[11px] text-marca">Publicado, con uno de más</span>;
+function EstadoPublicado({
+  coincide,
+  sobrantes,
+}: {
+  coincide: boolean | null;
+  sobrantes: number;
+}) {
+  if (coincide === null)
+    return (
+      <span className="nota text-[11px] text-gray-45">El DNS no contestó</span>
+    );
+  if (!coincide)
+    return (
+      <span className="nota text-[11px] text-marca">No está publicado</span>
+    );
+  if (sobrantes)
+    return (
+      <span className="nota text-[11px] text-marca">
+        Publicado, con uno de más
+      </span>
+    );
   return <span className="nota text-[11px] text-gray-45">Publicado</span>;
 }
 
@@ -326,7 +587,9 @@ function AgregarDominio({ raiz }: { raiz: string }) {
           {agregar.isPending ? "Agregando…" : "Agregar"}
         </Boton>
       </form>
-      {agregar.isError && <p className="nota mt-2 text-marca">{agregar.error.message}</p>}
+      {agregar.isError && (
+        <p className="nota mt-2 text-marca">{agregar.error.message}</p>
+      )}
       <p className="nota mt-3 max-w-[78ch] text-[12px] text-gray-70">
         Un subdominio sirve para separar los envíos en masa de los avisos que no
         pueden fallar, como el link para entrar: si un día los masivos caen en
@@ -354,7 +617,9 @@ function AvisosDeEntrega({
     <Caja
       titulo="Avisos de entrega"
       extra={
-        <span className={`nota text-[11.5px] ${webhook.conectado ? "text-gray-45" : "text-ink"}`}>
+        <span
+          className={`nota text-[11.5px] ${webhook.conectado ? "text-gray-45" : "text-ink"}`}
+        >
           {webhook.conectado ? "Conectados" : "Sin conectar"}
         </span>
       }
@@ -388,7 +653,9 @@ function AvisosDeEntrega({
                   {conectar.isPending ? "Conectando…" : "Conectar los avisos"}
                 </Boton>
                 {conectar.isError && (
-                  <span className="nota text-marca">{conectar.error.message}</span>
+                  <span className="nota text-marca">
+                    {conectar.error.message}
+                  </span>
                 )}
               </div>
             ) : (
@@ -406,7 +673,10 @@ function AvisosDeEntrega({
   );
 }
 
-const ROTULO_DIRECCION: Record<Estado["direcciones"][number]["motivo"], string> = {
+const ROTULO_DIRECCION: Record<
+  Estado["direcciones"][number]["motivo"],
+  string
+> = {
   rebota: "Rebotó",
   "marco-spam": "Marcó un correo como spam",
   "no-recibe": "El dominio no existe",
@@ -430,7 +700,8 @@ function Direcciones({ direcciones }: { direcciones: Estado["direcciones"] }) {
     >
       {direcciones.length === 0 ? (
         <p className="nota px-5 py-4 text-[12.5px]">
-          Ninguna: todas las direcciones cargadas tienen un dominio que recibe correo.
+          Ninguna: todas las direcciones cargadas tienen un dominio que recibe
+          correo.
         </p>
       ) : (
         <ul>
@@ -439,13 +710,20 @@ function Direcciones({ direcciones }: { direcciones: Estado["direcciones"] }) {
               key={d.email}
               className="grid gap-x-5 gap-y-1 border-b border-gray-20 px-5 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.2fr)] sm:items-baseline"
             >
-              <code className="min-w-0 truncate font-mono text-[12px]">{d.email}</code>
-              <span className={`nota text-[12px] ${d.motivo === "parece-mal-escrita" ? "" : "text-marca"}`}>
+              <code className="min-w-0 truncate font-mono text-[12px]">
+                {d.email}
+              </code>
+              <span
+                className={`nota text-[12px] ${d.motivo === "parece-mal-escrita" ? "" : "text-marca"}`}
+              >
                 {ROTULO_DIRECCION[d.motivo]}
                 {d.desde && ` el ${fecha(d.desde)}`}
-                {d.sugerencia && ` · ¿${d.email.split("@")[0]}@${d.sugerencia}?`}
+                {d.sugerencia &&
+                  ` · ¿${d.email.split("@")[0]}@${d.sugerencia}?`}
                 {d.detalle && (
-                  <span className="block text-[11px] text-gray-45">{d.detalle}</span>
+                  <span className="block text-[11px] text-gray-45">
+                    {d.detalle}
+                  </span>
                 )}
                 {(d.motivo === "rebota" || d.motivo === "marco-spam") && (
                   <BotonTexto
@@ -461,7 +739,10 @@ function Direcciones({ direcciones }: { direcciones: Estado["direcciones"] }) {
                 {d.alumnos.map((a, i) => (
                   <span key={a.id}>
                     {i > 0 && ", "}
-                    <Link href={`/admin/grupos/${a.grupoId}`} className="underline underline-offset-2 hover:text-gray-70">
+                    <Link
+                      href={`/admin/grupos/${a.grupoId}`}
+                      className="underline underline-offset-2 hover:text-gray-70"
+                    >
                       {a.nombre}
                     </Link>
                     <span className="text-gray-45"> · {a.grupo}</span>

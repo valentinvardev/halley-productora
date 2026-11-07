@@ -24,7 +24,10 @@ export async function POST(req: Request) {
   const secreto = webhookSecreto || env.RESEND_WEBHOOK_SECRET;
   const api = clienteResend();
   if (!secreto || !api) {
-    return Response.json({ error: "avisos de entrega sin configurar" }, { status: 503 });
+    return Response.json(
+      { error: "avisos de entrega sin configurar" },
+      { status: 503 },
+    );
   }
 
   const cuerpo = await req.text();

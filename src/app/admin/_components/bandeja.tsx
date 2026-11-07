@@ -100,7 +100,11 @@ export function Bandeja() {
                     Marcado como spam
                   </span>
                 ) : n.rebotadoEl ? (
-                  <Ayuda texto={n.detalleEntrega ?? "Rebotó"} lado="arriba" largo>
+                  <Ayuda
+                    texto={n.detalleEntrega ?? "Rebotó"}
+                    lado="arriba"
+                    largo
+                  >
                     <span className="font-rotulo text-[11px] uppercase tracking-[0.06em] text-marca">
                       Rebotó
                     </span>
@@ -135,8 +139,15 @@ export function Bandeja() {
                       demora. Va aparte del error de envío porque es otra cosa:
                       ése no salió, éste salió y pasó algo después. */}
                   {n.detalleEntrega && !n.errorEnvio && (
-                    <div className={`border-b border-gray-20 px-5 py-3 nota ${n.rebotadoEl ? "text-marca" : ""}`}>
+                    <div
+                      className={`border-b border-gray-20 px-5 py-3 nota ${n.rebotadoEl ? "text-marca" : ""}`}
+                    >
                       {n.detalleEntrega}
+                    </div>
+                  )}
+                  {n.remitente && (
+                    <div className="border-b border-gray-20 px-5 py-2.5 nota text-[11.5px] text-gray-45">
+                      Salió desde {n.remitente}
                     </div>
                   )}
                   <pre className="px-5 py-4 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">
@@ -179,7 +190,8 @@ function UsoDeResend() {
 
   // Más de cien aceptados en un día es imposible en el plan gratuito: si el
   // panel dice "gratis", el que está mal es el panel.
-  const planDesmentido = data.limiteDia !== null && data.picoDiario > data.limiteDia;
+  const planDesmentido =
+    data.limiteDia !== null && data.picoDiario > data.limiteDia;
 
   return (
     <div className="mb-8 border border-ink">

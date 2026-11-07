@@ -14,8 +14,18 @@
 export const PLANES_RESEND = [
   { valor: "gratis", etiqueta: "Gratis", mes: 3_000, dia: 100 },
   { valor: "pro", etiqueta: "Pro · 50.000 por mes", mes: 50_000, dia: null },
-  { valor: "pro100", etiqueta: "Pro · 100.000 por mes", mes: 100_000, dia: null },
-  { valor: "scale", etiqueta: "Scale · 100.000 por mes", mes: 100_000, dia: null },
+  {
+    valor: "pro100",
+    etiqueta: "Pro · 100.000 por mes",
+    mes: 100_000,
+    dia: null,
+  },
+  {
+    valor: "scale",
+    etiqueta: "Scale · 100.000 por mes",
+    mes: 100_000,
+    dia: null,
+  },
 ] as const;
 
 export type PlanResend = (typeof PLANES_RESEND)[number]["valor"];

@@ -16,6 +16,7 @@ import {
 } from "~/server/correo-salud";
 import { guardarCorreo, leerCorreo } from "~/server/correo-ajustes";
 import { clienteResend, responderA } from "~/server/email";
+import { remitentes } from "~/server/entrega";
 import { casillaDeAvisos } from "~/server/notificaciones";
 
 /**
@@ -62,7 +63,10 @@ async function dominiosDeResend() {
   const { data, error } = await api.domains.list();
   if (error) {
     return {
-      clave: error.name === "restricted_api_key" ? ("restringida" as const) : ("error" as const),
+      clave:
+        error.name === "restricted_api_key"
+          ? ("restringida" as const)
+          : ("error" as const),
       error: mensajeDeResend(error),
       dominios: [],
     };
@@ -92,67 +96,87 @@ async function dominiosDeResend() {
 
 export const correoRouter = createTRPCRouter({
   estado: adminProcedure.query(async () => {
-    const remitente = env.EMAIL_FROM;
-    const dominio = dominioDelRemitente(remitente);
+    const enUso = await remitentes();
+    const ajustes = await leerCorreo();
     const resend = await dominiosDeResend();
-    const propio = resend.dominios.find((d) => d.nombre === dominio);
+    // Los dominios desde los que sale algo hoy: uno, o dos si los masivos
+    // tienen el suyo. Cada uno se revisa por separado.
+    const dominiosEnUso = [
+      ...new Set([enUso.avisos, enUso.masivos].map(dominioDelRemitente)),
+    ];
 
     const salud: Chequeo[] = [];
+    const raicesVistas = new Set<string>();
 
-    if (dominio === "resend.dev") {
-      salud.push({
-        clave: "remitente",
-        titulo: "Desde qué dirección salen",
-        estado: "problema",
-        detalle: `Salen desde ${remitente}, la dirección de prueba de Resend: sólo puede escribirle a la casilla dueña de la cuenta.`,
-        arreglo: "Verificá el dominio de Halley en Resend y poné una dirección suya en EMAIL_FROM.",
-      });
-    } else {
-      salud.push(
-        await chequeoDkim(
+    for (const dominio of dominiosEnUso) {
+      const remitente = [enUso.avisos, enUso.masivos].find(
+        (r) => dominioDelRemitente(r) === dominio,
+      )!;
+      const propio = resend.dominios.find((d) => d.nombre === dominio);
+      if (dominio === "resend.dev") {
+        salud.push({
+          clave: `remitente:${dominio}`,
+          titulo: "Desde qué dirección salen",
+          estado: "problema",
+          detalle: `Salen desde ${remitente}, la dirección de prueba de Resend: sólo puede escribirle a la casilla dueña de la cuenta.`,
+          arreglo:
+            "Verificá el dominio de Halley en Resend y poné una dirección suya en EMAIL_FROM.",
+        });
+      } else {
+        const dkim = await chequeoDkim(
           dominio,
           propio?.registros.find((r) => r.proposito === "DKIM")?.valor ?? null,
-        ),
-      );
-
-      // Los registros de envío (SPF) se revisan con lo que espera Resend; sin
-      // acceso a los dominios no hay contra qué comparar.
-      if (propio) {
-        const spf = propio.registros.filter((r) => r.proposito === "SPF");
-        const mal = spf.filter((r) => r.coincide === false || r.sobrantes.length > 0);
-        salud.push(
-          mal.length
-            ? {
-                clave: "spf",
-                titulo: `Registros de envío de ${dominio}`,
-                estado: "problema",
-                detalle: `${mal.map((r) => `${r.tipo} de ${r.nombre}`).join(" y ")} no coincide con lo que espera Resend.`,
-                arreglo: "Cargá en el DNS los valores que figuran abajo, en Dominios.",
-              }
-            : {
-                clave: "spf",
-                titulo: `Registros de envío de ${dominio}`,
-                estado: "bien",
-                detalle: "El MX y el SPF del subdominio de rebotes están publicados como los espera Resend.",
-              },
         );
-      }
+        salud.push({ ...dkim, clave: `dkim:${dominio}` });
 
-      salud.push(await chequeoDmarc(dominio));
+        // Los registros de envío (SPF) se revisan con lo que espera Resend; sin
+        // acceso a los dominios no hay contra qué comparar.
+        if (propio) {
+          const spf = propio.registros.filter((r) => r.proposito === "SPF");
+          const mal = spf.filter(
+            (r) => r.coincide === false || r.sobrantes.length > 0,
+          );
+          salud.push(
+            mal.length
+              ? {
+                  clave: `spf:${dominio}`,
+                  titulo: `Registros de envío de ${dominio}`,
+                  estado: "problema",
+                  detalle: `${mal.map((r) => `${r.tipo} de ${r.nombre}`).join(" y ")} no coincide con lo que espera Resend.`,
+                  arreglo:
+                    "Cargá en el DNS los valores que figuran abajo, en Dominios.",
+                }
+              : {
+                  clave: `spf:${dominio}`,
+                  titulo: `Registros de envío de ${dominio}`,
+                  estado: "bien",
+                  detalle:
+                    "El MX y el SPF del subdominio de rebotes están publicados como los espera Resend.",
+                },
+          );
+        }
 
-      // Se mira el MX y no si "recibe": la raíz tiene la dirección de la web, y
-      // eso alcanza para que un servidor intente entregarle, pero ahí no hay
-      // nadie escuchando correo.
-      const raiz = dominioRaiz(dominio);
-      const buzones = await mx(raiz);
-      if (buzones !== null && buzones.length === 0) {
-        salud.push({
-          clave: "buzon",
-          titulo: `Casilla en ${raiz}`,
-          estado: "atencion",
-          detalle: `${raiz} no recibe correo, así que el remitente (${remitente}) no existe como casilla. Para un filtro, un dominio que manda y no puede recibir es una señal en contra, y los reportes de DMARC no tienen dónde llegar.`,
-          arreglo: `En Cloudflare, Correo electrónico > Email Routing recibe en cualquier dirección de ${raiz} y la reenvía a la casilla que elijan. Es gratis y no toca nada de Resend: Resend vive en el subdominio send y en resend._domainkey.`,
-        });
+        // DMARC y la casilla son de la raíz: dos subdominios de Halley
+        // comparten las dos cosas y se revisan una sola vez.
+        const raiz = dominioRaiz(dominio);
+        if (raicesVistas.has(raiz)) continue;
+        raicesVistas.add(raiz);
+
+        salud.push(await chequeoDmarc(dominio));
+
+        // Se mira el MX y no si "recibe": la raíz tiene la dirección de la web, y
+        // eso alcanza para que un servidor intente entregarle, pero ahí no hay
+        // nadie escuchando correo.
+        const buzones = await mx(raiz);
+        if (buzones !== null && buzones.length === 0) {
+          salud.push({
+            clave: "buzon",
+            titulo: `Casilla en ${raiz}`,
+            estado: "atencion",
+            detalle: `${raiz} no recibe correo, así que el remitente (${remitente}) no existe como casilla. Para un filtro, un dominio que manda y no puede recibir es una señal en contra, y los reportes de DMARC no tienen dónde llegar.`,
+            arreglo: `En Cloudflare, Correo electrónico > Email Routing recibe en cualquier dirección de ${raiz} y la reenvía a la casilla que elijan. Es gratis y no toca nada de Resend: Resend vive en el subdominio send y en resend._domainkey.`,
+          });
+        }
       }
     }
 
@@ -173,17 +197,22 @@ export const correoRouter = createTRPCRouter({
       ),
     );
 
-    const ajustes = await leerCorreo();
     const webhook = {
       conectado: !!(ajustes.webhookSecreto || env.RESEND_WEBHOOK_SECRET),
       /** Si lo creó el botón del panel o alguien a mano con la variable. */
-      origen: ajustes.webhookSecreto ? ("panel" as const) : env.RESEND_WEBHOOK_SECRET ? ("entorno" as const) : null,
+      origen: ajustes.webhookSecreto
+        ? ("panel" as const)
+        : env.RESEND_WEBHOOK_SECRET
+          ? ("entorno" as const)
+          : null,
       url: urlDelWebhook(),
     };
     salud.push(await chequeoEntregas(webhook.conectado));
 
     const direcciones = await direccionesConProblema();
-    const noReciben = direcciones.filter((d) => d.motivo !== "parece-mal-escrita").length;
+    const noReciben = direcciones.filter(
+      (d) => d.motivo !== "parece-mal-escrita",
+    ).length;
     salud.push(
       direcciones.length
         ? {
@@ -191,24 +220,34 @@ export const correoRouter = createTRPCRouter({
             titulo: "Direcciones de las familias",
             estado: noReciben ? "problema" : "atencion",
             detalle:
-              (noReciben ? `${noReciben} no pueden recibir correo: rebotaron, se quejaron o el dominio no existe. ` : "") +
+              (noReciben
+                ? `${noReciben} no pueden recibir correo: rebotaron, se quejaron o el dominio no existe. `
+                : "") +
               (direcciones.length - noReciben
                 ? `${direcciones.length - noReciben} se parecen demasiado a un proveedor conocido para ser reales. `
                 : "") +
               "Los correos a direcciones mal escritas rebotan o, peor, le llegan a un tercero.",
-            arreglo: "Están listadas abajo con el alumno y el curso. Corregilas desde la ficha del alumno.",
+            arreglo:
+              "Están listadas abajo con el alumno y el curso. Corregilas desde la ficha del alumno.",
           }
         : {
             clave: "direcciones",
             titulo: "Direcciones de las familias",
             estado: "bien",
-            detalle: "Todas tienen un dominio que recibe correo y ninguna parece mal escrita.",
+            detalle:
+              "Todas tienen un dominio que recibe correo y ninguna parece mal escrita.",
           },
     );
 
     return {
-      remitente,
-      dominio,
+      remitentes: {
+        ...enUso,
+        /** Si se eligieron en el panel o salen de EMAIL_FROM. */
+        avisosElegido: !!ajustes.remitenteAvisos,
+        masivosElegido: !!ajustes.remitenteMasivos,
+        porDefecto: env.EMAIL_FROM,
+      },
+      dominio: dominioDelRemitente(enUso.avisos),
       clave: resend.clave,
       errorClave: resend.error,
       dominios: resend.dominios,
@@ -219,6 +258,73 @@ export const correoRouter = createTRPCRouter({
   }),
 
   /**
+   * Elige desde qué dirección salen los avisos o los envíos en masa.
+   *
+   * Sólo deja elegir un dominio verificado en Resend: con uno que no lo esté,
+   * Resend rechaza cada correo, y el primero en enterarse sería una familia que
+   * no recibió su link para entrar. `null` vuelve al de siempre.
+   */
+  guardarRemitente: adminProcedure
+    .input(
+      z.object({
+        para: z.enum(["avisos", "masivos"]),
+        remitente: z
+          .object({
+            nombre: z
+              .string()
+              .trim()
+              .min(1)
+              .max(60)
+              .regex(/^[^<>"@]+$/, 'El nombre no puede tener < > " ni @.'),
+            local: z
+              .string()
+              .trim()
+              .toLowerCase()
+              .regex(
+                /^[a-z0-9][a-z0-9._+-]{0,63}$/,
+                "La parte antes de la @ sólo puede tener letras, números, punto, guión y +.",
+              ),
+            dominio: z.string().trim().toLowerCase(),
+          })
+          .nullable(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const clave =
+        input.para === "avisos" ? "remitenteAvisos" : "remitenteMasivos";
+      if (!input.remitente) {
+        await guardarCorreo({ [clave]: "" });
+        return { remitente: null };
+      }
+
+      const resend = await dominiosDeResend();
+      if (resend.clave !== "completa") {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: resend.error ?? "No hay clave de Resend en el servidor.",
+        });
+      }
+      const dominio = resend.dominios.find(
+        (d) => d.nombre === input.remitente!.dominio,
+      );
+      if (!dominio)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Ese dominio no está en la cuenta de Resend.",
+        });
+      if (dominio.estado !== "verified") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `${dominio.nombre} todavía no está verificado: Resend rechazaría cada correo.`,
+        });
+      }
+
+      const remitente = `${input.remitente.nombre} <${input.remitente.local}@${dominio.nombre}>`;
+      await guardarCorreo({ [clave]: remitente });
+      return { remitente };
+    }),
+
+  /**
    * Le pide a Resend que avise de cada entrega, rebote y queja.
    *
    * Crea el webhook con la URL pública de Halley y guarda en la base la clave
@@ -227,11 +333,21 @@ export const correoRouter = createTRPCRouter({
    */
   conectarWebhook: adminProcedure.mutation(async () => {
     const api = clienteResend();
-    if (!api) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No hay clave de Resend en el servidor." });
+    if (!api)
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "No hay clave de Resend en el servidor.",
+      });
 
     const url = urlDelWebhook();
-    if (process.env.NODE_ENV === "production" && /\/\/(localhost|127\.0\.0\.1)/.test(url)) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: `NEXT_PUBLIC_APP_URL apunta a ${url}: Resend no puede avisarle a una dirección local.` });
+    if (
+      process.env.NODE_ENV === "production" &&
+      /\/\/(localhost|127\.0\.0\.1)/.test(url)
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `NEXT_PUBLIC_APP_URL apunta a ${url}: Resend no puede avisarle a una dirección local.`,
+      });
     }
 
     const { webhookId } = await leerCorreo();
@@ -240,9 +356,19 @@ export const correoRouter = createTRPCRouter({
       if (data) return { yaEstaba: true };
     }
 
-    const { data, error } = await api.webhooks.create({ endpoint: url, events: [...EVENTOS] });
-    if (error) throw new TRPCError({ code: "BAD_REQUEST", message: mensajeDeResend(error) });
-    await guardarCorreo({ webhookId: data.id, webhookSecreto: data.signing_secret });
+    const { data, error } = await api.webhooks.create({
+      endpoint: url,
+      events: [...EVENTOS],
+    });
+    if (error)
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: mensajeDeResend(error),
+      });
+    await guardarCorreo({
+      webhookId: data.id,
+      webhookSecreto: data.signing_secret,
+    });
     return { yaEstaba: false };
   }),
 
@@ -281,17 +407,31 @@ export const correoRouter = createTRPCRouter({
           .string()
           .trim()
           .toLowerCase()
-          .regex(/^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/, "No es un dominio válido."),
+          .regex(
+            /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/,
+            "No es un dominio válido.",
+          ),
       }),
     )
     .mutation(async ({ input }) => {
       const api = clienteResend();
-      if (!api) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No hay clave de Resend en el servidor." });
+      if (!api)
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "No hay clave de Resend en el servidor.",
+        });
 
       const { data: lista } = await api.domains.list();
       const region = lista?.data[0]?.region ?? "sa-east-1";
-      const { data, error } = await api.domains.create({ name: input.nombre, region });
-      if (error) throw new TRPCError({ code: "BAD_REQUEST", message: mensajeDeResend(error) });
+      const { data, error } = await api.domains.create({
+        name: input.nombre,
+        region,
+      });
+      if (error)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: mensajeDeResend(error),
+        });
       return { id: data.id };
     }),
 
@@ -300,9 +440,17 @@ export const correoRouter = createTRPCRouter({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input }) => {
       const api = clienteResend();
-      if (!api) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No hay clave de Resend en el servidor." });
+      if (!api)
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "No hay clave de Resend en el servidor.",
+        });
       const { error } = await api.domains.verify(input.id);
-      if (error) throw new TRPCError({ code: "BAD_REQUEST", message: mensajeDeResend(error) });
+      if (error)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: mensajeDeResend(error),
+        });
       return { ok: true };
     }),
 });

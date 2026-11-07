@@ -42,6 +42,8 @@ export async function enviarEmail(mensaje: {
   texto: string;
   /** Cara HTML. Se manda junto con el texto, que queda de fallback. */
   html?: string;
+  /** El remitente. Sin él, el de `EMAIL_FROM`. */
+  de?: string;
 }): Promise<ResultadoEnvio> {
   const api = clienteResend();
   if (!api) {
@@ -50,7 +52,7 @@ export async function enviarEmail(mensaje: {
 
   try {
     const { data, error } = await api.emails.send({
-      from: env.EMAIL_FROM,
+      from: mensaje.de ?? env.EMAIL_FROM,
       to: mensaje.para,
       replyTo: responderA,
       subject: mensaje.asunto,
