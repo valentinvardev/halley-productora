@@ -319,6 +319,7 @@ git revert --no-commit 82a66e5   # lo mismo, sin commitear, para revisarlo antes
 | AJ, ajustado | `4d031f3` | Con una clave de sólo envío, la salud vuelve a decir que conectar los avisos es un botón |
 | AK | `0955923` | Todo vuelve a salir de EMAIL_FROM; los remitentes elegidos quedan guardados sin uso |
 | AL | `817329a` | Los envíos en masa vuelven a salir de golpe; lo ya programado en Resend sale igual a su hora, así que conviene cancelar los pendientes desde la bandeja antes de revertir |
+| AM | `01354b6` | Se va la API para bots y su bloque en Ajustes; el bot recibe 404 y deja de dar altas. Los alumnos que ya dio de alta quedan, y las claves guardadas en la tabla de ajustes quedan sin uso |
 | A | `acca85c` | Vuelve la portada grande a las páginas de servicio |
 | B | `06102e3` | Las tarjetas vuelven a ser clickeables sólo en el botón |
 | C | `6e2b8f3` | Los avisos vuelven a la variable de entorno |
