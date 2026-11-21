@@ -2994,3 +2994,88 @@ remitentes ni conectar los avisos, la salud sigue revisando DKIM desde el DNS,
 y mandar correos sigue funcionando.
 
 **Rollback:** fila "AJ, ajustado" de la tabla.
+
+## Cuarta tanda: el bot de WhatsApp da altas
+
+Fran quiere que Hariaz, el bot de WhatsApp, dé de alta al egresado cuando una
+familia pide sumarse: nombre del alumno, correo de la familia, colegio y
+división. Que confirme recién cuando el panel diga que salió bien, y que no
+duplique al que ya está cargado. Hasta acá el alta existía sólo detrás de la
+sesión del panel.
+
+### AM. Una API para que el bot dé de alta alumnos
+
+**Qué hay.** Dos pedidos con una clave:
+
+- `GET /api/v1/cursos`: los cursos donde se puede dar de alta, con colegio,
+  curso y una etiqueta para mostrarle a la familia.
+- `POST /api/v1/alumnos`: el alta. Crea al alumno con su CVU y le manda la
+  invitación por correo, lo mismo que Agregar alumno.
+
+La clave se genera en Ajustes, en un bloque nuevo, Conexión para bots. Se
+muestra una sola vez; en la base queda sólo su huella SHA-256. Hay una a la
+vez: generar otra corta la anterior en el momento, y Revocar cierra la API. El
+bloque dice cómo termina la clave y cuándo se usó por última vez.
+
+**Colegio y división no se buscan por texto.** Los datos de producción no dan
+para eso: en Monserrat y Manuel Belgrano cada división es un curso aparte
+("6TO F", "EA3"), en Jesús María es la orientación ("ARTE 2027"), y en el
+resto todo el colegio es un solo curso con el nombre escrito de cualquier
+manera ("CRISTO REY", "Mercedarias 2027"). Adivinar "Monse, la F" del lado del
+panel daría altas en el curso equivocado. El bot pide la lista, encuentra el
+curso, lo confirma con la familia y manda el id. Salen los mismos cursos en los
+que una familia se puede registrar sola: egresados, con el registro abierto y
+con cuenta que cobra.
+
+**No duplica, y frena lo dudoso.** Del otro lado no hay una persona mirando la
+lista del curso, así que el alta es más estricta que la del panel:
+
+- El mismo nombre, en cualquier orden, con o sin acentos y mayúsculas, no crea
+  otro: contesta `ya_estaba`. Usa la misma comparación que el aviso de
+  repetidos del panel (`src/lib/nombres.ts`). Si el alumno estaba cargado sin
+  email y sin nadie registrado (la lista del colegio), el email que trae el bot
+  se guarda y sale la invitación. Si ya tenía otro email o responsables, no se
+  toca nada y se devuelve el link para sumarse como otro responsable.
+- Un nombre parecido sin ser igual ("Juan Pérez" contra "Pérez Juan Ignacio")
+  frena con `409` y los candidatos. El bot pregunta y vuelve con el nombre
+  exacto o con `forzar`.
+- El email se revisa antes de crear nada: dominio que no recibe, dirección que
+  ya rebotó o que parece mal escrita ("gmail.com.ar", "gmaim.com") frenan con
+  `422` y la sugerencia. Es la misma revisión de AH y de la salud del correo:
+  una familia que escribe por WhatsApp tipea rápido, y cada rebote resta
+  reputación.
+- Reintentar es seguro: el mismo pedido dos veces contesta `ya_estaba` sin
+  mandar otro correo. Tres pedidos iguales al mismo tiempo terminan en un solo
+  alumno, porque las altas de un mismo curso pasan de a una.
+
+**La mora de lo ya vencido se perdona.** En el panel el admin elige, cuota por
+cuota, a cuáles no cobrarles mora cuando alguien se suma tarde. El bot no
+tiene a quién preguntarle, y el recargo corrió cuando el alumno no existía en
+el sistema. Se perdona la de todas las cuotas vencidas al momento del alta, y
+la respuesta dice cuáles. Si Halley quiere cobrarla, se vuelve a activar desde
+la ficha del alumno.
+
+**Frenos.** Las claves malas cuentan para el mismo freno por IP que el login
+del panel. Las altas nuevas tienen un tope de 60 por hora: un bot que entra en
+un bucle crearía CVUs y mandaría invitaciones sin parar. Lo que ya estaba
+cargado no cuenta para el tope.
+
+**Cómo está hecho.** La clave vive en `src/server/clave-api.ts`, en la tabla
+de ajustes con claves propias que no viajan con el formulario general. El alta
+está en `src/server/alta-api.ts` y reusa `crearAlumno`, `perdonarMora` e
+`invitarFamilia`, las mismas del botón. Las rutas son
+`src/app/api/v1/cursos/route.ts` y `src/app/api/v1/alumnos/route.ts`. Cada
+respuesta trae `mensaje` en castellano, para que el bot lo pueda leer sin
+traducir códigos. No hay cambios en la base.
+
+**Verificado** contra un build de producción local, con una base de pruebas
+propia, Talo simulado y un Resend falso, en 62 comprobaciones: la clave
+(huella en la base, reemplazo, revocar), el catálogo (sin cursos cerrados, de
+prueba ni particulares), el alta con su invitación y su mora perdonada, cada
+caso de repetido, cada email que frena, tres pedidos simultáneos, el tope de 60
+por hora y el bloque de Ajustes en escritorio y en celular.
+
+**Hay que hacer una cosa.** Generar la clave en Ajustes después del deploy y
+pasársela a Fran por un canal privado, junto con `docs/api.md`.
+
+**Rollback:** fila AM de la tabla.

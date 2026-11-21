@@ -28,6 +28,7 @@ import { Desplegable } from "~/app/_components/desplegable";
 import { fecha, fechaHora } from "~/lib/format";
 import { api } from "~/trpc/react";
 import { probarAvisoCobro } from "./aviso-cobros";
+import { ClaveApi } from "./clave-api";
 import { EsqueletoAjustes } from "./esqueletos";
 
 /**
@@ -407,6 +408,8 @@ export function Ajustes() {
           )}
         </div>
       )}
+
+      <ClaveApi />
 
       <p className="nota mt-4 max-w-[62ch]">
         Los cambios se ven en la web enseguida: las páginas públicas leen esto

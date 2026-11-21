@@ -124,10 +124,12 @@ servidor, y la descarga en iPhone abre el menú de guardar en la galería.
 | `/admin/cuentas` | clave del panel | Cuentas de pago |
 | `/admin/notificaciones` | clave del panel | Bandeja de emails, con la cola de los envíos en masa |
 | `/admin/notificaciones/correo` | clave del panel | Dominios y entrega: salud del correo, dominios de Resend, remitentes, ritmo |
-| `/admin/ajustes` | clave del panel | WhatsApp, Instagram, contacto, email de avisos, sonido al cobrar |
+| `/admin/ajustes` | clave del panel | WhatsApp, Instagram, contacto, email de avisos, sonido al cobrar, clave de la API para bots |
 | `/api/webhooks/talo` | Talo | Aviso de transferencia |
 | `/api/webhooks/mercadopago` | Mercado Pago | Aviso de pago (firma verificada) |
 | `/api/webhooks/resend` | Resend | Entregas, rebotes y quejas (firma verificada) |
+| `/api/v1/cursos` | clave de la API | Los cursos en los que un bot puede dar de alta |
+| `/api/v1/alumnos` | clave de la API | Alta de un alumno con su invitación, sin duplicar ([docs/api.md](docs/api.md)) |
 | `/api/oauth/mercadopago` | Mercado Pago | Vuelta de la vinculación |
 | `/api/galeria/[fotoId]` | con permiso | Sirve una foto privada, firmada |
 | `/api/contenido/[id]` | público | Sirve una pieza de la vitrina (o la miniatura de YouTube) |
@@ -220,6 +222,10 @@ demo y tampoco mira `demoAbierta()`: es la segunda excepción deliberada.
   Sin el `state`, alguien podría hacernos canjear un código suyo y quedar
   cobrando en su cuenta.
 - **Galerías** — el permiso se chequea al servir cada archivo, no en la pantalla.
+- **API para bots.** Una sola clave, generada en Ajustes y mostrada una vez; en
+  la base queda su huella SHA-256. Generar otra corta la anterior. Los fallos
+  cuentan para el mismo freno por IP que el login, y las altas nuevas tienen un
+  tope de 60 por hora contra un bot que se descontrola.
 
 ### Al desplegar
 
@@ -399,6 +405,13 @@ junta todo lo que decide si un correo llega:
 
 El plan de Resend se elige arriba del medidor de la bandeja. El medidor corta
 el día a medianoche UTC, que es cuando Resend reinicia el tope.
+
+## API para bots
+
+El bot de WhatsApp da de alta alumnos con dos pedidos: la lista de cursos y el
+alta, que es lo mismo que el botón Agregar alumno, invitación incluida. La
+clave se genera en **Ajustes > Conexión para bots**. El contrato completo, con
+las respuestas y qué hacer con cada una, está en [docs/api.md](docs/api.md).
 
 ---
 
